@@ -37,6 +37,7 @@ export const THEMES = {
     lead: '#8e9099',
     error: '#d1242f',
     warning: '#bf8700',
+    select: '#0a7ea4',
   },
   dark: {
     substrate: '#2a2418',
@@ -55,6 +56,7 @@ export const THEMES = {
     lead: '#6a6d75',
     error: '#ff7b72',
     warning: '#e3b341',
+    select: '#3fc9f0',
   },
 };
 
@@ -167,6 +169,20 @@ function bodyFor(part, pts, c) {
 
 // --- the renderer ------------------------------------------------------------
 
+// Every layer is visible unless it is switched off. A partial `layers` object is
+// merged over these, so an old call site and a saved project that predates the
+// feature both open with everything shown.
+export const DEFAULT_LAYERS = {
+  copper: true,
+  breaks: true,
+  holes: true,
+  wires: true,
+  links: true,
+  components: true,
+  labels: true,
+  drc: true,
+};
+
 export function renderBoard(project, opts = {}) {
   const {
     view = 'top',
@@ -174,13 +190,26 @@ export function renderBoard(project, opts = {}) {
     highlightNet = null,
     findings = [],
     selection = null,
+    layers = {},
   } = opts;
 
+  const L = { ...DEFAULT_LAYERS, ...layers };
   const c = THEMES[theme] ?? THEMES.light;
   const b = project.board;
   const { w, h } = boardSizeMm(b);
   const under = view === 'underside';
   const mx = (x) => (under ? w - x : x);
+
+  // Is this object the selected one? Breaks are addressed by "row,x" because a
+  // cut has no ref of its own — it is identified by where it is.
+  const isSel = (kind, ref) => !!selection && selection.kind === kind
+    && String(selection.ref) === String(ref);
+
+  // The halo is a separate element painted BEFORE its object, never a style
+  // change on the object itself. A style change is invisible on a part whose
+  // body already fills its bounds — the DIP, which is exactly the case where
+  // telling parts apart matters most.
+  const halo = (ref, body) => `<g data-kind="selection" data-ref="${esc(ref)}">${body}</g>`;
 
   const segs = segments(b, project.breaks ?? []);
   const { segmentNet } = highlightNet ? netsFor(project) : { segmentNet: {} };
@@ -196,52 +225,76 @@ export function renderBoard(project, opts = {}) {
   // 2. copper — one rect per segment. On the top view the copper is under the
   //    board, so it is drawn faint; on the underside it is what you are looking at.
   const copperFill = under ? c.copper : c.copperDim;
-  for (const g of segs) {
-    const lit = highlightNet && segmentNet[g.id] === highlightNet;
-    const left = g.x0 * PITCH_MM + (g.x0 > 0 ? TRACK_GAP_MM / 2 : 0);
-    const right = (g.x1 + 1) * PITCH_MM - (g.x1 < b.cols - 1 ? TRACK_GAP_MM / 2 : 0);
-    const y = holeToMm(0, g.row).y - TRACK_W_MM / 2;
-    const x = under ? w - right : left;
-    out.push(`<rect data-kind="copper" data-seg="${g.id}"`
-      + `${lit ? ' data-highlight="true"' : ''}`
-      + ` x="${n(x)}" y="${n(y)}" width="${n(right - left)}" height="${TRACK_W_MM}"`
-      + ` fill="${lit ? c.copperLit : copperFill}" opacity="${under ? 1 : 0.55}"/>`);
+  if (L.copper) {
+    for (const g of segs) {
+      const lit = highlightNet && segmentNet[g.id] === highlightNet;
+      const left = g.x0 * PITCH_MM + (g.x0 > 0 ? TRACK_GAP_MM / 2 : 0);
+      const right = (g.x1 + 1) * PITCH_MM - (g.x1 < b.cols - 1 ? TRACK_GAP_MM / 2 : 0);
+      const y = holeToMm(0, g.row).y - TRACK_W_MM / 2;
+      const x = under ? w - right : left;
+      out.push(`<rect data-kind="copper" data-seg="${g.id}"`
+        + `${lit ? ' data-highlight="true"' : ''}`
+        + ` x="${n(x)}" y="${n(y)}" width="${n(right - left)}" height="${TRACK_W_MM}"`
+        + ` fill="${lit ? c.copperLit : copperFill}" opacity="${under ? 1 : 0.55}"/>`);
+    }
   }
 
   // 3. break markers. A break cuts BETWEEN hole x and hole x+1, so its centre is
   //    on the boundary at (x+1)*pitch — never on a hole.
-  for (const br of project.breaks ?? []) {
-    const bx = (br.x + 1) * PITCH_MM;
-    const y = holeToMm(0, br.row).y;
-    out.push(`<rect data-kind="break" data-break="${br.row},${br.x}" data-x="${n(bx)}"`
-      + ` x="${n(mx(bx) - TRACK_GAP_MM / 2)}" y="${n(y - TRACK_W_MM / 2 - 0.15)}"`
-      + ` width="${n(TRACK_GAP_MM)}" height="${n(TRACK_W_MM + 0.3)}" fill="${c.cut}"/>`);
+  if (L.breaks) {
+    for (const br of project.breaks ?? []) {
+      const bx = (br.x + 1) * PITCH_MM;
+      const y = holeToMm(0, br.row).y;
+      const ref = `${br.row},${br.x}`;
+      if (isSel('break', ref)) {
+        out.push(halo(ref, `<rect x="${n(mx(bx) - PITCH_MM * 0.5)}"`
+          + ` y="${n(y - PITCH_MM * 0.62)}" width="${n(PITCH_MM)}"`
+          + ` height="${n(PITCH_MM * 1.24)}" rx="${n(PITCH_MM * 0.2)}" fill="none"`
+          + ` stroke="${c.select}" stroke-width="${n(PITCH_MM * 0.16)}"/>`));
+      }
+      out.push(`<rect data-kind="break" data-break="${ref}" data-x="${n(bx)}"`
+        + `${isSel('break', ref) ? ' data-selected="true"' : ''}`
+        + ` x="${n(mx(bx) - TRACK_GAP_MM / 2)}" y="${n(y - TRACK_W_MM / 2 - 0.15)}"`
+        + ` width="${n(TRACK_GAP_MM)}" height="${n(TRACK_W_MM + 0.3)}" fill="${c.cut}"/>`);
+    }
   }
 
   // 4. holes
-  for (let row = 0; row < b.rows; row += 1) {
-    for (let col = 0; col < b.cols; col += 1) {
-      const p = holeToMm(col, row);
-      out.push(`<circle data-kind="hole" data-hole="${col},${row}"`
-        + ` cx="${n(mx(p.x))}" cy="${n(p.y)}" r="${n(HOLE_DIA_MM / 2)}"`
-        + ` fill="${c.hole}" stroke="${c.holeRing}" stroke-width="0.08"/>`);
+  if (L.holes) {
+    for (let row = 0; row < b.rows; row += 1) {
+      for (let col = 0; col < b.cols; col += 1) {
+        const p = holeToMm(col, row);
+        out.push(`<circle data-kind="hole" data-hole="${col},${row}"`
+          + ` cx="${n(mx(p.x))}" cy="${n(p.y)}" r="${n(HOLE_DIA_MM / 2)}"`
+          + ` fill="${c.hole}" stroke="${c.holeRing}" stroke-width="0.08"/>`);
+      }
     }
   }
 
   // 5. pen wires — insulated, so they may cross each other freely.
-  for (const wire of project.wires ?? []) {
-    if (!wire.from || !wire.to) continue;
-    const a = holeToMm(wire.from.col, wire.from.row);
-    const z = holeToMm(wire.to.col, wire.to.row);
-    const sel = selection && selection.kind === 'wire' && selection.ref === wire.ref;
-    out.push(`<line data-kind="wire" data-ref="${esc(wire.ref)}"`
-      + ` x1="${n(mx(a.x))}" y1="${n(a.y)}" x2="${n(mx(z.x))}" y2="${n(z.y)}"`
-      + ` stroke="${c.wire}" stroke-width="${n(PITCH_MM * (sel ? 0.3 : 0.2))}"`
-      + ' stroke-linecap="round" opacity="0.9"/>');
-    out.push(`<text data-kind="wire-label" data-ref="${esc(wire.ref)}"`
-      + ` x="${n((mx(a.x) + mx(z.x)) / 2)}" y="${n((a.y + z.y) / 2 - 0.5)}"`
-      + ` font-size="${n(PITCH_MM * 0.62)}" fill="${c.wireInk}" text-anchor="middle"`
-      + ` font-family="sans-serif">${esc(wire.ref)}</text>`);
+  if (L.wires) {
+    for (const wire of project.wires ?? []) {
+      if (!wire.from || !wire.to) continue;
+      const a = holeToMm(wire.from.col, wire.from.row);
+      const z = holeToMm(wire.to.col, wire.to.row);
+      const sel = isSel('wire', wire.ref);
+      if (sel) {
+        out.push(halo(wire.ref, `<line x1="${n(mx(a.x))}" y1="${n(a.y)}"`
+          + ` x2="${n(mx(z.x))}" y2="${n(z.y)}" stroke="${c.select}"`
+          + ` stroke-width="${n(PITCH_MM * 0.52)}" stroke-linecap="round" opacity="0.75"/>`));
+      }
+      out.push(`<line data-kind="wire" data-ref="${esc(wire.ref)}"`
+        + `${sel ? ' data-selected="true"' : ''}`
+        + ` x1="${n(mx(a.x))}" y1="${n(a.y)}" x2="${n(mx(z.x))}" y2="${n(z.y)}"`
+        + ` stroke="${c.wire}" stroke-width="${n(PITCH_MM * (sel ? 0.3 : 0.2))}"`
+        + ' stroke-linecap="round" opacity="0.9"/>');
+      if (L.labels) {
+        out.push(`<text data-kind="wire-label" data-ref="${esc(wire.ref)}"`
+          + ` x="${n((mx(a.x) + mx(z.x)) / 2)}" y="${n((a.y + z.y) / 2 - 0.5)}"`
+          + ` font-size="${n(PITCH_MM * 0.62)}" fill="${c.wireInk}" text-anchor="middle"`
+          + ` font-family="sans-serif">${esc(wire.ref)}</text>`);
+      }
+    }
   }
 
   // 6. components. The underside view drops bodies — you are looking at the
@@ -249,6 +302,12 @@ export function renderBoard(project, opts = {}) {
   for (const pl of project.placements ?? []) {
     let part;
     try { part = getPart(pl.part); } catch { continue; }
+
+    // Links and components are separate layers: a link is a connection you are
+    // checking, a component is a part you are placing. Hiding one must not hide
+    // the other.
+    if (!(part.kind === 'link' ? L.links : L.components)) continue;
+
     const pins = resolvePins([pl], getPart);
     const pts = pins.map((p) => {
       const q = holeToMm(p.col, p.row);
@@ -256,7 +315,20 @@ export function renderBoard(project, opts = {}) {
     });
     if (!pts.length) continue;
 
-    const sel = selection && selection.kind === 'part' && selection.ref === pl.ref;
+    const sel = isSel('part', pl.ref);
+    if (sel) {
+      const pad = PITCH_MM * 0.62;
+      const x0 = Math.min(...pts.map((p) => p.x)) - pad;
+      const y0 = Math.min(...pts.map((p) => p.y)) - pad;
+      const bw = Math.max(...pts.map((p) => p.x)) - Math.min(...pts.map((p) => p.x)) + pad * 2;
+      const bh = Math.max(...pts.map((p) => p.y)) - Math.min(...pts.map((p) => p.y)) + pad * 2;
+      out.push(halo(pl.ref, `<rect x="${n(x0)}" y="${n(y0)}" width="${n(bw)}"`
+        + ` height="${n(bh)}" rx="${n(PITCH_MM * 0.3)}" fill="${c.select}" opacity="0.22"/>`
+        + `<rect x="${n(x0)}" y="${n(y0)}" width="${n(bw)}" height="${n(bh)}"`
+        + ` rx="${n(PITCH_MM * 0.3)}" fill="none" stroke="${c.select}"`
+        + ` stroke-width="${n(PITCH_MM * 0.14)}"/>`));
+    }
+
     out.push(`<g data-kind="part" data-ref="${esc(pl.ref)}"`
       + `${sel ? ' data-selected="true"' : ''}>`);
 
@@ -267,10 +339,12 @@ export function renderBoard(project, opts = {}) {
           + ` y2="${n(pts[1].y)}" stroke="${c.lead}" stroke-width="${n(PITCH_MM * 0.14)}"/>`);
       }
       out.push(bodyFor(part, pts, c));
-      out.push(`<text data-kind="part-label" data-ref="${esc(pl.ref)}"`
-        + ` x="${n(pts[0].x)}" y="${n(Math.min(...pts.map((p) => p.y)) - PITCH_MM * 0.5)}"`
-        + ` font-size="${n(PITCH_MM * 0.6)}" fill="${c.ink}" text-anchor="middle"`
-        + ` font-family="sans-serif">${esc(pl.value ? `${pl.ref} ${pl.value}` : pl.ref)}</text>`);
+      if (L.labels) {
+        out.push(`<text data-kind="part-label" data-ref="${esc(pl.ref)}"`
+          + ` x="${n(pts[0].x)}" y="${n(Math.min(...pts.map((p) => p.y)) - PITCH_MM * 0.5)}"`
+          + ` font-size="${n(PITCH_MM * 0.6)}" fill="${c.ink}" text-anchor="middle"`
+          + ` font-family="sans-serif">${esc(pl.value ? `${pl.ref} ${pl.value}` : pl.ref)}</text>`);
+      }
     }
     for (const p of pts) {
       out.push(`<circle data-kind="pad" cx="${n(p.x)}" cy="${n(p.y)}"`
@@ -280,16 +354,18 @@ export function renderBoard(project, opts = {}) {
   }
 
   // 7. DRC markers
-  for (const f of findings) {
-    if (f.severity === 'info') continue;
-    for (const hole of f.holes ?? []) {
-      if (!hole || hole.col == null) continue;
-      const p = holeToMm(hole.col, hole.row);
-      out.push(`<circle data-kind="drc" data-code="${esc(f.code)}"`
-        + ` data-severity="${f.severity}" cx="${n(mx(p.x))}" cy="${n(p.y)}"`
-        + ` r="${n(PITCH_MM * 0.45)}" fill="none"`
-        + ` stroke="${f.severity === 'error' ? c.error : c.warning}"`
-        + ` stroke-width="${n(PITCH_MM * 0.11)}"/>`);
+  if (L.drc) {
+    for (const f of findings) {
+      if (f.severity === 'info') continue;
+      for (const hole of f.holes ?? []) {
+        if (!hole || hole.col == null) continue;
+        const p = holeToMm(hole.col, hole.row);
+        out.push(`<circle data-kind="drc" data-code="${esc(f.code)}"`
+          + ` data-severity="${f.severity}" cx="${n(mx(p.x))}" cy="${n(p.y)}"`
+          + ` r="${n(PITCH_MM * 0.45)}" fill="none"`
+          + ` stroke="${f.severity === 'error' ? c.error : c.warning}"`
+          + ` stroke-width="${n(PITCH_MM * 0.11)}"/>`);
+      }
     }
   }
 

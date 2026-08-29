@@ -1,0 +1,2 @@
+$ node tests/render/test_layers_and_selection.mjs
+layers+selection: 21/21 checks passed

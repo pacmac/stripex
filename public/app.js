@@ -5,12 +5,26 @@
 // cannot drift apart. Hit-testing reads data-* attributes off event.target
 // rather than recomputing layout — one description of where things are.
 
-import { renderBoard, findingsFor, netsFor, runList } from '/src/render/svg.js';
+import { renderBoard, findingsFor, netsFor, runList, DEFAULT_LAYERS } from '/src/render/svg.js';
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
 import { partList, getPart } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STORE_KEY = 'stripex.project';
+const LAYER_KEY = 'stripex.layers';
+
+// Order and wording of the layer list. The swatch is the colour that layer
+// actually paints, so the list reads as the drawing rather than as a glossary.
+const LAYER_ROWS = [
+  ['components', 'Components', '#3d4450'],
+  ['links', 'Wire links', '#8e9099'],
+  ['wires', 'Pen wires', '#1f6feb'],
+  ['breaks', 'Track breaks', '#8a7a5c'],
+  ['copper', 'Copper strips', '#b87333'],
+  ['holes', 'Holes', '#3a3226'],
+  ['labels', 'Refs and values', '#241f18'],
+  ['drc', 'Check markers', '#d1242f'],
+];
 
 const state = {
   project: load() ?? makeProject({ cols: 25, rows: 20 }),
@@ -24,9 +38,22 @@ const state = {
   highlightNet: null,
   wireStart: null,
   drag: null,
+  layers: loadLayers(),
   undo: [],
   redo: [],
 };
+
+// Layer visibility is a view preference, not part of the design, so it lives
+// beside the project rather than inside it — two people opening the same board
+// should not inherit each other's hidden layers.
+function loadLayers() {
+  try {
+    const raw = localStorage.getItem(LAYER_KEY);
+    return raw ? { ...DEFAULT_LAYERS, ...JSON.parse(raw) } : { ...DEFAULT_LAYERS };
+  } catch {
+    return { ...DEFAULT_LAYERS };
+  }
+}
 
 // ------------------------------------------------------------------ persistence
 
@@ -97,13 +124,44 @@ function draw(message) {
     highlightNet: state.highlightNet,
     findings: lastFindings,
     selection: state.selection,
+    layers: state.layers,
   });
 
   paintFindings(lastFindings);
   paintNets();
   paintRunList();
   paintInspector();
+  paintLayers();
+  markSelectedRows();
   if (message) say(message);
+}
+
+function paintLayers() {
+  const hidden = LAYER_ROWS.filter(([k]) => !state.layers[k]).length;
+  $('#layers').innerHTML = LAYER_ROWS.map(([key, label, colour]) => `
+    <label class="${state.layers[key] ? '' : 'is-off'}">
+      <input type="checkbox" data-layer="${key}" ${state.layers[key] ? 'checked' : ''}>
+      <span class="swatch" style="background:${colour}"></span>
+      <span>${label}</span>
+    </label>`).join('');
+  $('#layersAll').hidden = hidden === 0;
+}
+
+// The selection has to be visible in the panels too, not only on the board —
+// otherwise a selected wire is findable in the drawing but not in the run list
+// you are building the board from.
+function markSelectedRows() {
+  for (const row of document.querySelectorAll('.tab-body .row')) {
+    row.removeAttribute('data-selected');
+  }
+  const sel = state.selection;
+  if (!sel) return;
+  for (const row of document.querySelectorAll(
+    `[data-wire="${CSS.escape(sel.ref)}"], .tab-body .row`,
+  )) {
+    const ref = row.dataset.wire ?? row.querySelector('.ref')?.textContent?.trim();
+    if (ref === sel.ref) row.setAttribute('data-selected', 'true');
+  }
 }
 
 function say(msg) {
@@ -181,6 +239,25 @@ function paintInspector() {
   const sel = state.selection;
   if (!sel) { el.innerHTML = '<p class="empty">Nothing selected.</p>'; return; }
 
+  if (sel.kind === 'break') {
+    const [row, x] = sel.ref.split(',').map(Number);
+    el.innerHTML = `
+      <div class="field"><span>Break</span><span class="mono">row ${row}</span></div>
+      <div class="field"><span>Cuts between</span>
+        <span class="mono">hole ${x} and ${x + 1}</span></div>
+      <p class="hint">A break is a cut in the gap between two holes — both holes
+        keep their copper.</p>
+      <button id="delBreak">Remove this break</button>`;
+    $('#delBreak')?.addEventListener('click', () => {
+      state.project.breaks = state.project.breaks.filter(
+        (b) => !(b.row === row && b.x === x),
+      );
+      state.selection = null;
+      commit(`restored row ${row} gap ${x}`);
+    });
+    return;
+  }
+
   if (sel.kind === 'wire') {
     const w = state.project.wires.find((x) => x.ref === sel.ref);
     if (!w) { el.innerHTML = '<p class="empty">Gone.</p>'; return; }
@@ -243,8 +320,17 @@ function pointerHole(evt) {
 
 function onBoardClick(evt) {
   const p = state.project;
-  const hole = hitHole(evt.target);
   const pos = pointerHole(evt);
+
+  // Hit-test the drawn hole first, and fall back to the pointer arithmetic when
+  // there is no element to hit. Without the fallback, hiding the holes layer
+  // silently disables the place and wire tools — the layer would switch off two
+  // tools as well as a picture.
+  const hole = hitHole(evt.target) ?? (
+    pos && pos.col >= 0 && pos.row >= 0 && pos.col < p.board.cols && pos.row < p.board.rows
+      ? { col: pos.col, row: pos.row }
+      : null
+  );
 
   switch (state.tool) {
     case 'place': {
@@ -324,17 +410,23 @@ function onBoardClick(evt) {
     default: {
       const partEl = evt.target.closest('[data-kind="part"]');
       const wireEl = evt.target.closest('[data-kind="wire"], [data-kind="wire-label"]');
+      const breakEl = evt.target.closest('[data-kind="break"]');
       if (partEl) state.selection = { kind: 'part', ref: partEl.getAttribute('data-ref') };
       else if (wireEl) state.selection = { kind: 'wire', ref: wireEl.getAttribute('data-ref') };
-      else state.selection = null;
+      else if (breakEl) {
+        state.selection = { kind: 'break', ref: breakEl.getAttribute('data-break') };
+      } else state.selection = null;
 
       const copper = evt.target.closest('[data-kind="copper"]');
-      if (copper && !partEl && !wireEl) {
+      if (copper && !partEl && !wireEl && !breakEl) {
         const { segmentNet } = netsFor(p);
         const netId = segmentNet[copper.getAttribute('data-seg')];
         state.highlightNet = state.highlightNet === netId ? null : netId;
       }
-      draw(state.selection ? `selected ${state.selection.ref}` : '');
+      const what = { part: 'part', wire: 'wire', break: 'break at' };
+      draw(state.selection
+        ? `selected ${what[state.selection.kind]} ${state.selection.ref}`
+        : '');
     }
   }
 }
@@ -415,6 +507,21 @@ function boot() {
     }
 
     if (evt.target.closest('#boardWrap')) onBoardClick(evt);
+  });
+
+  $('#layers').addEventListener('change', (e) => {
+    const key = e.target.dataset.layer;
+    if (!key) return;
+    state.layers[key] = e.target.checked;
+    try { localStorage.setItem(LAYER_KEY, JSON.stringify(state.layers)); } catch { /* full */ }
+    const off = LAYER_ROWS.filter(([k]) => !state.layers[k]).map(([, l]) => l.toLowerCase());
+    draw(off.length ? `hidden: ${off.join(', ')}` : 'all layers shown');
+  });
+
+  $('#layersAll').addEventListener('click', () => {
+    state.layers = { ...DEFAULT_LAYERS };
+    try { localStorage.setItem(LAYER_KEY, JSON.stringify(state.layers)); } catch { /* full */ }
+    draw('all layers shown');
   });
 
   $('#span').addEventListener('change', (e) => {

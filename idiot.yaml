@@ -81,3 +81,34 @@
     runs: 1
   trial: null
   fix: null
+- id: nothing-can-be-hidden-and-nothing-looks-selected
+  type: bug
+  what: Every layer is always drawn so a crowded board cannot be read, and the selected object looks identical
+    to every other object
+  spec: docs/specs/layers-and-selection.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  - public/index.html
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/render/test_layers_and_selection.mjs
+    criterion: 'tests/render/test_layers_and_selection.mjs passes: each layer hides independently, and
+      a selected part, wire or break draws a visible halo'
+    runs: 1
+  trial:
+    file: .proofs/nothing-can-be-hidden-and-nothing-looks-selected.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T20:19:33.120'
+    commit: 6a0c10e-dirty
+  fix:
+    file: .proofs/nothing-can-be-hidden-and-nothing-looks-selected.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T20:23:04.008'
+    commit: 6a0c10e-dirty
