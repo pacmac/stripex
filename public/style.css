@@ -1,0 +1,264 @@
+/* stripex — both themes.
+   Tokens are defined on bare :root so nothing has its ONLY definition inside a
+   media query; dark redefines the same names. Copper stays copper in both. */
+
+:root {
+  color-scheme: light;
+  --bg: #f4f1ea;
+  --panel: #fbfaf7;
+  --panel-2: #eeebe3;
+  --line: #d8d2c4;
+  --ink: #241f18;
+  --ink-dim: #6d6555;
+  --accent: #b87333;
+  --accent-ink: #fff;
+  --stage: #ded8c8;
+  --error: #d1242f;
+  --warning: #bf8700;
+  --ok: #1a7f37;
+  --wire: #1f6feb;
+  --radius: 7px;
+  --bar-h: 46px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #16130d;
+  --panel: #1e1a13;
+  --panel-2: #262119;
+  --line: #3a3327;
+  --ink: #ece5d6;
+  --ink-dim: #9a8f7a;
+  --accent: #c9803d;
+  --accent-ink: #16130d;
+  --stage: #100e09;
+  --error: #ff7b72;
+  --warning: #e3b341;
+  --ok: #4ac26b;
+  --wire: #58a6ff;
+}
+
+* { box-sizing: border-box; }
+
+html { overflow: hidden; }
+
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--ink);
+  font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------------ toolbar */
+
+/* The toolbar is wider than a 1280 laptop at full label length. It scrolls
+   inside itself rather than pushing the page sideways — a horizontally
+   scrolling page would move the board out from under the pointer mid-click. */
+.bar {
+  height: var(--bar-h);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.bar > * { flex: 0 0 auto; }
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+.sep { width: 1px; height: 22px; background: var(--line); }
+.spacer { flex: 1; }
+.group, .tools { display: flex; align-items: center; gap: 5px; }
+
+button, select, input {
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 5px 9px;
+}
+
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+
+.tool { display: inline-flex; align-items: center; gap: 6px; }
+.tool span { font-size: 14px; line-height: 1; }
+.tool.is-on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+label { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-dim); }
+input[type="number"] { width: 62px; }
+
+/* ------------------------------------------------------------------- layout */
+
+main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 210px 1fr 290px;
+}
+
+.panel {
+  background: var(--panel);
+  overflow-y: auto;
+  padding: 10px;
+  min-width: 0;
+}
+.panel.left { border-right: 1px solid var(--line); }
+.panel.right { border-left: 1px solid var(--line); padding: 0; }
+
+.panel h2 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-dim);
+  margin: 2px 0 8px;
+}
+
+.stage {
+  background: var(--stage);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.board-wrap {
+  flex: 1;
+  min-height: 0;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+
+.board-wrap svg {
+  max-width: 100%;
+  max-height: 100%;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.28));
+  touch-action: none;
+}
+
+.status {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  min-height: 26px;
+}
+
+/* ------------------------------------------------------------------ palette */
+
+.palette { display: flex; flex-direction: column; gap: 3px; }
+
+.palette button {
+  text-align: left;
+  padding: 6px 8px;
+  background: transparent;
+  border-color: transparent;
+}
+.palette button:hover { background: var(--panel-2); }
+.palette button.is-on {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.palette .kind {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.65;
+  margin-left: 5px;
+}
+
+.span-row { margin-top: 10px; flex-wrap: wrap; }
+.hint { color: var(--ink-dim); font-size: 11.5px; }
+#paletteHint { margin-top: 10px; }
+
+/* --------------------------------------------------------------------- tabs */
+
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tab {
+  flex: 1;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 9px 4px;
+  color: var(--ink-dim);
+  border-bottom: 2px solid transparent;
+}
+.tab.is-on { color: var(--ink); border-bottom-color: var(--accent); }
+
+.tab-body { padding: 9px 10px; }
+
+.row {
+  display: flex;
+  gap: 7px;
+  align-items: baseline;
+  padding: 5px 6px;
+  border-radius: 5px;
+  cursor: default;
+}
+.row:hover { background: var(--panel-2); }
+.row .ref { font-weight: 600; min-width: 34px; }
+.row .msg { flex: 1; min-width: 0; }
+.row.error .ref { color: var(--error); }
+.row.warning .ref { color: var(--warning); }
+.row.info .ref { color: var(--ink-dim); }
+
+.empty { color: var(--ink-dim); padding: 6px; }
+.tally { display: flex; gap: 10px; padding: 0 6px 8px; font-size: 12px; }
+.tally b.error { color: var(--error); }
+.tally b.warning { color: var(--warning); }
+.tally b.ok { color: var(--ok); }
+
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+.fold { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 6px; }
+.fold summary {
+  cursor: pointer;
+  color: var(--ink-dim);
+  padding: 4px 6px;
+  border-radius: 5px;
+  list-style-position: inside;
+}
+.fold summary:hover { background: var(--panel-2); }
+
+.field { display: flex; justify-content: space-between; gap: 8px; padding: 4px 6px; }
+.field span:first-child { color: var(--ink-dim); }
+
+.banner {
+  margin: 0;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--warning) 16%, var(--panel));
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+
+@media (max-width: 1400px) {
+  main { grid-template-columns: 180px 1fr 250px; }
+}
+
+@media (max-width: 1100px) {
+  main { grid-template-columns: 160px 1fr 230px; }
+  .tool span { display: none; }
+}

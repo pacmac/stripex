@@ -1,0 +1,132 @@
+- generic [active] [ref=e1]:
+  - paragraph [ref=e2]: Project storage is not built yet — this board lives in this browser only. Use Save to download a copy.
+  - banner [ref=e3]:
+    - generic [ref=e4]: stripex
+    - toolbar "Tools" [ref=e5]:
+      - button "▶ Select" [ref=e6] [cursor=pointer]:
+        - generic [ref=e7]: ▶
+        - text: Select
+      - button "⬒ Place" [ref=e8] [cursor=pointer]:
+        - generic [ref=e9]: ⬒
+        - text: Place
+      - button "✂ Break" [ref=e10] [cursor=pointer]:
+        - generic [ref=e11]: ✂
+        - text: Break
+      - button "⌇ Wire" [ref=e12] [cursor=pointer]:
+        - generic [ref=e13]: ⌇
+        - text: Wire
+      - button "⌫ Delete" [ref=e14] [cursor=pointer]:
+        - generic [ref=e15]: ⌫
+        - text: Delete
+    - generic [ref=e16]:
+      - button "Rotate" [ref=e17] [cursor=pointer]
+      - button "Undo" [ref=e18] [cursor=pointer]
+      - button "Redo" [ref=e19] [cursor=pointer]
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - text: View
+        - combobox "View" [ref=e22]:
+          - option "Top (component side)" [selected]
+          - option "Underside (solder side)"
+      - generic [ref=e23]:
+        - text: Board
+        - spinbutton "Board × 20" [ref=e24]: "25"
+        - text: ×
+        - spinbutton "rows" [ref=e25]: "20"
+    - generic [ref=e26]:
+      - button "◐" [ref=e27] [cursor=pointer]
+      - button "Save" [ref=e28] [cursor=pointer]
+      - button "Load" [ref=e29] [cursor=pointer]
+      - button "Export SVG" [ref=e30] [cursor=pointer]
+  - main [ref=e31]:
+    - complementary [ref=e32]:
+      - heading "Parts" [level=2] [ref=e33]
+      - generic [ref=e34]:
+        - button "Wire linklink" [ref=e35] [cursor=pointer]
+        - button "Resistor (axial)" [ref=e36] [cursor=pointer]
+        - button "Diode (axial)" [ref=e37] [cursor=pointer]
+        - button "Capacitor (ceramic)" [ref=e38] [cursor=pointer]
+        - button "Capacitor (electrolytic)" [ref=e39] [cursor=pointer]
+        - button "LED" [ref=e40] [cursor=pointer]
+        - button "Transistor (TO-92)" [ref=e41] [cursor=pointer]
+        - button "Regulator / transistor (TO-220)" [ref=e42] [cursor=pointer]
+        - button "DIP / IC socket" [ref=e43] [cursor=pointer]
+        - button "Pin header" [ref=e44] [cursor=pointer]
+        - button "Mounting hole" [ref=e45] [cursor=pointer]
+      - generic [ref=e46]:
+        - text: Span
+        - spinbutton "Span lead pitch in holes" [ref=e47]: "4"
+        - generic [ref=e48]: lead pitch in holes
+      - paragraph [ref=e49]: A component sits between nets — it never joins two strips.
+    - paragraph [ref=e574]: Click a part or wire to select it; click a strip to highlight its net.
+    - complementary [ref=e575]:
+      - tablist [ref=e576]:
+        - button "Checks" [ref=e577] [cursor=pointer]
+        - button "Nets" [ref=e578] [cursor=pointer]
+        - button "Run list" [ref=e579] [cursor=pointer]
+        - button "Selected" [ref=e580] [cursor=pointer]
+      - generic [ref=e581]:
+        - generic [ref=e582]:
+          - generic [ref=e583]: 0 errors
+          - generic [ref=e584]: 0 warnings
+          - generic [ref=e585]: 20 notes
+        - generic [ref=e586]:
+          - generic [ref=e587]: ·
+          - generic [ref=e588]: row 0 holes 0-24 carries nothing
+        - generic [ref=e589]:
+          - generic [ref=e590]: ·
+          - generic [ref=e591]: row 1 holes 0-24 carries nothing
+        - generic [ref=e592]:
+          - generic [ref=e593]: ·
+          - generic [ref=e594]: row 2 holes 0-24 carries nothing
+        - generic [ref=e595]:
+          - generic [ref=e596]: ·
+          - generic [ref=e597]: row 3 holes 0-24 carries nothing
+        - generic [ref=e598]:
+          - generic [ref=e599]: ·
+          - generic [ref=e600]: row 4 holes 0-24 carries nothing
+        - generic [ref=e601]:
+          - generic [ref=e602]: ·
+          - generic [ref=e603]: row 5 holes 0-24 carries nothing
+        - generic [ref=e604]:
+          - generic [ref=e605]: ·
+          - generic [ref=e606]: row 6 holes 0-24 carries nothing
+        - generic [ref=e607]:
+          - generic [ref=e608]: ·
+          - generic [ref=e609]: row 7 holes 0-24 carries nothing
+        - generic [ref=e610]:
+          - generic [ref=e611]: ·
+          - generic [ref=e612]: row 8 holes 0-24 carries nothing
+        - generic [ref=e613]:
+          - generic [ref=e614]: ·
+          - generic [ref=e615]: row 9 holes 0-24 carries nothing
+        - generic [ref=e616]:
+          - generic [ref=e617]: ·
+          - generic [ref=e618]: row 10 holes 0-24 carries nothing
+        - generic [ref=e619]:
+          - generic [ref=e620]: ·
+          - generic [ref=e621]: row 11 holes 0-24 carries nothing
+        - generic [ref=e622]:
+          - generic [ref=e623]: ·
+          - generic [ref=e624]: row 12 holes 0-24 carries nothing
+        - generic [ref=e625]:
+          - generic [ref=e626]: ·
+          - generic [ref=e627]: row 13 holes 0-24 carries nothing
+        - generic [ref=e628]:
+          - generic [ref=e629]: ·
+          - generic [ref=e630]: row 14 holes 0-24 carries nothing
+        - generic [ref=e631]:
+          - generic [ref=e632]: ·
+          - generic [ref=e633]: row 15 holes 0-24 carries nothing
+        - generic [ref=e634]:
+          - generic [ref=e635]: ·
+          - generic [ref=e636]: row 16 holes 0-24 carries nothing
+        - generic [ref=e637]:
+          - generic [ref=e638]: ·
+          - generic [ref=e639]: row 17 holes 0-24 carries nothing
+        - generic [ref=e640]:
+          - generic [ref=e641]: ·
+          - generic [ref=e642]: row 18 holes 0-24 carries nothing
+        - generic [ref=e643]:
+          - generic [ref=e644]: ·
+          - generic [ref=e645]: row 19 holes 0-24 carries nothing

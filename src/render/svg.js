@@ -1,0 +1,298 @@
+// The renderer: a project in, an SVG string out. No DOM, no state, no side effects.
+//
+// Three callers import this unchanged — the browser editor, the exporter and the
+// tests. That is why the editor can be checked in node: a renderer that only
+// exists as DOM mutations can only be checked by driving a browser, and a check
+// that needs a browser is a check that gets skipped.
+//
+// Every interactive element carries data-kind and either data-ref or data-hole.
+// The browser hit-tests by reading those off event.target, so there is exactly
+// one description of where things are — this file — rather than a second
+// geometry engine in the editor that can drift out of step with the picture.
+
+import {
+  PITCH_MM, TRACK_W_MM, TRACK_GAP_MM, HOLE_DIA_MM, boardSizeMm, holeToMm,
+} from '../model/geometry.js';
+import { segments } from '../net/segments.js';
+import { resolvePins } from '../model/rotate.js';
+import { nets as deriveNets, wireRunList } from '../net/derive.js';
+import { drc } from '../net/drc.js';
+import { getPart } from '../parts/library.js';
+
+export const THEMES = {
+  light: {
+    substrate: '#e8dcc0',
+    substrateEdge: '#c9b998',
+    copper: '#b87333',
+    copperDim: '#d9a878',
+    copperLit: '#ff9d3c',
+    hole: '#3a3226',
+    holeRing: '#f3ecdc',
+    cut: '#8a7a5c',
+    ink: '#241f18',
+    wire: '#1f6feb',
+    wireInk: '#0a3d91',
+    body: '#3d4450',
+    bodyInk: '#f5f6f8',
+    lead: '#8e9099',
+    error: '#d1242f',
+    warning: '#bf8700',
+  },
+  dark: {
+    substrate: '#2a2418',
+    substrateEdge: '#1a160e',
+    copper: '#9c6428',
+    copperDim: '#6b4620',
+    copperLit: '#ffb454',
+    hole: '#0d0b07',
+    holeRing: '#4a4133',
+    cut: '#5d5240',
+    ink: '#e8e2d4',
+    wire: '#58a6ff',
+    wireInk: '#a5d0ff',
+    body: '#c3c8d1',
+    bodyInk: '#1c1f26',
+    lead: '#6a6d75',
+    error: '#ff7b72',
+    warning: '#e3b341',
+  },
+};
+
+const n = (v) => Math.round(v * 1000) / 1000;
+const esc = (s) => String(s ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;');
+
+// --- derived views of a project, shared with the editor's panels -------------
+
+export function netsFor(project) {
+  const segs = segments(project.board, project.breaks ?? []);
+  const pins = resolvePins(project.placements ?? [], getPart);
+  return deriveNets(segs, pins, project.placements ?? [], getPart, project.wires ?? []);
+}
+
+export function findingsFor(project) {
+  return drc(project.board, project.breaks ?? [], project.placements ?? [],
+    getPart, project.wires ?? []);
+}
+
+export function runList(project) {
+  const segs = segments(project.board, project.breaks ?? []);
+  const { segmentNet } = netsFor(project);
+  return wireRunList(project.wires ?? [], segmentNet, segs);
+}
+
+// --- part bodies -------------------------------------------------------------
+//
+// Body dimensions in the library are in HOLE UNITS, so a part keeps its
+// proportions if the pitch constant is ever corrected.
+
+function bodyFor(part, pts, c) {
+  const shape = part.body?.shape ?? 'blob';
+  const a = pts[0];
+  const b = pts[pts.length - 1];
+  const mx = (a.x + b.x) / 2;
+  const my = (a.y + b.y) / 2;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy);
+  const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+
+  switch (shape) {
+    case 'axial': {
+      const bw = (part.body.bodyWidth ?? 0.42) * PITCH_MM * 2;
+      const bl = Math.max(len - 1.2 * PITCH_MM, PITCH_MM * 0.8);
+      const bar = part.body.polarised
+        ? `<rect x="${n(bl / 2 - bl * 0.14)}" y="${n(-bw / 2)}" width="${n(bl * 0.09)}"`
+          + ` height="${n(bw)}" fill="${c.bodyInk}"/>`
+        : '';
+      return `<g transform="translate(${n(mx)} ${n(my)}) rotate(${n(angle)})">`
+        + `<rect data-kind="part-body" x="${n(-bl / 2)}" y="${n(-bw / 2)}"`
+        + ` width="${n(bl)}" height="${n(bw)}" rx="${n(bw * 0.22)}" fill="${c.body}"/>`
+        + `${bar}</g>`;
+    }
+    case 'can':
+    case 'blob': {
+      const r = (part.body.radius ?? 1.0) * PITCH_MM * 0.5 + len / 2;
+      const mark = part.body.polarised
+        ? `<text x="${n(mx - r * 0.55)}" y="${n(my + r * 0.28)}" font-size="${n(r * 0.8)}"`
+          + ` fill="${c.bodyInk}" text-anchor="middle" font-family="sans-serif">+</text>`
+        : '';
+      return `<circle data-kind="part-body" cx="${n(mx)}" cy="${n(my)}" r="${n(r)}"`
+        + ` fill="${c.body}" opacity="0.92"/>${mark}`;
+    }
+    case 'd-package': {
+      const r = (part.body.radius ?? 1.1) * PITCH_MM;
+      return `<g transform="translate(${n(mx)} ${n(my)}) rotate(${n(angle)})">`
+        + `<path data-kind="part-body" d="M ${n(-r)} ${n(-r * 0.55)} A ${n(r)} ${n(r)} 0 1 0`
+        + ` ${n(-r)} ${n(r * 0.55)} Z" fill="${c.body}"/></g>`;
+    }
+    case 'tab': {
+      const w = (part.body.width ?? 3.2) * PITCH_MM * 0.5;
+      const d = (part.body.depth ?? 1.6) * PITCH_MM * 0.5;
+      return `<g transform="translate(${n(mx)} ${n(my)}) rotate(${n(angle)})">`
+        + `<rect data-kind="part-body" x="${n(-w / 2)}" y="${n(-d)}" width="${n(w)}"`
+        + ` height="${n(d * 1.1)}" rx="${n(PITCH_MM * 0.15)}" fill="${c.body}"/></g>`;
+    }
+    case 'dip': {
+      const xs = pts.map((p) => p.x);
+      const ys = pts.map((p) => p.y);
+      const pad = PITCH_MM * 0.42;
+      const x0 = Math.min(...xs) - pad;
+      const y0 = Math.min(...ys) - pad;
+      const w = Math.max(...xs) - Math.min(...xs) + pad * 2;
+      const h = Math.max(...ys) - Math.min(...ys) + pad * 2;
+      return `<rect data-kind="part-body" x="${n(x0)}" y="${n(y0)}" width="${n(w)}"`
+        + ` height="${n(h)}" rx="${n(PITCH_MM * 0.2)}" fill="${c.body}" opacity="0.95"/>`
+        + `<circle cx="${n(pts[0].x)}" cy="${n(pts[0].y)}" r="${n(PITCH_MM * 0.16)}"`
+        + ` fill="${c.bodyInk}"/>`;
+    }
+    case 'header': {
+      return pts.map((p) => `<rect data-kind="part-body" x="${n(p.x - PITCH_MM * 0.4)}"`
+        + ` y="${n(p.y - PITCH_MM * 0.4)}" width="${n(PITCH_MM * 0.8)}"`
+        + ` height="${n(PITCH_MM * 0.8)}" fill="${c.body}"/>`).join('');
+    }
+    case 'hole': {
+      return `<circle data-kind="part-body" cx="${n(a.x)}" cy="${n(a.y)}"`
+        + ` r="${n((part.body.radius ?? 1.4) * PITCH_MM * 0.5)}" fill="none"`
+        + ` stroke="${c.ink}" stroke-width="${n(PITCH_MM * 0.09)}" stroke-dasharray="1 1"/>`;
+    }
+    case 'line':
+    default:
+      return `<line data-kind="part-body" x1="${n(a.x)}" y1="${n(a.y)}" x2="${n(b.x)}"`
+        + ` y2="${n(b.y)}" stroke="${c.lead}" stroke-width="${n(PITCH_MM * 0.22)}"`
+        + ' stroke-linecap="round"/>';
+  }
+}
+
+// --- the renderer ------------------------------------------------------------
+
+export function renderBoard(project, opts = {}) {
+  const {
+    view = 'top',
+    theme = 'light',
+    highlightNet = null,
+    findings = [],
+    selection = null,
+  } = opts;
+
+  const c = THEMES[theme] ?? THEMES.light;
+  const b = project.board;
+  const { w, h } = boardSizeMm(b);
+  const under = view === 'underside';
+  const mx = (x) => (under ? w - x : x);
+
+  const segs = segments(b, project.breaks ?? []);
+  const { segmentNet } = highlightNet ? netsFor(project) : { segmentNet: {} };
+
+  const out = [];
+  out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}"`
+    + ` data-view="${view}" data-theme="${theme}" width="100%" height="100%">`);
+
+  // 1. substrate
+  out.push(`<rect data-kind="substrate" x="0" y="0" width="${n(w)}" height="${n(h)}"`
+    + ` fill="${c.substrate}" stroke="${c.substrateEdge}" stroke-width="0.2"/>`);
+
+  // 2. copper — one rect per segment. On the top view the copper is under the
+  //    board, so it is drawn faint; on the underside it is what you are looking at.
+  const copperFill = under ? c.copper : c.copperDim;
+  for (const g of segs) {
+    const lit = highlightNet && segmentNet[g.id] === highlightNet;
+    const left = g.x0 * PITCH_MM + (g.x0 > 0 ? TRACK_GAP_MM / 2 : 0);
+    const right = (g.x1 + 1) * PITCH_MM - (g.x1 < b.cols - 1 ? TRACK_GAP_MM / 2 : 0);
+    const y = holeToMm(0, g.row).y - TRACK_W_MM / 2;
+    const x = under ? w - right : left;
+    out.push(`<rect data-kind="copper" data-seg="${g.id}"`
+      + `${lit ? ' data-highlight="true"' : ''}`
+      + ` x="${n(x)}" y="${n(y)}" width="${n(right - left)}" height="${TRACK_W_MM}"`
+      + ` fill="${lit ? c.copperLit : copperFill}" opacity="${under ? 1 : 0.55}"/>`);
+  }
+
+  // 3. break markers. A break cuts BETWEEN hole x and hole x+1, so its centre is
+  //    on the boundary at (x+1)*pitch — never on a hole.
+  for (const br of project.breaks ?? []) {
+    const bx = (br.x + 1) * PITCH_MM;
+    const y = holeToMm(0, br.row).y;
+    out.push(`<rect data-kind="break" data-break="${br.row},${br.x}" data-x="${n(bx)}"`
+      + ` x="${n(mx(bx) - TRACK_GAP_MM / 2)}" y="${n(y - TRACK_W_MM / 2 - 0.15)}"`
+      + ` width="${n(TRACK_GAP_MM)}" height="${n(TRACK_W_MM + 0.3)}" fill="${c.cut}"/>`);
+  }
+
+  // 4. holes
+  for (let row = 0; row < b.rows; row += 1) {
+    for (let col = 0; col < b.cols; col += 1) {
+      const p = holeToMm(col, row);
+      out.push(`<circle data-kind="hole" data-hole="${col},${row}"`
+        + ` cx="${n(mx(p.x))}" cy="${n(p.y)}" r="${n(HOLE_DIA_MM / 2)}"`
+        + ` fill="${c.hole}" stroke="${c.holeRing}" stroke-width="0.08"/>`);
+    }
+  }
+
+  // 5. pen wires — insulated, so they may cross each other freely.
+  for (const wire of project.wires ?? []) {
+    if (!wire.from || !wire.to) continue;
+    const a = holeToMm(wire.from.col, wire.from.row);
+    const z = holeToMm(wire.to.col, wire.to.row);
+    const sel = selection && selection.kind === 'wire' && selection.ref === wire.ref;
+    out.push(`<line data-kind="wire" data-ref="${esc(wire.ref)}"`
+      + ` x1="${n(mx(a.x))}" y1="${n(a.y)}" x2="${n(mx(z.x))}" y2="${n(z.y)}"`
+      + ` stroke="${c.wire}" stroke-width="${n(PITCH_MM * (sel ? 0.3 : 0.2))}"`
+      + ' stroke-linecap="round" opacity="0.9"/>');
+    out.push(`<text data-kind="wire-label" data-ref="${esc(wire.ref)}"`
+      + ` x="${n((mx(a.x) + mx(z.x)) / 2)}" y="${n((a.y + z.y) / 2 - 0.5)}"`
+      + ` font-size="${n(PITCH_MM * 0.62)}" fill="${c.wireInk}" text-anchor="middle"`
+      + ` font-family="sans-serif">${esc(wire.ref)}</text>`);
+  }
+
+  // 6. components. The underside view drops bodies — you are looking at the
+  //    copper you have to solder, and a picture of the parts is in the way.
+  for (const pl of project.placements ?? []) {
+    let part;
+    try { part = getPart(pl.part); } catch { continue; }
+    const pins = resolvePins([pl], getPart);
+    const pts = pins.map((p) => {
+      const q = holeToMm(p.col, p.row);
+      return { x: mx(q.x), y: q.y };
+    });
+    if (!pts.length) continue;
+
+    const sel = selection && selection.kind === 'part' && selection.ref === pl.ref;
+    out.push(`<g data-kind="part" data-ref="${esc(pl.ref)}"`
+      + `${sel ? ' data-selected="true"' : ''}>`);
+
+    if (!under) {
+      // leads first, so the body covers their inner ends
+      if (pts.length === 2) {
+        out.push(`<line x1="${n(pts[0].x)}" y1="${n(pts[0].y)}" x2="${n(pts[1].x)}"`
+          + ` y2="${n(pts[1].y)}" stroke="${c.lead}" stroke-width="${n(PITCH_MM * 0.14)}"/>`);
+      }
+      out.push(bodyFor(part, pts, c));
+      out.push(`<text data-kind="part-label" data-ref="${esc(pl.ref)}"`
+        + ` x="${n(pts[0].x)}" y="${n(Math.min(...pts.map((p) => p.y)) - PITCH_MM * 0.5)}"`
+        + ` font-size="${n(PITCH_MM * 0.6)}" fill="${c.ink}" text-anchor="middle"`
+        + ` font-family="sans-serif">${esc(pl.value ? `${pl.ref} ${pl.value}` : pl.ref)}</text>`);
+    }
+    for (const p of pts) {
+      out.push(`<circle data-kind="pad" cx="${n(p.x)}" cy="${n(p.y)}"`
+        + ` r="${n(PITCH_MM * 0.26)}" fill="none" stroke="${c.lead}" stroke-width="0.12"/>`);
+    }
+    out.push('</g>');
+  }
+
+  // 7. DRC markers
+  for (const f of findings) {
+    if (f.severity === 'info') continue;
+    for (const hole of f.holes ?? []) {
+      if (!hole || hole.col == null) continue;
+      const p = holeToMm(hole.col, hole.row);
+      out.push(`<circle data-kind="drc" data-code="${esc(f.code)}"`
+        + ` data-severity="${f.severity}" cx="${n(mx(p.x))}" cy="${n(p.y)}"`
+        + ` r="${n(PITCH_MM * 0.45)}" fill="none"`
+        + ` stroke="${f.severity === 'error' ? c.error : c.warning}"`
+        + ` stroke-width="${n(PITCH_MM * 0.11)}"/>`);
+    }
+  }
+
+  out.push('</svg>');
+  return out.join('\n');
+}

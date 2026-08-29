@@ -33,3 +33,51 @@
     failures: 0
     at: '2026-08-29T19:54:09.236'
     commit: 5a80088
+- id: there-is-no-board-editor
+  type: new
+  what: 'There is no way to see or edit a stripboard layout: no renderer, no server, no tools for parts,
+    breaks or pen wires'
+  spec: docs/specs/editor-ui.md
+  files:
+  - src/render/svg.js
+  - src/server/index.js
+  - public/index.html
+  - public/style.css
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_render.mjs
+    criterion: tests/render/test_render.mjs reports all checks passed, including a break marker drawn
+      between holes and a pen wire drawn with its ref
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-board-editor.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T19:56:48.685'
+    commit: ec9a8fd-dirty
+  fix:
+    file: .proofs/there-is-no-board-editor.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T20:04:43.576'
+    commit: ec9a8fd-dirty
+- id: breaks-assume-a-knife-cut-when-most-people-use-a-spot-face-cutter
+  type: bug
+  what: The model only supports a break BETWEEN two holes; the commonest real tool is a spot-face cutter
+    that removes the copper AT a hole, which also kills that hole
+  spec: docs/specs/board-model-and-connectivity.md
+  files:
+  - src/net/segments.js
+  - src/model/board.js
+  - src/net/drc.js
+  test:
+    command: null
+    criterion: a break can be declared as at:'hole' as well as at:'gap', and an at:'hole' break leaves
+      that hole connected to neither side
+    runs: 1
+  trial: null
+  fix: null

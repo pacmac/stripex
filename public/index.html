@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>stripex — stripboard editor</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23e8dcc0'/%3E%3Crect y='2' width='16' height='3' fill='%23b87333'/%3E%3Crect y='7' width='16' height='3' fill='%23b87333'/%3E%3Crect y='12' width='16' height='3' fill='%23b87333'/%3E%3Ccircle cx='4' cy='3.5' r='1' fill='%23241f18'/%3E%3Ccircle cx='11' cy='8.5' r='1' fill='%23241f18'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="bar">
+  <span class="brand">stripex</span>
+
+  <div class="tools" role="toolbar" aria-label="Tools">
+    <button class="tool" data-tool="select" title="Select and move (V)"><span>▶</span>Select</button>
+    <button class="tool" data-tool="place"  title="Place the palette part (P)"><span>⬒</span>Place</button>
+    <button class="tool" data-tool="break"  title="Cut or restore a strip (B)"><span>✂</span>Break</button>
+    <button class="tool" data-tool="wire"   title="Draw a pen wire (W)"><span>⌇</span>Wire</button>
+    <button class="tool" data-tool="delete" title="Delete (X)"><span>⌫</span>Delete</button>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="group">
+    <button id="rotate" title="Rotate the pending part (R)">Rotate</button>
+    <button id="undo" title="Undo (Ctrl+Z)">Undo</button>
+    <button id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="group">
+    <label>View
+      <select id="view">
+        <option value="top">Top (component side)</option>
+        <option value="underside">Underside (solder side)</option>
+      </select>
+    </label>
+    <label>Board
+      <input id="cols" type="number" min="4" max="120" value="25" title="columns"> ×
+      <input id="rows" type="number" min="2" max="120" value="20" title="rows">
+    </label>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="group">
+    <button id="theme" title="Light / dark">◐</button>
+    <button id="save">Save</button>
+    <button id="load">Load</button>
+    <button id="export">Export SVG</button>
+  </div>
+</header>
+
+<main>
+  <aside class="panel left">
+    <h2>Parts</h2>
+    <div id="palette" class="palette"></div>
+    <label class="span-row">Span
+      <input id="span" type="number" min="1" max="40" value="4">
+      <span id="spanLabel" class="hint"></span>
+    </label>
+    <p class="hint" id="paletteHint"></p>
+  </aside>
+
+  <section class="stage" id="stage">
+    <div id="boardWrap" class="board-wrap"></div>
+    <p class="status" id="status"></p>
+  </section>
+
+  <aside class="panel right">
+    <nav class="tabs" role="tablist">
+      <button class="tab is-on" data-tab="findings">Checks</button>
+      <button class="tab" data-tab="nets">Nets</button>
+      <button class="tab" data-tab="runlist">Run list</button>
+      <button class="tab" data-tab="inspect">Selected</button>
+    </nav>
+    <div class="tab-body" id="tab-findings"></div>
+    <div class="tab-body" id="tab-nets" hidden></div>
+    <div class="tab-body" id="tab-runlist" hidden></div>
+    <div class="tab-body" id="tab-inspect" hidden></div>
+  </aside>
+</main>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>
