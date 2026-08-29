@@ -9,6 +9,7 @@ import { renderBoard, findingsFor, netsFor, runList, DEFAULT_LAYERS } from '/src
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
 import { rotatePlacement } from '/src/model/rotate.js';
 import { requiredBreaks, mergeBreaks } from '/src/model/breaks.js';
+import { cursorFor } from '/src/render/cursors.js';
 import { partList, getPart } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -548,6 +549,10 @@ function setTool(tool) {
   for (const b of document.querySelectorAll('.tool')) {
     b.classList.toggle('is-on', b.dataset.tool === tool);
   }
+  // Set here, the one place the armed tool changes, so the cursor cannot drift
+  // out of step with the button the toolbar shows as lit. Board only — a
+  // crosshair over the parts list would be nonsense.
+  $('#boardWrap').style.cursor = cursorFor(tool);
   const help = {
     select: 'Click a part or wire to select it; click a strip to highlight its net.',
     place: 'Click a hole to drop the palette part. R rotates.',

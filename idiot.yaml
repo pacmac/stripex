@@ -245,3 +245,32 @@
     failures: 0
     at: '2026-08-29T21:07:18.886'
     commit: 25c7c2f-dirty
+- id: the-cursor-does-not-say-which-tool-is-armed
+  type: bug
+  what: The cursor stays an arrow whatever tool is armed, so there is nothing telling you the next click
+    will drop a part
+  spec: docs/specs/tool-cursors.md
+  files:
+  - src/render/cursors.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_cursors.mjs
+    criterion: 'tests/render/test_cursors.mjs passes: place, break and wire give crosshair, select and
+      delete do not, and an unknown tool falls back to default'
+    runs: 1
+  trial:
+    file: .proofs/the-cursor-does-not-say-which-tool-is-armed.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T21:19:18.593'
+    commit: 83afe80-dirty
+  fix:
+    file: .proofs/the-cursor-does-not-say-which-tool-is-armed.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T21:19:50.430'
+    commit: 83afe80-dirty

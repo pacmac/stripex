@@ -1,0 +1,2 @@
+$ node tests/render/test_cursors.mjs
+cursors: 6/6 checks passed
