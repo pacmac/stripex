@@ -1,0 +1,35 @@
+# Every accusation this repo is under, and what trying it proved.
+# Written only by ~/.claude/hooks/idiot.py. Verdicts are derived, never typed.
+- id: stripboard-has-no-model-or-connectivity
+  type: new
+  what: There is no stripboard data model and no way to derive nets from strips, breaks and wire links
+  spec: docs/specs/board-model-and-connectivity.md
+  files:
+  - src/model/geometry.js
+  - src/model/board.js
+  - src/model/rotate.js
+  - src/net/segments.js
+  - src/net/derive.js
+  - src/net/drc.js
+  - src/parts/library.js
+  test:
+    command:
+    - node
+    - tests/net/test_connectivity.mjs
+    criterion: tests/net/test_connectivity.mjs reports all checks passed, including that a resistor across
+      two strips yields TWO nets and a wire link yields ONE
+    runs: 1
+  trial:
+    file: .proofs/stripboard-has-no-model-or-connectivity.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T19:50:15.198'
+    commit: null
+  fix:
+    file: .proofs/stripboard-has-no-model-or-connectivity.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T19:53:26.398'
+    commit: null
