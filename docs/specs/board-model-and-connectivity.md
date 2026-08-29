@@ -1,8 +1,34 @@
 # SPEC — stripboard model and segment-derived connectivity
 
-status: draft
+status: implemented, entry NOT closed — see "Why the register will not close this"
 area: board-model, connectivity
-source_hash: (set in Phase 5)
+source_hash:
+  src/model/geometry.js: b270da67ccdf92f69c7885ea2d0ddae923b85c3e6c03ec095a2c94e24f3fd864
+  src/model/board.js:    7cd3315bea571c77971586aea91efc9701f1427f51047ca040763125570c76f7
+  src/model/rotate.js:   ff83ce07f0a8b6ba3ec8267d2a0cdc6c316e2b47de838d1ea5db843f1ed2130a
+  src/net/segments.js:   ab49142ca449d37d4b3bc8865b8ef1ddfc478c0dfbab3ebd80b653f190cca3c8
+  src/net/derive.js:     bbcfd909469a6b28236ad554b84cb280f4cc310743e3fda8405a800530e223be
+  src/net/drc.js:        47cfa9edb6fdfe5b6518a55c6dfeb49465921f7c95e22abea0ed16858c40051a
+  src/parts/library.js:  509a624e8797b3a676b05a5f64209878098725671f041c1a0d399e4896b8ce7b
+
+## Why the register will not close this
+
+`idiot prove` records a green run (49/49) but refuses closure, and it is correct to:
+
+    src/model/geometry.js was not modified after the trial
+
+geometry.js was written at 19:48:24. The trial that convicted the entry ran at 19:50:15.
+So the register cannot see that file's content as a response to the red, and it will not
+take my word for it.
+
+The cause is my own process error, not a tool fault. The rule is that the red comes first
+and source is untouched until the entry is guilty; I wrote geometry.js before establishing
+the check. The mid-task pen-wire requirement forced the trial to be re-captured against an
+enlarged test, which exposed the ordering rather than causing it.
+
+The entry stays `guilty` with its green fix recorded. Not fabricating a closing commit,
+and not amending the file list to make the complaint go away — amending voids the trial and
+would turn an honest green into a `not-reproduced` needing a ruling.
 
 ## What this governs
 
