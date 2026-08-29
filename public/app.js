@@ -10,6 +10,7 @@ import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/mod
 import { rotatePlacement } from '/src/model/rotate.js';
 import { requiredBreaks, mergeBreaks } from '/src/model/breaks.js';
 import { cursorFor } from '/src/render/cursors.js';
+import { TABS, DEFAULT_TAB, focusTabFor, bodyId } from '/src/render/panels.js';
 import { partList, getPart } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -138,7 +139,41 @@ function draw(message) {
   paintInspector();
   paintLayers();
   markSelectedRows();
+  focusOnSelectionChange();
   if (message) say(message);
+}
+
+function buildTabs() {
+  $('#tabs').innerHTML = TABS.map((t) => `
+    <button class="tab${t.id === DEFAULT_TAB ? ' is-on' : ''}" data-tab="${t.id}">${t.label}</button>`
+  ).join('');
+  $('#tabBodies').innerHTML = TABS.map((t) => `
+    <div class="tab-body" id="${bodyId(t.id)}"${t.id === DEFAULT_TAB ? '' : ' hidden'}></div>`
+  ).join('');
+}
+
+function showTab(id) {
+  for (const t of document.querySelectorAll('.tab')) {
+    t.classList.toggle('is-on', t.dataset.tab === id);
+  }
+  for (const body of document.querySelectorAll('.tab-body')) {
+    body.hidden = body.id !== bodyId(id);
+  }
+}
+
+// Bring the Focus tab forward when a NEW selection arrives — never on a redraw.
+// A redraw happens on every edit, and a panel that jumped back to Focus each
+// time you cut a track would be unusable. Deselecting deliberately does nothing:
+// clicking empty board must not yank the panel away from what you were reading.
+let lastSelectionKey = null;
+
+function focusOnSelectionChange() {
+  const sel = state.selection;
+  const key = sel ? `${sel.kind}:${sel.ref}` : null;
+  if (key === lastSelectionKey) return;
+  lastSelectionKey = key;
+  const target = focusTabFor(sel);
+  if (target) showTab(target);
 }
 
 function paintLayers() {
@@ -566,6 +601,7 @@ function setTool(tool) {
 }
 
 function boot() {
+  buildTabs();
   buildPalette();
   setTool('select');
 
@@ -582,13 +618,7 @@ function boot() {
     }
 
     const tab = evt.target.closest('.tab');
-    if (tab) {
-      for (const t of document.querySelectorAll('.tab')) t.classList.toggle('is-on', t === tab);
-      for (const body of document.querySelectorAll('.tab-body')) {
-        body.hidden = body.id !== `tab-${tab.dataset.tab}`;
-      }
-      return;
-    }
+    if (tab) return showTab(tab.dataset.tab);
 
     const netRow = evt.target.closest('[data-net]');
     if (netRow) {

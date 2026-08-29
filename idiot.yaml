@@ -274,3 +274,33 @@
     failures: 0
     at: '2026-08-29T21:19:50.430'
     commit: 83afe80-dirty
+- id: selecting-something-does-not-bring-its-details-into-view
+  type: bug
+  what: The details tab is called Selected and stays hidden behind whichever tab was open, so selecting
+    a part shows you nothing about it
+  spec: docs/specs/focus-tab.md
+  files:
+  - src/render/panels.js
+  - public/app.js
+  - public/index.html
+  test:
+    command:
+    - node
+    - tests/render/test_panels.mjs
+    criterion: 'tests/render/test_panels.mjs passes: the tab is labelled Focus, and every kind of selection
+      maps to it while no selection leaves the panel alone'
+    runs: 1
+  trial:
+    file: .proofs/selecting-something-does-not-bring-its-details-into-view.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T23:14:45.006'
+    commit: a7da7c0-dirty
+  fix:
+    file: .proofs/selecting-something-does-not-bring-its-details-into-view.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T23:15:53.943'
+    commit: a7da7c0-dirty

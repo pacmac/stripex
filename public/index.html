@@ -89,16 +89,10 @@
   </section>
 
   <aside class="panel right">
-    <nav class="tabs" role="tablist">
-      <button class="tab is-on" data-tab="findings">Checks</button>
-      <button class="tab" data-tab="nets">Nets</button>
-      <button class="tab" data-tab="runlist">Run list</button>
-      <button class="tab" data-tab="inspect">Selected</button>
-    </nav>
-    <div class="tab-body" id="tab-findings"></div>
-    <div class="tab-body" id="tab-nets" hidden></div>
-    <div class="tab-body" id="tab-runlist" hidden></div>
-    <div class="tab-body" id="tab-inspect" hidden></div>
+    <!-- Tabs and bodies are built from TABS in src/render/panels.js, so the
+         labels and the ids exist in exactly one place. -->
+    <nav class="tabs" role="tablist" id="tabs"></nav>
+    <div id="tabBodies"></div>
   </aside>
 </main>
 
