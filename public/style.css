@@ -209,7 +209,18 @@ main {
   letter-spacing: 0;
 }
 
-.layers { display: flex; flex-direction: column; gap: 1px; }
+.layers, .cuts { display: flex; flex-direction: column; gap: 1px; }
+
+.cuts label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.cuts label:hover { background: var(--panel-2); }
+.cuts input { width: auto; margin: 0; accent-color: var(--accent); }
 
 .layers label {
   display: flex;

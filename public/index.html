@@ -61,7 +61,21 @@
       <input id="span" type="number" min="1" max="40" value="4">
       <span id="spanLabel" class="hint"></span>
     </label>
+    <label class="span-row" id="widthRow">Width
+      <input id="width" type="number" min="2" max="12" value="3">
+      <span id="widthLabel" class="hint"></span>
+    </label>
     <p class="hint" id="paletteHint"></p>
+
+    <h2 class="layers-head">Cut with</h2>
+    <div class="cuts">
+      <label><input type="radio" name="cut" value="gap" checked>
+        <span>Knife — between two holes</span></label>
+      <label><input type="radio" name="cut" value="hole">
+        <span>Spot-face cutter — at a hole</span></label>
+    </div>
+    <p class="hint">A spot-face kills the hole as well as the track: nothing
+      soldered there connects to anything.</p>
 
     <h2 class="layers-head">Layers
       <button id="layersAll" class="linky" title="Show every layer">all</button>

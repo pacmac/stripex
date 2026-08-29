@@ -17,7 +17,7 @@ import { segments } from '../net/segments.js';
 import { resolvePins } from '../model/rotate.js';
 import { nets as deriveNets, wireRunList } from '../net/derive.js';
 import { drc } from '../net/drc.js';
-import { getPart } from '../parts/library.js';
+import { getPart, sideOf } from '../parts/library.js';
 
 export const THEMES = {
   light: {
@@ -159,6 +159,21 @@ function bodyFor(part, pts, c) {
         + ` r="${n((part.body.radius ?? 1.4) * PITCH_MM * 0.5)}" fill="none"`
         + ` stroke="${c.ink}" stroke-width="${n(PITCH_MM * 0.09)}" stroke-dasharray="1 1"/>`;
     }
+    case 'chip': {
+      // Drawn at its real size in millimetres, not at a hole pitch: a 0603 is
+      // 1.6 x 0.8 mm and sits over the cut, nowhere near filling the 2.54 mm
+      // between the holes its pads are modelled at.
+      const bl = part.body.lenMm ?? 1.6;
+      const bw = part.body.widMm ?? 0.8;
+      const cap = bl * 0.22;
+      return `<g transform="translate(${n(mx)} ${n(my)}) rotate(${n(angle)})">`
+        + `<rect data-kind="part-body" x="${n(-bl / 2)}" y="${n(-bw / 2)}"`
+        + ` width="${n(bl)}" height="${n(bw)}" fill="${c.body}"/>`
+        + `<rect x="${n(-bl / 2)}" y="${n(-bw / 2)}" width="${n(cap)}" height="${n(bw)}"`
+        + ` fill="${c.lead}"/>`
+        + `<rect x="${n(bl / 2 - cap)}" y="${n(-bw / 2)}" width="${n(cap)}" height="${n(bw)}"`
+        + ` fill="${c.lead}"/></g>`;
+    }
     case 'line':
     default:
       return `<line data-kind="part-body" x1="${n(a.x)}" y1="${n(a.y)}" x2="${n(b.x)}"`
@@ -243,19 +258,35 @@ export function renderBoard(project, opts = {}) {
   //    on the boundary at (x+1)*pitch — never on a hole.
   if (L.breaks) {
     for (const br of project.breaks ?? []) {
-      const bx = (br.x + 1) * PITCH_MM;
+      const at = br.at ?? 'gap';
+      // A knife cut sits on the boundary between two holes; a spot-face sits ON
+      // a hole. Drawing both in the same place would be the off-by-half-a-hole
+      // this whole model exists to avoid.
+      const bx = at === 'hole' ? holeToMm(br.x, br.row).x : (br.x + 1) * PITCH_MM;
       const y = holeToMm(0, br.row).y;
       const ref = `${br.row},${br.x}`;
+
       if (isSel('break', ref)) {
-        out.push(halo(ref, `<rect x="${n(mx(bx) - PITCH_MM * 0.5)}"`
-          + ` y="${n(y - PITCH_MM * 0.62)}" width="${n(PITCH_MM)}"`
+        out.push(halo(ref, `<rect x="${n(mx(bx) - PITCH_MM * 0.62)}"`
+          + ` y="${n(y - PITCH_MM * 0.62)}" width="${n(PITCH_MM * 1.24)}"`
           + ` height="${n(PITCH_MM * 1.24)}" rx="${n(PITCH_MM * 0.2)}" fill="none"`
           + ` stroke="${c.select}" stroke-width="${n(PITCH_MM * 0.16)}"/>`));
       }
-      out.push(`<rect data-kind="break" data-break="${ref}" data-x="${n(bx)}"`
-        + `${isSel('break', ref) ? ' data-selected="true"' : ''}`
-        + ` x="${n(mx(bx) - TRACK_GAP_MM / 2)}" y="${n(y - TRACK_W_MM / 2 - 0.15)}"`
-        + ` width="${n(TRACK_GAP_MM)}" height="${n(TRACK_W_MM + 0.3)}" fill="${c.cut}"/>`);
+
+      const marks = isSel('break', ref) ? ' data-selected="true"' : '';
+      if (at === 'hole') {
+        // The cutter takes out a disc of copper about 3 mm across, wider than
+        // the pitch — which is exactly why the hole ends up connected to nothing.
+        out.push(`<circle data-kind="break" data-break="${ref}" data-at="hole"`
+          + ` data-x="${n(bx)}"${marks} cx="${n(mx(bx))}" cy="${n(y)}"`
+          + ` r="${n(PITCH_MM * 0.56)}" fill="${c.substrate}" stroke="${c.cut}"`
+          + ` stroke-width="0.12"/>`);
+      } else {
+        out.push(`<rect data-kind="break" data-break="${ref}" data-at="gap"`
+          + ` data-x="${n(bx)}"${marks}`
+          + ` x="${n(mx(bx) - TRACK_GAP_MM / 2)}" y="${n(y - TRACK_W_MM / 2 - 0.15)}"`
+          + ` width="${n(TRACK_GAP_MM)}" height="${n(TRACK_W_MM + 0.3)}" fill="${c.cut}"/>`);
+      }
     }
   }
 
@@ -329,12 +360,24 @@ export function renderBoard(project, opts = {}) {
         + ` stroke-width="${n(PITCH_MM * 0.14)}"/>`));
     }
 
-    out.push(`<g data-kind="part" data-ref="${esc(pl.ref)}"`
-      + `${sel ? ' data-selected="true"' : ''}>`);
+    // Which side is this part on, and is its body visible from here?
+    //
+    // A copper-side part is soldered to the track UNDERNEATH the board, so the
+    // underside view — the one you solder from — must draw it, and the top view
+    // must ghost it rather than pretend it is not there. The underside used to
+    // drop every body, which was right when every part was through-hole.
+    const side = sideOf(part);
+    const showBody = under ? side === 'copper' : true;
+    const ghosted = !under && side === 'copper';
 
-    if (!under) {
-      // leads first, so the body covers their inner ends
-      if (pts.length === 2) {
+    out.push(`<g data-kind="part" data-ref="${esc(pl.ref)}" data-side="${side}"`
+      + `${sel ? ' data-selected="true"' : ''}`
+      + `${ghosted ? ' opacity="0.42"' : ''}>`);
+
+    if (showBody) {
+      // leads first, so the body covers their inner ends. An SMT part has no
+      // leads to draw.
+      if (pts.length === 2 && side === 'top') {
         out.push(`<line x1="${n(pts[0].x)}" y1="${n(pts[0].y)}" x2="${n(pts[1].x)}"`
           + ` y2="${n(pts[1].y)}" stroke="${c.lead}" stroke-width="${n(PITCH_MM * 0.14)}"/>`);
       }

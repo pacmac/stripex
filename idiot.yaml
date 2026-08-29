@@ -69,18 +69,32 @@
   type: bug
   what: The model only supports a break BETWEEN two holes; the commonest real tool is a spot-face cutter
     that removes the copper AT a hole, which also kills that hole
-  spec: docs/specs/board-model-and-connectivity.md
+  spec: docs/specs/cuts-and-mounting.md
   files:
   - src/net/segments.js
   - src/model/board.js
   - src/net/drc.js
   test:
-    command: null
+    command:
+    - node
+    - tests/net/test_hole_breaks.mjs
     criterion: a break can be declared as at:'hole' as well as at:'gap', and an at:'hole' break leaves
       that hole connected to neither side
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/breaks-assume-a-knife-cut-when-most-people-use-a-spot-face-cutter.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T20:59:00.546'
+    commit: 25c7c2f-dirty
+  fix:
+    file: .proofs/breaks-assume-a-knife-cut-when-most-people-use-a-spot-face-cutter.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T21:07:18.576'
+    commit: 25c7c2f-dirty
 - id: nothing-can-be-hidden-and-nothing-looks-selected
   type: bug
   what: Every layer is always drawn so a crowded board cannot be read, and the selected object looks identical
@@ -141,3 +155,93 @@
     failures: 0
     at: '2026-08-29T20:34:42.679'
     commit: e0c73ad-dirty
+- id: there-is-no-way-to-mount-a-part-on-the-copper-side
+  type: new
+  what: Every part is assumed to go through a hole from the top, so an SMT chip soldered to the copper
+    cannot be placed at all
+  spec: docs/specs/cuts-and-mounting.md
+  files:
+  - src/parts/library.js
+  - src/net/drc.js
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/parts/test_smt.mjs
+    criterion: 'tests/parts/test_smt.mjs passes: an 0603 pad shares a hole with a lead without collision,
+      the underside view draws its body, and it demands a cut between its poles'
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-way-to-mount-a-part-on-the-copper-side.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T20:59:00.648'
+    commit: 25c7c2f-dirty
+  fix:
+    file: .proofs/there-is-no-way-to-mount-a-part-on-the-copper-side.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T21:07:18.684'
+    commit: 25c7c2f-dirty
+- id: dil-packages-do-not-cut-the-strips-they-need-and-have-no-width
+  type: new
+  what: Placing a DIL leaves every opposite pin pair shorted because nothing cuts the strips under it,
+    and its row spacing is hardcoded to 0.3 inch
+  spec: docs/specs/cuts-and-mounting.md
+  files:
+  - src/model/breaks.js
+  - src/parts/library.js
+  - src/model/rotate.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_auto_breaks.mjs
+    criterion: 'tests/model/test_auto_breaks.mjs passes: a DIP-14 yields seven breaks that clear its seven
+      shorts, and a 0.6 inch DIL puts its rows six holes apart'
+    runs: 1
+  trial:
+    file: .proofs/dil-packages-do-not-cut-the-strips-they-need-and-have-no-width.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T20:59:00.744'
+    commit: 25c7c2f-dirty
+  fix:
+    file: .proofs/dil-packages-do-not-cut-the-strips-they-need-and-have-no-width.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T21:07:18.788'
+    commit: 25c7c2f-dirty
+- id: the-ref-prefix-table-is-a-second-list-that-drifts-from-the-library
+  type: bug
+  what: A part's reference designator prefix lives in a table in board.js rather than on the part, so
+    a part added to the library comes out named X1
+  spec: docs/specs/cuts-and-mounting.md
+  files:
+  - src/parts/library.js
+  - src/model/board.js
+  test:
+    command:
+    - node
+    - tests/parts/test_ref_prefixes.mjs
+    criterion: 'tests/parts/test_ref_prefixes.mjs passes: every part declares its own prefix and none
+      falls back to X'
+    runs: 1
+  trial:
+    file: .proofs/the-ref-prefix-table-is-a-second-list-that-drifts-from-the-library.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T21:04:49.308'
+    commit: 25c7c2f-dirty
+  fix:
+    file: .proofs/the-ref-prefix-table-is-a-second-list-that-drifts-from-the-library.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T21:07:18.886'
+    commit: 25c7c2f-dirty

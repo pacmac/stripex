@@ -30,7 +30,7 @@ export function resolvePins(placements, getPart) {
   const out = [];
   for (const pl of placements) {
     const part = getPart(pl.part);
-    for (const pin of pinsOf(part, pl.span)) {
+    for (const pin of pinsOf(part, pl.span, pl.width)) {
       const [dx, dy] = rotate(pin.dx, pin.dy, pl.rot ?? 0);
       out.push({
         ref: pl.ref,

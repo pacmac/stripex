@@ -8,6 +8,7 @@
 import { renderBoard, findingsFor, netsFor, runList, DEFAULT_LAYERS } from '/src/render/svg.js';
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
 import { rotatePlacement } from '/src/model/rotate.js';
+import { requiredBreaks, mergeBreaks } from '/src/model/breaks.js';
 import { partList, getPart } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -32,6 +33,8 @@ const state = {
   tool: 'select',
   part: 'res-axial',
   span: 4,
+  width: 3,
+  cut: 'gap',
   rot: 0,
   view: 'top',
   theme: 'light',
@@ -190,27 +193,49 @@ function paintFindings(findings) {
     return;
   }
 
-  // Dead copper is one note per empty strip, so a fresh 20-row board opens with
-  // twenty rows of "carries nothing" and buries the errors underneath them.
-  // Collapsed into a single line: the count is the useful part, not the list.
-  const dead = sorted.filter((f) => f.code === 'segment-unused');
-  const rest = sorted.filter((f) => f.code !== 'segment-unused');
-
   const row = (f) => `
     <div class="row ${f.severity}" data-code="${f.code}">
       <span class="ref">${f.refs?.[0] ?? '·'}</span>
       <span class="msg">${escapeHtml(f.message)}</span>
     </div>`;
 
-  const deadBlock = dead.length ? `
-    <details class="fold">
-      <summary>${dead.length} unused strip segment${dead.length === 1 ? '' : 's'}</summary>
-      ${dead.map(row).join('')}
-    </details>` : '';
+  // Some findings arrive in floods. A fresh 20-row board has twenty unused
+  // strips; a correctly cut DIP-14 has fourteen single-pin segments, one per
+  // pin, because that is what cutting the strips under an IC produces. Each row
+  // is true and the pile of them buries the errors, so any non-error code with
+  // more than a handful of instances collapses to one line. Errors are never
+  // folded — an error you have to click to see is an error you will miss.
+  const FOLD_AT = 4;
+  const LABELS = {
+    'segment-unused': ['unused strip segment', 'unused strip segments'],
+    'pin-floating': ['connection with nothing else on its strip',
+      'connections with nothing else on their strip'],
+  };
+
+  const byCode = new Map();
+  for (const f of sorted) {
+    if (!byCode.has(f.code)) byCode.set(f.code, []);
+    byCode.get(f.code).push(f);
+  }
+
+  const loose = [];
+  const folds = [];
+  for (const [code, group] of byCode) {
+    if (group[0].severity !== 'error' && group.length >= FOLD_AT) {
+      const [one, many] = LABELS[code] ?? [code, code];
+      folds.push(`<details class="fold">
+        <summary>${group.length} ${group.length === 1 ? one : many}</summary>
+        ${group.map(row).join('')}
+      </details>`);
+    } else {
+      loose.push(...group);
+    }
+  }
 
   el.innerHTML = tally
-    + (rest.length ? rest.map(row).join('') : '<p class="empty">No errors or warnings.</p>')
-    + deadBlock;
+    + (loose.length ? loose.map(row).join('')
+      : `<p class="empty">${folds.length ? 'No errors.' : 'Nothing to report.'}</p>`)
+    + folds.join('');
 }
 
 function paintNets() {
@@ -242,19 +267,25 @@ function paintInspector() {
 
   if (sel.kind === 'break') {
     const [row, x] = sel.ref.split(',').map(Number);
-    el.innerHTML = `
-      <div class="field"><span>Break</span><span class="mono">row ${row}</span></div>
-      <div class="field"><span>Cuts between</span>
-        <span class="mono">hole ${x} and ${x + 1}</span></div>
-      <p class="hint">A break is a cut in the gap between two holes — both holes
-        keep their copper.</p>
-      <button id="delBreak">Remove this break</button>`;
+    const br = state.project.breaks.find((b) => b.row === row && b.x === x);
+    const at = br?.at ?? 'gap';
+    el.innerHTML = at === 'hole'
+      ? `<div class="field"><span>Spot-face</span><span class="mono">hole ${x}, row ${row}</span></div>
+         <p class="hint">The cutter takes the copper off around the hole, so the
+           strip is severed <em>and</em> the hole connects to nothing. A lead
+           soldered here is mechanical only.</p>
+         <button id="delBreak">Restore the copper</button>`
+      : `<div class="field"><span>Knife cut</span><span class="mono">row ${row}</span></div>
+         <div class="field"><span>Between</span><span class="mono">holes ${x} and ${x + 1}</span></div>
+         <p class="hint">A cut in the gap between two holes — both holes keep
+           their copper.</p>
+         <button id="delBreak">Restore the copper</button>`;
     $('#delBreak')?.addEventListener('click', () => {
       state.project.breaks = state.project.breaks.filter(
         (b) => !(b.row === row && b.x === x),
       );
       state.selection = null;
-      commit(`restored row ${row} gap ${x}`);
+      commit(`restored the copper at row ${row}`);
     });
     return;
   }
@@ -344,26 +375,57 @@ function onBoardClick(evt) {
         rot: state.rot,
       };
       if (part.parametric) pl.span = state.span;
+      if (part.defaultWidth != null) pl.width = state.width;
       p.placements.push(pl);
       state.selection = { kind: 'part', ref: pl.ref };
+
+      // A package that cannot work without its strips cut brings its own cuts.
+      // A DIL shorts every pin to its opposite one otherwise, and an 0603 shorts
+      // itself out — both are guaranteed, not possible, so making the user
+      // discover them as errors would be busywork.
+      const need = requiredBreaks(pl, getPart);
+      if (need.length) {
+        const before = p.breaks.length;
+        p.breaks = mergeBreaks(p.breaks, need);
+        const added = p.breaks.length - before;
+        return commit(`placed ${pl.ref} and cut ${added} strip${added === 1 ? '' : 's'} under it`);
+      }
       commit(`placed ${pl.ref}`);
       return;
     }
 
     case 'break': {
       if (!pos) return;
-      // A break sits BETWEEN hole x and x+1, so the gap index is the boundary
-      // the pointer is nearest, minus one.
       const PITCH = 2.54;
-      const gap = Math.round(pos.x / PITCH) - 1;
       const row = pos.row;
-      if (gap < 0 || gap > p.board.cols - 2 || row < 0 || row >= p.board.rows) {
-        return say('that is not a gap between two holes');
+      if (row < 0 || row >= p.board.rows) return say('that is not on the board');
+
+      // A knife cut is indexed by the GAP the pointer is nearest; a spot-face by
+      // the HOLE it is nearest. Half a hole apart, and getting it wrong is the
+      // defect that produces a drill list off by one.
+      const x = state.cut === 'hole'
+        ? Math.round(pos.x / PITCH - 0.5)
+        : Math.round(pos.x / PITCH) - 1;
+      const last = state.cut === 'hole' ? p.board.cols - 1 : p.board.cols - 2;
+      if (x < 0 || x > last) {
+        return say(state.cut === 'hole' ? 'that is not a hole' : 'that is not a gap between two holes');
       }
-      const at = p.breaks.findIndex((b) => b.row === row && b.x === gap);
-      if (at >= 0) { p.breaks.splice(at, 1); commit(`restored row ${row} gap ${gap}`); }
-      else { p.breaks.push({ row, x: gap }); commit(`cut row ${row} between ${gap} and ${gap + 1}`); }
-      return;
+
+      // Either kind of cut in the same place replaces the other, rather than
+      // stacking two cuts on one spot.
+      const found = p.breaks.findIndex((bk) => bk.row === row && bk.x === x
+        && (bk.at ?? 'gap') === state.cut);
+      if (found >= 0) {
+        p.breaks.splice(found, 1);
+        return commit(state.cut === 'hole'
+          ? `restored the copper at hole (${x},${row})`
+          : `restored row ${row} between holes ${x} and ${x + 1}`);
+      }
+      p.breaks = p.breaks.filter((bk) => !(bk.row === row && bk.x === x));
+      p.breaks.push({ row, x, at: state.cut });
+      return commit(state.cut === 'hole'
+        ? `spot-faced hole (${x},${row}) — it now connects to nothing`
+        : `cut row ${row} between holes ${x} and ${x + 1}`);
     }
 
     case 'wire': {
@@ -453,9 +515,29 @@ function syncSpan() {
     box.value = state.span;
   }
   $('#spanLabel').textContent = part.parametric ? (part.spanLabel ?? '') : 'fixed';
-  $('#paletteHint').textContent = part.kind === 'link'
+
+  // A DIL has two dimensions; most parts have one. Show the second only when it
+  // means something.
+  const hasWidth = part.defaultWidth != null;
+  $('#widthRow').hidden = !hasWidth;
+  if (hasWidth) {
+    state.width = Math.max(state.width, part.minWidth ?? 2);
+    $('#width').min = part.minWidth ?? 2;
+    $('#width').value = state.width;
+    $('#widthLabel').textContent = part.widthLabel ?? '';
+  }
+
+  const hints = [];
+  hints.push(part.kind === 'link'
     ? 'A link is zero-ohm: it joins the strips it bridges into one net.'
-    : 'A component sits between nets — it never joins two strips.';
+    : 'A component sits between nets — it never joins two strips.');
+  if ((part.side ?? 'top') === 'copper') {
+    hints.push('Soldered to the copper underneath, straddling a cut — the hole stays free.');
+  }
+  if (part.requiresBreak) {
+    hints.push('Placing it cuts the strips it needs.');
+  }
+  $('#paletteHint').textContent = hints.join(' ');
 }
 
 // ---------------------------------------------------------------------- wiring
@@ -469,7 +551,9 @@ function setTool(tool) {
   const help = {
     select: 'Click a part or wire to select it; click a strip to highlight its net.',
     place: 'Click a hole to drop the palette part. R rotates.',
-    break: 'Click between two holes to cut the strip there. Click again to restore it.',
+    break: state.cut === 'hole'
+      ? 'Click a hole to spot-face it. The hole itself goes dead. Click again to restore it.'
+      : 'Click between two holes to cut the strip there. Click again to restore it.',
     wire: 'Click one hole, then another. The wire gets the next free ref.',
     delete: 'Click a part, wire or break to remove it.',
   };
@@ -530,6 +614,18 @@ function boot() {
     syncSpan();
   });
 
+  $('#width').addEventListener('change', (e) => {
+    state.width = Math.max(2, Number(e.target.value) || 3);
+    syncSpan();
+  });
+
+  for (const radio of document.querySelectorAll('input[name="cut"]')) {
+    radio.addEventListener('change', (e) => {
+      state.cut = e.target.value;
+      setTool('break');
+    });
+  }
+
   $('#rotate').addEventListener('click', () => {
     if (state.selection?.kind === 'part') {
       const list = state.project.placements;
@@ -538,6 +634,25 @@ function boot() {
       // rotatePlacement turns it about its own centre and returns a new object,
       // so the part stays where it sits instead of swinging around pin 1.
       list[i] = rotatePlacement(list[i], getPart);
+
+      // A turned DIL lies over different strips than it did, so the cuts it
+      // needs are different ones. Without this, rotating a chip leaves it
+      // shorted pin-to-pin with the old cuts stranded somewhere else — placing
+      // cut its strips but turning did not.
+      //
+      // The stale cuts are deliberately NOT removed: a cut in a real board is
+      // permanent, and un-cutting copper when a part moves would describe a
+      // board you cannot build.
+      const need = requiredBreaks(list[i], getPart);
+      if (need.length) {
+        const before = state.project.breaks.length;
+        state.project.breaks = mergeBreaks(state.project.breaks, need);
+        const added = state.project.breaks.length - before;
+        if (added) {
+          return commit(`${list[i].ref} rotated to ${list[i].rot}° and ${added} `
+            + `more strip${added === 1 ? '' : 's'} cut under it`);
+        }
+      }
       return commit(`${list[i].ref} rotated to ${list[i].rot}°`);
     }
     state.rot = (state.rot + 90) % 360;

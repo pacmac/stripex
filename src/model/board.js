@@ -50,13 +50,24 @@ export function validateProject(project) {
   const onBoard = (h) => h.col >= 0 && h.row >= 0 && h.col < b.cols && h.row < b.rows;
 
   for (const [i, br] of (project.breaks ?? []).entries()) {
+    const at = br?.at ?? 'gap';
+    if (at !== 'gap' && at !== 'hole') {
+      bad('bad-break-type',
+        `breaks[${i}].at is ${JSON.stringify(br?.at)}, want "gap" (knife between two `
+        + 'holes) or "hole" (spot-face cutter at one)');
+      continue;
+    }
     if (!Number.isInteger(br?.row) || br.row < 0 || br.row > b.rows - 1) {
       bad('bad-break-row', `breaks[${i}].row is ${br?.row}, want 0..${b.rows - 1}`);
     }
-    if (!Number.isInteger(br?.x) || br.x < 0 || br.x > b.cols - 2) {
+    // A knife cut lives in a gap, of which there are cols-1; a spot-face lives
+    // at a hole, of which there are cols. The last valid x differs by one.
+    const last = at === 'gap' ? b.cols - 2 : b.cols - 1;
+    if (!Number.isInteger(br?.x) || br.x < 0 || br.x > last) {
       bad('bad-break-x',
-        `breaks[${i}].x is ${br?.x}, want 0..${b.cols - 2} — a break sits between `
-        + 'hole x and x+1, so the last valid gap is cols-2');
+        `breaks[${i}].x is ${br?.x}, want 0..${last} — ${at === 'gap'
+          ? 'a knife cut sits between hole x and x+1, so the last valid gap is cols-2'
+          : 'a spot-face sits at hole x, so the last valid hole is cols-1'}`);
     }
   }
 
@@ -114,13 +125,12 @@ export function nextWireRef(project) {
 }
 
 // Next free ref for a part, using the conventional letter for its kind.
+//
+// The prefix comes from the part definition. It used to live in a table here,
+// which is a second list of every part that has to be kept in step with the
+// library — and was not: the 0603 was added to the library and came out as "X1".
 export function nextPartRef(project, partId) {
-  const prefixes = {
-    'res-axial': 'R', diode: 'D', 'cap-ceramic': 'C', 'cap-electro': 'C',
-    led: 'LED', to92: 'Q', to220: 'Q', dip: 'U', header: 'J',
-    'mount-hole': 'MH', 'wire-link': 'L',
-  };
-  const prefix = prefixes[partId] ?? 'X';
+  const prefix = (hasPart(partId) ? getPart(partId).refPrefix : null) ?? 'X';
   const taken = new Set([
     ...(project.placements ?? []).map((pl) => pl.ref),
     ...(project.wires ?? []).map((w) => w.ref),
