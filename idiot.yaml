@@ -112,3 +112,32 @@
     failures: 0
     at: '2026-08-29T20:23:04.008'
     commit: 6a0c10e-dirty
+- id: rotate-swings-a-part-around-pin-1-instead-of-turning-it-in-place
+  type: bug
+  what: Rotating a placement pivots about its anchor pin, so the part translates across the board instead
+    of turning where it sits
+  spec: docs/specs/rotate-in-place.md
+  files:
+  - src/model/rotate.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_rotate_in_place.mjs
+    criterion: 'tests/model/test_rotate_in_place.mjs passes: a rotated part keeps its bounding-box centre
+      within half a hole, and four rotations return it exactly to where it started'
+    runs: 1
+  trial:
+    file: .proofs/rotate-swings-a-part-around-pin-1-instead-of-turning-it-in-place.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T20:33:11.719'
+    commit: e0c73ad-dirty
+  fix:
+    file: .proofs/rotate-swings-a-part-around-pin-1-instead-of-turning-it-in-place.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T20:34:42.679'
+    commit: e0c73ad-dirty

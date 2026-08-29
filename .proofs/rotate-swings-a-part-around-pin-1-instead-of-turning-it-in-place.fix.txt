@@ -1,0 +1,2 @@
+$ node tests/model/test_rotate_in_place.mjs
+rotate-in-place: 12/12 checks passed

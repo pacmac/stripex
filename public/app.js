@@ -7,6 +7,7 @@
 
 import { renderBoard, findingsFor, netsFor, runList, DEFAULT_LAYERS } from '/src/render/svg.js';
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
+import { rotatePlacement } from '/src/model/rotate.js';
 import { partList, getPart } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -531,12 +532,16 @@ function boot() {
 
   $('#rotate').addEventListener('click', () => {
     if (state.selection?.kind === 'part') {
-      const pl = state.project.placements.find((x) => x.ref === state.selection.ref);
-      pl.rot = ((pl.rot ?? 0) + 90) % 360;
-      return commit(`${pl.ref} rotated to ${pl.rot}°`);
+      const list = state.project.placements;
+      const i = list.findIndex((x) => x.ref === state.selection.ref);
+      if (i < 0) return say('the selected part is gone');
+      // rotatePlacement turns it about its own centre and returns a new object,
+      // so the part stays where it sits instead of swinging around pin 1.
+      list[i] = rotatePlacement(list[i], getPart);
+      return commit(`${list[i].ref} rotated to ${list[i].rot}°`);
     }
     state.rot = (state.rot + 90) % 360;
-    say(`placing at ${state.rot}°`);
+    say(`nothing selected — the next part will be placed at ${state.rot}°`);
   });
 
   $('#undo').addEventListener('click', undo);
