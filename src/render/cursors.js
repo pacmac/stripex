@@ -13,6 +13,8 @@ export const CURSORS = {
   place: 'crosshair',
   break: 'crosshair',
   wire: 'crosshair',
+  // Move aims at a pin and then at a hole: both are exact points on the grid.
+  move: 'crosshair',
   delete: 'default',
 };
 

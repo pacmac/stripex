@@ -315,6 +315,7 @@ export function renderBoard(project, opts = {}) {
     findings = [],
     selection = null,
     layers = {},
+    moveAnchor = null,
   } = opts;
 
   const L = { ...DEFAULT_LAYERS, ...layers };
@@ -499,8 +500,13 @@ export function renderBoard(project, opts = {}) {
           + ` font-family="sans-serif">${esc(pl.value ? `${pl.ref} ${pl.value}` : pl.ref)}</text>`);
       }
     }
-    for (const p of pts) {
-      out.push(`<circle data-kind="pad" cx="${n(p.x)}" cy="${n(p.y)}"`
+    for (const [i, p] of pts.entries()) {
+      // pointer-events="all" because the fill is none: without it only the
+      // 0.12 mm stroke is hit-testable and a click in the middle of the pad
+      // falls through to whatever is underneath, which makes the move tool
+      // impossible to aim.
+      out.push(`<circle data-kind="pad" data-pin="${esc(pins[i]?.pin ?? '')}"`
+        + ` cx="${n(p.x)}" cy="${n(p.y)}" pointer-events="all"`
         + ` r="${n(PITCH_MM * 0.26)}" fill="none" stroke="${c.lead}" stroke-width="0.12"/>`);
     }
     out.push('</g>');
@@ -520,6 +526,17 @@ export function renderBoard(project, opts = {}) {
           + ` stroke-width="${n(PITCH_MM * 0.11)}"/>`);
       }
     }
+  }
+
+  // 8. the armed move handle, drawn last so nothing covers the pin you are
+  //    about to move the part by. Not the selection halo: a part can be selected
+  //    and not armed, and armed without being selected.
+  if (moveAnchor && Number.isInteger(moveAnchor.col)) {
+    const p = holeToMm(moveAnchor.col, moveAnchor.row);
+    out.push(`<circle data-kind="move-anchor" data-ref="${esc(moveAnchor.ref ?? '')}"`
+      + ` data-pin="${esc(moveAnchor.pin ?? '')}" cx="${n(mx(p.x))}" cy="${n(p.y)}"`
+      + ` r="${n(PITCH_MM * 0.42)}" fill="${c.select}" fill-opacity="0.35"`
+      + ` stroke="${c.select}" stroke-width="${n(PITCH_MM * 0.14)}"/>`);
   }
 
   out.push('</svg>');

@@ -524,3 +524,35 @@
     failures: 0
     at: '2026-08-30T08:53:57.583'
     commit: 4ed7f43-dirty
+- id: a-device-cannot-be-moved-once-placed
+  type: new
+  what: 'There is no way to move a placed device: you must delete it and place it again, losing its ref,
+    value and parameters'
+  spec: docs/specs/move-by-pin.md
+  files:
+  - src/model/move.js
+  - src/render/svg.js
+  - src/render/cursors.js
+  - public/app.js
+  - public/index.html
+  test:
+    command:
+    - node
+    - tests/model/test_move.mjs
+    criterion: 'tests/model/test_move.mjs passes: the named pin lands exactly on the target hole and the
+      rest of the part comes with it'
+    runs: 1
+  trial:
+    file: .proofs/a-device-cannot-be-moved-once-placed.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:56:58.247'
+    commit: 6eb453c-dirty
+  fix:
+    file: .proofs/a-device-cannot-be-moved-once-placed.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:59:57.991'
+    commit: 6eb453c-dirty

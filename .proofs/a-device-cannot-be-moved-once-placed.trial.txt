@@ -1,0 +1,28 @@
+$ node tests/model/test_move.mjs
+FAIL  THE NAMED PIN LANDS EXACTLY ON THE TARGET HOLE
+      module ../../src/model/move.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/move.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  it works for any pin, not just the first
+      module ../../src/model/move.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/move.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  EVERY OTHER PIN KEEPS ITS OFFSET — THE PART COMES WITH IT
+      module ../../src/model/move.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/move.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  MOVING BY A DIFFERENT PIN PUTS THE PART SOMEWHERE ELSE
+      module ../../src/model/move.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/move.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  rotation, span and width are untouched — a move is not a transform
+      module ../../src/model/move.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/move.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the ref and value survive the move
+      module ../../src/model/move.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/move.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  moving a pin to the hole it is already in changes nothing
+      module ../../src/model/move.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/move.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a rotated part moves as a rigid body
+      module ../../src/model/move.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/move.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  AN UNKNOWN PIN RETURNS THE PLACEMENT UNCHANGED RATHER THAN THROWING
+      module ../../src/model/move.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/move.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  an unknown part is survivable too
+      module ../../src/model/move.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/move.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the input is never mutated
+      module ../../src/model/move.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/move.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a move that puts pins off the board is allowed, not refused
+      module ../../src/model/move.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/move.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the move tool gets a crosshair
+      move cursor: expected "crosshair", got "default"
+move: 0/13 checks passed

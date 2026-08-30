@@ -41,9 +41,15 @@ s.check('every value is a real CSS cursor keyword', () => {
 
 s.check('the mapping is exhaustive over the toolbar', () => {
   // Every tool the toolbar can arm must have an answer, so adding a tool without
-  // a cursor is caught here rather than seen as a stuck crosshair.
-  eq(Object.keys(cur.CURSORS).sort(), ['break', 'delete', 'place', 'select', 'wire'],
-    'CURSORS covers exactly the five tools');
+  // a cursor is caught here rather than seen as a stuck crosshair. It caught the
+  // move tool on the day it was added, which is what it is for.
+  eq(Object.keys(cur.CURSORS).sort(),
+    ['break', 'delete', 'move', 'place', 'select', 'wire'],
+    'CURSORS covers exactly the six tools');
+});
+
+s.check('the move tool aims at a point, so it gets a crosshair', () => {
+  eq(cur.cursorFor('move'), 'crosshair', 'move');
 });
 
 process.exit((await s.run()) ? 0 : 1);

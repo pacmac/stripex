@@ -12,6 +12,7 @@ import { requiredBreaks, ownerOf, effectiveBreaks } from '/src/model/breaks.js';
 import { cursorFor } from '/src/render/cursors.js';
 import { TABS, DEFAULT_TAB, focusTabFor, bodyId, inspectorKey } from '/src/render/panels.js';
 import { applyPlacementEdit, applyWireEdit, editableFields } from '/src/model/edit.js';
+import { movePlacementByPin, pinLocation } from '/src/model/move.js';
 import { partList, getPart } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -44,6 +45,7 @@ const state = {
   selection: null,
   highlightNet: null,
   wireStart: null,
+  moveAnchor: null,
   drag: null,
   layers: loadLayers(),
   undo: [],
@@ -132,6 +134,7 @@ function draw(message) {
     findings: lastFindings,
     selection: state.selection,
     layers: state.layers,
+    moveAnchor: state.moveAnchor,
   });
 
   paintFindings(lastFindings);
@@ -610,6 +613,34 @@ function onBoardClick(evt) {
       return;
     }
 
+    case 'move': {
+      // Two clicks, no guessing: pick a pin, then pick the hole it goes in.
+      const padEl = evt.target.closest('[data-kind="pad"]');
+      const partEl = evt.target.closest('[data-kind="part"]');
+
+      if (padEl && partEl) {
+        const ref = partEl.getAttribute('data-ref');
+        const pin = padEl.getAttribute('data-pin');
+        const pl2 = p.placements.find((x) => x.ref === ref);
+        const where = pl2 ? pinLocation(pl2, getPart, pin) : null;
+        // Clicking another pin before choosing a hole RE-ARMS rather than
+        // moving: picking up the wrong pin should cost a click, not an undo.
+        state.moveAnchor = where ? { ref, pin, ...where } : null;
+        state.selection = { kind: 'part', ref };
+        return draw(`holding ${ref} by pin ${pin} — click the hole it goes in`);
+      }
+
+      if (!state.moveAnchor) return say('click a pin of the device you want to move');
+      if (!hole) return say('click a hole');
+
+      const i = p.placements.findIndex((x) => x.ref === state.moveAnchor.ref);
+      if (i < 0) { state.moveAnchor = null; return draw('that device is gone'); }
+      const from = state.moveAnchor;
+      p.placements[i] = movePlacementByPin(p.placements[i], getPart, from.pin, hole);
+      state.moveAnchor = null;
+      return commit(`${from.ref} pin ${from.pin} moved to (${hole.col},${hole.row})`);
+    }
+
     case 'delete': {
       const partEl = evt.target.closest('[data-kind="part"]');
       const wireEl = evt.target.closest('[data-kind="wire"], [data-kind="wire-label"]');
@@ -713,6 +744,7 @@ function syncSpan() {
 function setTool(tool) {
   state.tool = tool;
   state.wireStart = null;
+  state.moveAnchor = null;
   for (const b of document.querySelectorAll('.tool')) {
     b.classList.toggle('is-on', b.dataset.tool === tool);
   }
@@ -727,6 +759,7 @@ function setTool(tool) {
       ? 'Click a hole to spot-face it. The hole itself goes dead. Click again to restore it.'
       : 'Click between two holes to cut the strip there. Click again to restore it.',
     wire: 'Click one hole, then another. The wire gets the next free ref.',
+    move: 'Click a pin of a device, then the hole that pin should sit in.',
     delete: 'Click a part, wire or break to remove it.',
   };
   say(help[tool]);
@@ -881,13 +914,14 @@ function boot() {
 
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input, select, textarea')) return;
-    const keys = { v: 'select', p: 'place', b: 'break', w: 'wire', x: 'delete' };
+    const keys = { v: 'select', p: 'place', b: 'break', w: 'wire', m: 'move', x: 'delete' };
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       e.preventDefault();
       return e.shiftKey ? redo() : undo();
     }
     if (e.key === 'Escape') {
       state.wireStart = null;
+      state.moveAnchor = null;
       state.selection = null;
       return draw('cancelled');
     }
