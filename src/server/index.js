@@ -19,6 +19,7 @@ import { findingsFor, netsFor, runList } from '../model/views.js';
 import * as boards from './boards.js';
 import * as ops from '../model/ops.js';
 import * as rules from '../model/rules.js';
+import * as netlist from '../model/netlist.js';
 import { attachLive as makeLive } from './live.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -144,6 +145,48 @@ app.post('/api/boards/:slug/rename', (req, res) => {
 //
 // Same version guard as PUT — and unlike the way I used PUT today, the content
 // written is derived from the snapshot the version came from, in one request.
+// Does this board implement this netlist?
+//
+// READ ONLY, and deliberately so. The comparison is the thing a caller needs
+// before deciding anything, and a check that also wrote would be a check nobody
+// dared run. Send `{netlist}` as text or as {parts, nets}.
+app.post('/api/boards/:slug/netlist/check', (req, res) => {
+  let read;
+  try { read = boards.read(boardsDir(), req.params.slug); }
+  catch (e) { return boardError(res, e); }
+  if (req.body?.netlist == null) {
+    return res.status(400).json({ error: 'send a netlist', code: 'no-netlist' });
+  }
+  const parsed = netlist.parseNetlist(req.body.netlist);
+  const report = netlist.compareToNetlist(read.project, parsed);
+  return res.json({ version: read.version, ...report });
+});
+
+// What to do next, as ops — PROPOSED, never applied.
+//
+// The caller reads the plan, keeps what is right and POSTs it to /ops, which
+// applies it all or nothing under the same rules. Two steps rather than one
+// because Peter asked for an interactive process: "a claude interractive script
+// that will allow you to build a real board", and a planner that applied its own
+// output would be the autorouter he said this was not.
+app.post('/api/boards/:slug/netlist/plan', (req, res) => {
+  let read;
+  try { read = boards.read(boardsDir(), req.params.slug); }
+  catch (e) { return boardError(res, e); }
+  if (req.body?.netlist == null) {
+    return res.status(400).json({ error: 'send a netlist', code: 'no-netlist' });
+  }
+  const parsed = netlist.parseNetlist(req.body.netlist);
+  const plan = netlist.planFor(read.project, parsed);
+  return res.json({
+    version: read.version,
+    ops: plan.ops,
+    refusals: plan.refusals,
+    notes: plan.notes,
+    report: plan.report,
+  });
+});
+
 app.post('/api/boards/:slug/ops', (req, res) => {
   let read;
   try { read = boards.read(boardsDir(), req.params.slug); }

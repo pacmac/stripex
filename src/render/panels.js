@@ -10,6 +10,11 @@
 export const TABS = [
   { id: 'findings', label: 'Checks' },
   { id: 'nets', label: 'Nets' },
+  // WHAT THE BOARD IS SUPPOSED TO DO, beside what it does. Nets is derived from
+  // the copper; Netlist is the intent, and the gap between them is the work
+  // remaining. Peter asked to build a design from one, and a coverage list you
+  // can only get over HTTP is not something you use at a bench.
+  { id: 'netlist', label: 'Netlist' },
   { id: 'runlist', label: 'Run list' },
   { id: 'inspect', label: 'Focus' },
 ];

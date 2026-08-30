@@ -18,9 +18,12 @@ s.check('nothing is called Selected any more', () => {
   eq(P.TABS.filter((t) => t.label === 'Selected'), [], 'no tab labelled Selected');
 });
 
-s.check('the four tabs are present, in order', () => {
-  eq(P.TABS.map((t) => t.id), ['findings', 'nets', 'runlist', 'inspect'], 'tab ids');
-  eq(P.TABS.map((t) => t.label), ['Checks', 'Nets', 'Run list', 'Focus'], 'tab labels');
+s.check('the tabs are present, in order', () => {
+  // NETLIST SITS BESIDE NETS on purpose: Nets is derived from the copper and
+  // Netlist is the intent, and the gap between the two is the work remaining.
+  eq(P.TABS.map((t) => t.id), ['findings', 'nets', 'netlist', 'runlist', 'inspect'], 'tab ids');
+  eq(P.TABS.map((t) => t.label),
+    ['Checks', 'Nets', 'Netlist', 'Run list', 'Focus'], 'tab labels');
 });
 
 s.check('tab ids are unique and every tab has a label', () => {

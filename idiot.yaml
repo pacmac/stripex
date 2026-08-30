@@ -2531,12 +2531,27 @@
   - src/render/panels.js
   - public/app.js
   test:
-    command: null
-    criterion: a netlist parses, a short is reported first, a split net names the pins on each side, adoptDevice
-      turns a bare DIP into a device, and Peter's own board compares clean against the rotator netlist
+    command:
+    - node
+    - tests/model/test_netlist.mjs
+    criterion: a netlist parses with problems reported by line, a pin is named not numbered, a split net
+      names both sides, two netlist nets on one board net is a short, every net the plan acts on becomes
+      satisfied and the rest are refused with their rule, and adoptDevice turns a bare DIP into a device
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/there-is-no-way-to-build-or-check-a-board-against-a-netlist.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T20:18:48.751'
+    commit: ca0de04-dirty
+  fix:
+    file: .proofs/there-is-no-way-to-build-or-check-a-board-against-a-netlist.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T20:25:18.542'
+    commit: ca0de04-dirty
 - id: the-inspector-still-cuts-copper-by-hand
   type: bug
   what: The break branch of the Focus panel does state.project.breaks = state.project.breaks.filter(...)
@@ -2561,6 +2576,21 @@
   test:
     command: null
     criterion: selecting a device shows its pin source and names the unverified pins
+    runs: 1
+  trial: null
+  fix: null
+- id: the-catalogue-pinout-and-peters-board-disagree
+  type: bug
+  what: 'Adopting the tmc2209 device onto Peter''s own placement and comparing pin numbers with his net
+    labels: his pins 1-8 line up with catalogue pins 9-16 (0V/GND, 3V3/VIO, M2A, M2B, 0V/GNDM, VMOT/VM
+    all agree) EXCEPT M1A and M1B, which appear swapped; and on the logic side STEP and DIR appear swapped.
+    Two readings of one physical part that disagree. Which is right is not decidable from either source.'
+  spec: docs/specs/verified-pin-names.md
+  files:
+  - src/parts/devices.js
+  test:
+    command: null
+    criterion: the pin order matches the module Peter actually has, read off its silkscreen
     runs: 1
   trial: null
   fix: null

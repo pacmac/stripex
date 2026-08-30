@@ -40,6 +40,7 @@ import { pinLocation } from '/src/model/move.js';
 // directly, so a wire the API refused was accepted by clicking — one board with
 // two sets of rules, and the looser one was the one a person used.
 import * as ops from '/src/model/ops.js';
+import { compareToNetlist, netlistFindings } from '/src/model/netlist.js';
 import {
   checkRules, disabledRuleNotes, rulesFor, ruleValue, warnOnlyFor,
   RULE_DEFS, DEFAULT_RULES,
@@ -476,7 +477,12 @@ function draw(message) {
   // the DRC's own shape, so the Checks tab and the board markers show them
   // without learning a second format. This is where a pen wire on power — which
   // the editor allows and the API refuses — becomes visible instead of silent.
-  lastFindings = [...findingsFor(p), ...checkRules(p), ...disabledRuleNotes(p)];
+  lastFindings = [
+    ...findingsFor(p), ...checkRules(p), ...disabledRuleNotes(p),
+    // Only when the board carries one. A netlist is an optional statement of
+    // intent, and a board without one is not thereby incomplete.
+    ...(p.netlist ? netlistFindings(p, p.netlist) : []),
+  ];
 
   $('#boardWrap').innerHTML = renderBoard(p, {
     view: state.view,
@@ -491,6 +497,7 @@ function draw(message) {
 
   paintFindings(lastFindings);
   paintNets();
+  paintNetlist();
   paintRunList();
   paintInspector();
   paintLayers();
@@ -665,6 +672,84 @@ function paintFindings(findings) {
     + (loose.length ? loose.map(row).join('')
       : `<p class="empty">${folds.length ? 'No errors.' : 'Nothing to report.'}</p>`)
     + folds.join('');
+}
+
+// The Netlist tab: what the board is SUPPOSED to connect, beside what it does.
+//
+// The netlist lives on the project, so it travels with the board, reaches the
+// live feed, and is there when the board is reopened. A netlist held only in the
+// browser would be a second document you could lose.
+//
+// A SHORT LEADS. Two netlist nets on one strip is damage; a net not yet joined
+// up is work outstanding, and the two must never be shown as the same kind of
+// thing.
+function paintNetlist() {
+  const el = $('#tab-netlist');
+  if (!el) return;
+  const text = state.project.netlist ?? '';
+
+  const editor = `
+    <label class="netlist-edit">
+      <span>Netlist</span>
+      <textarea id="netlistText" rows="8" spellcheck="false"
+        placeholder="part U1 xiao&#10;part U2 tmc2209&#10;net 0V   U1.GND U2.GND&#10;net STEP U1.D0  U2.STEP"
+        >${escapeHtml(text)}</textarea>
+    </label>`;
+
+  if (!text.trim()) {
+    el.innerHTML = `${editor}
+      <p class="empty">No netlist yet. Write what this board is meant to connect and
+      it will be checked against the copper on every edit.</p>`;
+    wireNetlistBox();
+    return;
+  }
+
+  let report;
+  try { report = compareToNetlist(state.project, text); }
+  catch (e) { el.innerHTML = `${editor}<p class="empty">${escapeHtml(e.message)}</p>`; return wireNetlistBox(); }
+
+  const tally = `<div class="tally">
+    <span><b class="${report.shorts.length ? 'error' : 'ok'}">${report.shorts.length}</b> shorts</span>
+    <span><b class="ok">${report.satisfied}</b> made</span>
+    <span><b class="${report.satisfied === report.total ? 'ok' : 'warning'}">${report.total - report.satisfied}</b> to do</span></div>`;
+
+  const shorts = report.shorts.map((sh) => `
+    <div class="row error"><span class="ref">short</span>
+      <span class="msg">${escapeHtml(sh.message)}</span></div>`).join('');
+
+  const problems = report.problems.map((p) => `
+    <div class="row error"><span class="ref">${p.line ? `line ${p.line}` : '·'}</span>
+      <span class="msg">${escapeHtml(p.message)}</span></div>`).join('');
+
+  const rows = [...report.nets]
+    .sort((a, b) => (a.status === 'satisfied' ? 1 : 0) - (b.status === 'satisfied' ? 1 : 0)
+      || a.name.localeCompare(b.name))
+    .map((n) => {
+      const detail = n.status === 'satisfied'
+        ? `${n.want} pins on one strip`
+        : n.groups.map((g) => g.join(' + ')).join('  |  ')
+          + (n.absent.length ? `  (not on the board: ${n.absent.join(', ')})` : '');
+      return `<div class="row ${n.status === 'satisfied' ? 'ok' : 'warning'}">
+        <span class="ref">${escapeHtml(n.name)}</span>
+        <span class="msg">${escapeHtml(detail)}</span></div>`;
+    }).join('');
+
+  el.innerHTML = `${editor}${tally}${shorts}${problems}${rows}`;
+  wireNetlistBox();
+}
+
+// Saved when you leave the box, not on every keystroke: a netlist is typed in
+// bursts and a commit per character would bury undo.
+function wireNetlistBox() {
+  const box = $('#netlistText');
+  if (!box) return;
+  box.addEventListener('change', () => {
+    const next = JSON.parse(JSON.stringify(state.project));
+    const text = box.value;
+    if (text.trim()) next.netlist = text; else delete next.netlist;
+    state.project = next;
+    commit('netlist updated');
+  });
 }
 
 function paintNets() {

@@ -283,6 +283,46 @@ export function setLabel(project, hole, { name, colour } = {}) {
   return { project: setNetLabel(clone(project), hole, name || colour ? { name, colour } : null) };
 }
 
+// A footprint that was always a chip, told which chip it is.
+//
+// Peter's own TMC2209 and XIAO are `part: "dip"` with no device and no pin
+// names, drawn before the catalogue existed; his net names were placed by eye on
+// the strips. Without this, a netlist saying `U2.STEP` could never address the
+// only real board in the project — the feature would be born unable to touch it.
+//
+// REFUSED WHEN THE PIN COUNT DIFFERS. An adoption that silently renumbered pins
+// would corrupt a board rather than describe it, and every name after the
+// mismatch would be confidently wrong.
+export function adoptDevice(project, ref, device) {
+  const pl = (project.placements ?? []).find((x) => x.ref === ref);
+  if (!pl) return fail('no-such-part', `there is no ${ref} on this board`);
+  const d = getDevice(device);
+  if (!d) return fail('no-such-device', `${JSON.stringify(device)} is not a device`);
+
+  const have = countPins(pl);
+  const want = d.pins?.length ?? 0;
+  if (have !== want) {
+    return fail('wrong-pin-count',
+      `${ref} is a ${have}-pin footprint and a ${d.name} has ${want} pins`);
+  }
+
+  const next = clone(project);
+  const target = next.placements.find((x) => x.ref === ref);
+  // The catalogue is COPIED ON, exactly as placementFor does it — a placement
+  // owes the catalogue nothing afterwards. What the board already says about
+  // where it sits and which way round it goes is left alone: this says what the
+  // part IS, not where it is.
+  target.device = d.id;
+  if (d.pins?.length) target.pinNames = [...d.pins];
+  if (d.silk && !target.silk) target.silk = d.silk;
+  if (d.unverifiedPins?.length) target.unverifiedPins = [...d.unverifiedPins];
+  if (d.pinSource) target.pinSource = d.pinSource;
+
+  const bad = validateProject(next);
+  if (bad.length) return fail('invalid', bad[0].message);
+  return { project: next, ref };
+}
+
 // --------------------------------------------------------------- pin names
 
 // The names on ONE placement, replaced.
@@ -362,6 +402,7 @@ export function setRules(project, patch = {}) {
 const OPS = {
   setRules: (p, a) => setRules(p, a.rules ?? a.patch ?? {}),
   setPinNames: (p, a) => setPinNames(p, a.ref, a.names),
+  adoptDevice: (p, a) => adoptDevice(p, a.ref, a.device),
   addPart: (p, a) => addPart(p, a),
   removePart: (p, a) => removePart(p, a.ref),
   movePart: (p, a) => movePart(p, a.ref, a.pin, a.to),
