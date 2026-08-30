@@ -12,7 +12,7 @@ import { requiredBreaks, ownerOf, effectiveBreaks } from '/src/model/breaks.js';
 import { cursorFor } from '/src/render/cursors.js';
 import {
   TABS, DEFAULT_TAB, focusTabFor, bodyId, inspectorKey, shouldSetStatus,
-  CARDS, cardForTool, paramsFor, groupParts, filterParts,
+  CARDS, cardForTool, paramsFor, groupParts, filterParts, highlightFor,
 } from '/src/render/panels.js';
 import { toolForKey } from '/src/render/keys.js';
 import { loadProject } from '/src/model/repair.js';
@@ -98,7 +98,10 @@ const state = {
   view: 'top',
   theme: 'light',
   selection: null,
-  highlightNet: null,
+  // No `highlightNet`. A lit net IS a selection — { kind: 'net', ref } — and the
+  // highlight is derived from it at the point of use. Two pieces of state that
+  // must agree, with nothing checking that they do, is the shape that has
+  // already cost this project twice.
   wireStart: null,
   moveAnchor: null,
   drag: null,
@@ -206,7 +209,7 @@ function draw(message) {
   $('#boardWrap').innerHTML = renderBoard(p, {
     view: state.view,
     theme: state.theme,
-    highlightNet: state.highlightNet,
+    highlightNet: highlightFor(state.selection),
     findings: lastFindings,
     selection: state.selection,
     layers: state.layers,
@@ -395,8 +398,10 @@ function paintNets() {
     const label = labels.get(netObj.id);
     const a = anchorOf(netObj);
     const anchor = a ? `${a.col},${a.row}` : '';
+    const picked = state.selection?.kind === 'net' && state.selection.ref === netObj.id;
     return `
-    <div class="row" data-net="${netObj.id}">
+    <div class="row${picked ? ' is-net-on' : ''}" data-net="${netObj.id}"
+      ${picked ? 'data-selected="true"' : ''}>
       <span class="ref mono">${escapeHtml(label?.name ?? netObj.id)}</span>
       <span class="msg">${netObj.segments.length} segment${netObj.segments.length === 1 ? '' : 's'},
         ${netObj.pins.length} connection${netObj.pins.length === 1 ? '' : 's'}</span>
@@ -434,6 +439,14 @@ function paintNets() {
 
 // The label stored against this hole, if any.
 const labelAt = (col, row) => state.project.netLabels?.[`${col},${row}`] ?? {};
+
+// A net's name if it has one, else its id — so the status line says "GND"
+// rather than "n3" once a net has been named.
+function netName(sel) {
+  if (sel?.kind !== 'net') return sel?.ref ?? '';
+  const { segmentNet } = netsFor(state.project);
+  return netLabelsByNet(state.project, segmentNet).get(sel.ref)?.name ?? sel.ref;
+}
 
 function paintRunList() {
   const list = runList(state.project);
@@ -487,11 +500,15 @@ function syncInspectorValues(includeFocused = false) {
 
 function paintInspector(force = false) {
   const sel = state.selection;
+  // A net's target is the derived net itself, so its key reads `net:n0` rather
+  // than falling through the "the thing is gone" branch.
   const target = sel?.kind === 'part'
     ? state.project.placements.find((x) => x.ref === sel.ref)
     : sel?.kind === 'wire'
       ? state.project.wires.find((x) => x.ref === sel.ref)
-      : null;
+      : sel?.kind === 'net'
+        ? netsFor(state.project).nets.find((x) => x.id === sel.ref)
+        : null;
   let part = null;
   if (sel?.kind === 'part' && target) {
     try { part = getPart(target.part); } catch { /* unknown */ }
@@ -510,6 +527,26 @@ function paintInspectorFrom() {
   const el = $('#tab-inspect');
   const sel = state.selection;
   if (!sel) { el.innerHTML = '<p class="empty">Nothing selected.</p>'; return; }
+
+  if (sel.kind === 'net') {
+    // A net opens the Nets tab, so this is not what you are looking at — but it
+    // must not say "Nothing selected" while something is.
+    const { nets, segmentNet } = netsFor(state.project);
+    const netObj = nets.find((x) => x.id === sel.ref);
+    if (!netObj) { el.innerHTML = '<p class="empty">That net is gone.</p>'; return; }
+    const label = netLabelsByNet(state.project, segmentNet).get(sel.ref);
+    el.innerHTML = `
+      <div class="field"><span>Net</span>
+        <span class="mono">${escapeHtml(label?.name ?? netObj.id)}</span></div>
+      ${label?.colour ? `<div class="field"><span>Colour</span>
+        <span class="sw-now" style="background:${label.colour}"></span></div>` : ''}
+      <div class="field"><span>Strips</span>
+        <span class="mono">${netObj.segments.length}</span></div>
+      <div class="field"><span>Connections</span>
+        <span class="mono">${netObj.pins.length}</span></div>
+      <p class="hint">Name and colour it in the <b>Nets</b> tab.</p>`;
+    return;
+  }
 
   if (sel.kind === 'break') {
     const [row, x] = sel.ref.split(',').map(Number);
@@ -898,6 +935,9 @@ function onBoardClick(evt) {
       // under a component is reachable. It carries the same data-break, so it
       // is treated as the cut it stands for.
       const breakEl = evt.target.closest('[data-kind="break"], [data-kind="break-hit"]');
+      // Read before the reset below: clicking a strip twice has to compare
+      // against what WAS selected, and `else state.selection = null` runs first.
+      const was = state.selection;
       if (partEl) state.selection = { kind: 'part', ref: partEl.getAttribute('data-ref') };
       else if (wireEl) state.selection = { kind: 'wire', ref: wireEl.getAttribute('data-ref') };
       else if (breakEl) {
@@ -908,11 +948,14 @@ function onBoardClick(evt) {
       if (copper && !partEl && !wireEl && !breakEl) {
         const { segmentNet } = netsFor(p);
         const netId = segmentNet[copper.getAttribute('data-seg')];
-        state.highlightNet = state.highlightNet === netId ? null : netId;
+        // Selecting the same strip again clears it, as it always did — but it is
+        // a selection now, so it brings the Nets tab forward and marks its row.
+        const already = was?.kind === 'net' && was.ref === netId;
+        state.selection = already ? null : { kind: 'net', ref: netId };
       }
-      const what = { part: 'part', wire: 'wire', break: 'break at' };
+      const what = { part: 'part', wire: 'wire', break: 'break at', net: 'net' };
       draw(state.selection
-        ? `selected ${what[state.selection.kind]} ${state.selection.ref}`
+        ? `selected ${what[state.selection.kind]} ${netName(state.selection)}`
         : '');
     }
   }
@@ -1140,8 +1183,12 @@ function boot() {
 
     const netRow = evt.target.closest('[data-net]');
     if (netRow) {
-      state.highlightNet = state.highlightNet === netRow.dataset.net ? null : netRow.dataset.net;
-      return draw('');
+      // The other direction, and it needs no separate code: the same selection
+      // that the board sets, so the strips light and the row marks itself.
+      const already = state.selection?.kind === 'net'
+        && state.selection.ref === netRow.dataset.net;
+      state.selection = already ? null : { kind: 'net', ref: netRow.dataset.net };
+      return draw(already ? '' : `selected net ${netName(state.selection)}`);
     }
 
     if (evt.target.closest('#boardWrap')) onBoardClick(evt);

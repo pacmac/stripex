@@ -1,0 +1,2 @@
+$ node tests/render/test_net_selection.mjs
+net-selection: 10/10 checks passed

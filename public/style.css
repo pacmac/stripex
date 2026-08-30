@@ -355,6 +355,13 @@ main {
   border: 1px solid rgba(128, 128, 128, 0.45);
 }
 
+/* The selected net's row, in the highlight colour the board uses for it, so the
+   two views of one thing look like one thing. */
+.row.is-net-on {
+  background: color-mix(in srgb, #ff6a00 22%, transparent);
+  outline: 1px solid color-mix(in srgb, #ff6a00 60%, transparent);
+}
+
 .row[data-selected="true"] {
   background: color-mix(in srgb, var(--wire) 20%, transparent);
   outline: 1px solid color-mix(in srgb, var(--wire) 55%, transparent);

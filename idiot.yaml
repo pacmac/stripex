@@ -1171,3 +1171,32 @@
     failures: 0
     at: '2026-08-30T12:30:04.606'
     commit: 4076b3b-dirty
+- id: a-net-selected-on-the-board-is-not-selected-in-the-nets-tab
+  type: bug
+  what: 'Clicking a strip only sets a highlight: the right panel does not open the Nets tab and no row
+    is marked, and clicking a net row marks nothing either'
+  spec: docs/specs/net-selection-both-ways.md
+  files:
+  - src/render/panels.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_net_selection.mjs
+    criterion: 'tests/render/test_net_selection.mjs passes: a net is a selection kind, it opens the Nets
+      tab, and the highlight is derived from it'
+    runs: 1
+  trial:
+    file: .proofs/a-net-selected-on-the-board-is-not-selected-in-the-nets-tab.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T13:37:42.905'
+    commit: bea8dcd-dirty
+  fix:
+    file: .proofs/a-net-selected-on-the-board-is-not-selected-in-the-nets-tab.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T13:45:53.723'
+    commit: bea8dcd-dirty

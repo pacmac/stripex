@@ -27,7 +27,22 @@ export const DEFAULT_TAB = 'findings';
 // each time you cut a track would be unusable.
 export function focusTabFor(selection) {
   if (!selection) return null;
+  // A net is described by the Nets tab, everything else by Focus. Without this,
+  // selecting a strip left the right panel on whatever tab it happened to be
+  // on, with nothing marked — the one selectable thing that did not bring its
+  // own view forward.
+  if (selection.kind === 'net') return 'nets';
   return ['part', 'wire', 'break'].includes(selection.kind) ? 'inspect' : null;
+}
+
+// Which net the board should light, derived from the selection.
+//
+// NOT a second `highlightNet` kept in step by hand. Two pieces of state that
+// must agree, with nothing checking that they do, is the shape this project has
+// already paid for twice — the ref-prefix table that drifted from the library,
+// and the palette highlight that drifted from the armed tool.
+export function highlightFor(selection) {
+  return selection?.kind === 'net' ? selection.ref : null;
 }
 
 export const bodyId = (tabId) => `tab-${tabId}`;
@@ -125,6 +140,10 @@ export const shouldSetStatus = (message) => message !== undefined && message !==
 export function inspectorKey(selection, target, part) {
   if (!selection) return null;
   if (!target) return `${selection.kind}:${selection.ref}:gone`;
+  // Keyed on the net id alone: growing a net by adding a wire must not rebuild
+  // the panel. The `net:` prefix is what stops a part someone has called n0
+  // from colliding with the net of that name.
+  if (selection.kind === 'net') return `net:${selection.ref}`;
   if (selection.kind === 'part') {
     // The field list is part of the shape: a resistor has no width row, an LED
     // has no span row.
