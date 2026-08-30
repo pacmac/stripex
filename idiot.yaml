@@ -1031,12 +1031,28 @@
   spec: docs/specs/never-lose-a-board.md
   files:
   - public/app.js
+  - tests/render/test_persist_and_escape.mjs
   test:
-    command: null
-    criterion: a failed write is reported to the user rather than swallowed
+    command:
+    - node
+    - tests/render/test_persist_and_escape.mjs
+    criterion: persist() raises a banner naming NOT SAVED when the board write throws, leaves no empty
+      catch, and returns whether it wrote
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/saving-fails-silently-when-storage-is-full.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T19:06:30.348'
+    commit: 981fc74-dirty
+  fix:
+    file: .proofs/saving-fails-silently-when-storage-is-full.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:06:39.870'
+    commit: 981fc74-dirty
 - id: escape-leaves-a-part-lit-in-the-palette-while-arming-select
   type: bug
   what: Escape switches the tool to Select but the palette still shows a part highlighted, so the board
@@ -1045,13 +1061,28 @@
   files:
   - public/app.js
   - src/render/panels.js
+  - tests/render/test_persist_and_escape.mjs
   test:
-    command: null
-    criterion: 'tests/render/test_palette_state.mjs passes: the palette shows a part as armed only when
-      the place tool is armed'
+    command:
+    - node
+    - tests/render/test_persist_and_escape.mjs
+    criterion: setTool tells the palette what is armed, so Escape cannot leave a part lit while Select
+      is active
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/escape-leaves-a-part-lit-in-the-palette-while-arming-select.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T19:06:51.165'
+    commit: 981fc74-dirty
+  fix:
+    file: .proofs/escape-leaves-a-part-lit-in-the-palette-while-arming-select.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:06:56.755'
+    commit: 981fc74-dirty
 - id: the-editor-throws-away-a-board-it-cannot-read
   type: bug
   what: load() discards the whole stored project when any check fails and substitutes an empty board,
@@ -1421,13 +1452,29 @@
   spec: docs/specs/architecture-for-netlist.md
   files:
   - public/app.js
+  - src/model/ops.js
+  - tests/model/test_headless_build.mjs
   test:
-    command: null
-    criterion: src/model/ops.js exports pure project->project addPart/removePart/movePart/addWire/removeWire/setBreak/clearBreak,
-      and app.js calls them instead of mutating inline
+    command:
+    - node
+    - tests/model/test_headless_build.mjs
+    criterion: public/app.js contains no placements/wires/breaks mutation of its own, calls ops for all
+      seven edits, and a whole board builds through applyOps with no DOM
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/there-is-no-headless-way-to-build-a-board.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T19:05:47.804'
+    commit: 981fc74-dirty
+  fix:
+    file: .proofs/there-is-no-headless-way-to-build-a-board.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:05:50.554'
+    commit: 981fc74-dirty
 - id: the-model-asks-the-renderer-what-a-net-is
   type: bug
   what: netsFor, findingsFor, runList and cutList are exported from src/render/svg.js, so app.js and the

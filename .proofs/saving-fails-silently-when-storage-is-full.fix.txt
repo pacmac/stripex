@@ -1,0 +1,2 @@
+$ node tests/render/test_persist_and_escape.mjs
+persist-and-escape: 7/7 checks passed

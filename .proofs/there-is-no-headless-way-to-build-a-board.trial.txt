@@ -1,0 +1,6 @@
+$ node tests/model/test_headless_build.mjs
+FAIL  THE EDITOR MUTATES NOTHING ITSELF
+      public/app.js edits the project directly: p.placements.push, p.wires.push, p.breaks.push, assignment to p.placements, assignment to p.wires, assignment to p.breaks, assignment into p.placements[]: expected [], got ["p.placements.push","p.wires.push","p.breaks.push","assignment to p.placements","assignment to p.wires","assignment to p.breaks","assignment into p.placements[]"]
+FAIL  and it calls the operations instead
+      app.js imports ops.js: expected truthy, got falsy
+headless-build: 3/5 checks passed
