@@ -845,3 +845,34 @@
     failures: 0
     at: '2026-08-30T10:33:15.616'
     commit: d233cd8-dirty
+- id: a-pen-wire-is-drawn-as-a-line-with-no-pads
+  type: new
+  what: A point to point wire draws a line and no end pads, so nothing marks the holes it terminates in
+    and a board of forty wires is spaghetti
+  spec: docs/specs/point-to-point-pads.md
+  files:
+  - src/model/labels.js
+  - src/model/board.js
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_point_to_point.mjs
+    criterion: 'tests/render/test_point_to_point.mjs passes: a pen wire draws two pads sharing a letter
+      ID and no line, and selecting it draws its line temporarily'
+    runs: 1
+  trial:
+    file: .proofs/a-pen-wire-is-drawn-as-a-line-with-no-pads.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:40:58.376'
+    commit: e96df7f-dirty
+  fix:
+    file: .proofs/a-pen-wire-is-drawn-as-a-line-with-no-pads.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:44:21.078'
+    commit: e96df7f-dirty

@@ -433,25 +433,50 @@ export function renderBoard(project, opts = {}) {
           + ` x2="${n(mx(z.x))}" y2="${n(z.y)}" stroke="${c.select}"`
           + ` stroke-width="${n(PITCH_MM * 0.52)}" stroke-linecap="round" opacity="0.75"/>`));
       }
-      // Every wire gets a casing first: a slightly wider stroke in the theme's
-      // contrasting ink. Without it a black wire vanishes on the dark board and
-      // a white one vanishes on the light board — and the colour code contains
-      // both, so the palette cannot simply avoid them.
-      const width = PITCH_MM * (sel ? 0.3 : 0.2);
-      out.push(`<line data-kind="wire-casing" data-ref="${esc(wire.ref)}"`
-        + ` x1="${n(mx(a.x))}" y1="${n(a.y)}" x2="${n(mx(z.x))}" y2="${n(z.y)}"`
-        + ` stroke="${c.wireCasing}" stroke-width="${n(width + PITCH_MM * 0.09)}"`
-        + ' stroke-linecap="round" opacity="0.55" pointer-events="none"/>');
-      out.push(`<line data-kind="wire" data-ref="${esc(wire.ref)}"`
-        + `${sel ? ' data-selected="true"' : ''}`
-        + ` x1="${n(mx(a.x))}" y1="${n(a.y)}" x2="${n(mx(z.x))}" y2="${n(z.y)}"`
-        + ` stroke="${wireColour(wire)}" stroke-width="${n(width)}"`
-        + ' stroke-linecap="round"/>');
-      if (L.labels) {
-        out.push(`<text data-kind="wire-label" data-ref="${esc(wire.ref)}"`
-          + ` x="${n((mx(a.x) + mx(z.x)) / 2)}" y="${n((a.y + z.y) / 2 - 0.5)}"`
-          + ` font-size="${n(PITCH_MM * 0.62)}" fill="${c.wireInk}" text-anchor="middle"`
-          + ` font-family="sans-serif">${esc(wire.ref)}</text>`);
+      const ink = wireColour(wire);
+
+      // THE WIRE IS NOT DRAWN. A pen wire appears as two pads sharing an ID, so
+      // forty of them do not become spaghetti laid over the board you are
+      // trying to read.
+      //
+      // The line comes back only while the wire is SELECTED, which is the answer
+      // to "is A really wired to A?" — one wire's path, when you ask for it. The
+      // casing goes with it, since it exists to keep a black or white line
+      // legible.
+      if (sel) {
+        const width = PITCH_MM * 0.3;
+        out.push(`<line data-kind="wire-casing" data-ref="${esc(wire.ref)}"`
+          + ` x1="${n(mx(a.x))}" y1="${n(a.y)}" x2="${n(mx(z.x))}" y2="${n(z.y)}"`
+          + ` stroke="${c.wireCasing}" stroke-width="${n(width + PITCH_MM * 0.09)}"`
+          + ' stroke-linecap="round" opacity="0.55" pointer-events="none"/>');
+        out.push(`<line data-kind="wire" data-ref="${esc(wire.ref)}"`
+          + ' data-selected="true"'
+          + ` x1="${n(mx(a.x))}" y1="${n(a.y)}" x2="${n(mx(z.x))}" y2="${n(z.y)}"`
+          + ` stroke="${ink}" stroke-width="${n(width)}"`
+          + ' stroke-linecap="round" opacity="0.75" pointer-events="none"/>');
+      }
+
+      // Both ends identical: a pen wire has no polarity and no direction, and
+      // marking one differently would imply an order that does not exist. Filled,
+      // so a wire pad reads differently from a component pad, which is an
+      // outline. In the wire's LENGTH colour, which matters more without a line
+      // than with one — it says which pre-cut wire to take from the drawer.
+      const padR = n(PAD_R_MM);
+      for (const [end, hole, pt] of [['from', wire.from, a], ['to', wire.to, z]]) {
+        out.push(`<circle data-kind="wire-pad" data-ref="${esc(wire.ref)}"`
+          + ` data-end="${end}" data-hole="${hole.col},${hole.row}"`
+          + `${sel ? ' data-selected="true"' : ''} pointer-events="all"`
+          + ` cx="${n(mx(pt.x))}" cy="${n(pt.y)}" r="${padR}"`
+          + ` fill="${ink}" stroke="${c.wireCasing}"`
+          + ` stroke-width="${n(SILK_STROKE_MM * 0.7)}"/>`);
+        if (L.labels) {
+          out.push(`<text data-kind="wire-label" data-ref="${esc(wire.ref)}"`
+            + ` data-end="${end}" x="${n(mx(pt.x))}"`
+            + ` y="${n(pt.y - PAD_R_MM - PITCH_MM * 0.18)}"`
+            + ` font-size="${n(PITCH_MM * 0.6)}" fill="${c.ink}" text-anchor="middle"`
+            + ` font-family="sans-serif" pointer-events="none"`
+            + ` font-weight="600">${esc(wire.ref)}</text>`);
+        }
       }
     }
   }

@@ -86,8 +86,21 @@ s.check('every hole on the board is drawn and addressable', () => {
   ok(holes.some((h) => attr(h, 'data-hole') === '9,5'), 'hole 9,5 is addressable');
 });
 
-s.check('A PEN WIRE IS DRAWN BETWEEN THE CENTRES OF ITS TWO HOLES', () => {
+s.check('A PEN WIRE PUTS A PAD ON THE CENTRE OF EACH OF ITS TWO HOLES', () => {
+  // Changed 2026-08-30: a pen wire is two pads sharing an ID rather than a
+  // drawn line. See docs/specs/point-to-point-pads.md. The line comes back only
+  // while the wire is selected, and that is checked below.
   const svg = R.renderBoard(project(), {});
+  const pads = els(svg, 'wire-pad');
+  eq(pads.length, 2, 'two pads');
+  const a = geom.holeToMm(0, 0);
+  const b = geom.holeToMm(9, 5);
+  eq([num(pads[0], 'cx'), num(pads[0], 'cy')], [a.x, a.y], 'first end');
+  eq([num(pads[1], 'cx'), num(pads[1], 'cy')], [b.x, b.y], 'second end');
+});
+
+s.check('...and its line between those centres when it is selected', () => {
+  const svg = R.renderBoard(project(), { selection: { kind: 'wire', ref: 'W1' } });
   const wire = els(svg, 'wire')[0];
   ok(wire, 'a wire element exists');
   const a = geom.holeToMm(0, 0);
@@ -96,10 +109,12 @@ s.check('A PEN WIRE IS DRAWN BETWEEN THE CENTRES OF ITS TWO HOLES', () => {
   eq([num(wire, 'x2'), num(wire, 'y2')], [b.x, b.y], 'wire end');
 });
 
-s.check('a pen wire is labelled with its ref', () => {
+s.check('a pen wire is labelled with its ref at BOTH ends', () => {
+  // The ID is how you pair the two ends up, so it has to be at each of them.
   const svg = R.renderBoard(project(), {});
-  eq(attr(els(svg, 'wire')[0], 'data-ref'), 'W1', 'wire data-ref');
-  ok(els(svg, 'wire-label').some((e) => attr(e, 'data-ref') === 'W1'), 'W1 label drawn');
+  eq(els(svg, 'wire-pad').map((e) => attr(e, 'data-ref')), ['W1', 'W1'], 'pad refs');
+  eq(els(svg, 'wire-label').filter((e) => attr(e, 'data-ref') === 'W1').length, 2,
+    'two labels');
 });
 
 s.check('a placement is drawn and addressable by ref', () => {
@@ -109,7 +124,7 @@ s.check('a placement is drawn and addressable by ref', () => {
 
 s.check('every interactive element carries data-kind', () => {
   const svg = R.renderBoard(project(), {});
-  for (const kind of ['copper', 'hole', 'wire', 'part']) {
+  for (const kind of ['copper', 'hole', 'wire-pad', 'part']) {
     ok(els(svg, kind).length > 0, `${kind} elements exist`);
   }
 });

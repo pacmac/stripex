@@ -200,11 +200,15 @@ s.check('a wire end lands in the net pin list under its own ref', () => {
 });
 
 s.check('wire refs are allocated in sequence and skip the ones in use', () => {
-  eq(board.nextWireRef({ wires: [], placements: [] }), 'W1', 'first wire');
-  eq(board.nextWireRef({ wires: [{ ref: 'W1' }, { ref: 'W3' }], placements: [] }), 'W2',
+  // Changed 2026-08-30: a pen wire is labelled with a spreadsheet column rather
+  // than W1, because it is not drawn as a line — it is two pads sharing this ID,
+  // so the label is the whole of what identifies it. See
+  // docs/specs/point-to-point-pads.md.
+  eq(board.nextWireRef({ wires: [], placements: [] }), 'A', 'first wire');
+  eq(board.nextWireRef({ wires: [{ ref: 'A' }, { ref: 'C' }], placements: [] }), 'B',
     'fills the gap');
-  eq(board.nextWireRef({ wires: [{ ref: 'W1' }, { ref: 'W2' }], placements: [{ ref: 'W3' }] }),
-    'W4', 'a placement using W3 blocks it');
+  eq(board.nextWireRef({ wires: [{ ref: 'A' }, { ref: 'B' }], placements: [{ ref: 'C' }] }),
+    'D', 'a placement using C blocks it');
 });
 
 // --------------------------------------------------------------------- DRC

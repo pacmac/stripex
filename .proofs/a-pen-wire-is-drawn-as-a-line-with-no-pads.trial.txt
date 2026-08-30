@@ -1,0 +1,32 @@
+$ node tests/render/test_point_to_point.mjs
+FAIL  THE SCHEME IS A TO Z THEN AA, AB
+      module ../../src/model/labels.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/labels.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  labelIndex inverts columnLabel
+      module ../../src/model/labels.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/labels.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  labelIndex ignores anything that is not a plain letter label
+      module ../../src/model/labels.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/labels.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  SORTING IS BY LENGTH FIRST, NOT A STRING COMPARE
+      module ../../src/model/labels.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/labels.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  old W refs still sort somewhere sensible rather than throwing
+      module ../../src/model/labels.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/labels.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A NEW PEN WIRE IS CALLED A, THEN B
+      first: expected "A", got "W1"
+FAIL  deleting a wire frees its letter
+      the gap is filled: expected "B", got "W1"
+FAIL  a part cannot be shadowed, because refs share one namespace
+      A is taken by a part: expected "B", got "W1"
+FAIL  projects already using W refs keep them
+      and a new wire still gets A: expected "A", got "W2"
+FAIL  A PEN WIRE DRAWS TWO PADS AND NO LINE
+      two pads: expected 2, got 0
+FAIL  BOTH PADS CARRY THE SAME ID
+      same ref: expected ["A","A"], got []
+FAIL  the pads sit on the holes the wire terminates in
+      the two ends: expected ["2,2","7,5"], got []
+FAIL  a wire pad is filled, so it reads differently from a component pad
+      Cannot read properties of undefined (reading 'match')
+FAIL  SELECTING THE WIRE DRAWS ITS LINE, AND ONLY ITS LINE
+      nothing selected, no lines: expected 0, got 2
+FAIL  the pads are still drawn while the line is showing
+      both pads: expected 2, got 0
+point-to-point: 4/19 checks passed

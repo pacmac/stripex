@@ -14,6 +14,7 @@
 //   - a wire                                   (a pen wire, point to point)
 
 import { segmentIndex, holeKey } from './segments.js';
+import { compareLabels } from '../model/labels.js';
 
 function makeUnionFind(ids) {
   const parent = new Map(ids.map((id) => [id, id]));
@@ -122,8 +123,10 @@ export function nets(segs, pins, placements = [], getPart = null, wires = []) {
 // editor and the exporter cannot disagree about it.
 export function wireRunList(wires, segmentNet = null, segs = null) {
   const idx = segs ? segmentIndex(segs) : null;
+  // compareLabels, not a string compare: A, AA, AB, B is what plain lexical
+  // ordering gives, and this is a build document you work down.
   return [...wires]
-    .sort((a, b) => String(a.ref).localeCompare(String(b.ref), undefined, { numeric: true }))
+    .sort((a, b) => compareLabels(a.ref, b.ref))
     .map((w) => ({
       ref: w.ref,
       from: w.from,

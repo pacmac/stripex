@@ -71,35 +71,44 @@ function withWires(lengths) {
 }
 
 s.check('each wire is drawn in the colour for its own length', () => {
+  // Changed 2026-08-30: a pen wire is two pads and no line, so the colour is on
+  // the pads. Two pads per wire, both the same colour.
   const svg = R.renderBoard(withWires([1, 2, 3]), {});
-  const strokes = els(svg, 'wire').map((e) => attr(e, 'stroke'));
-  eq(strokes, [C.COLOUR_CODE[1].hex, C.COLOUR_CODE[2].hex, C.COLOUR_CODE[3].hex], 'strokes');
+  const fills = els(svg, 'wire-pad').map((e) => attr(e, 'fill'));
+  eq(fills, [
+    C.COLOUR_CODE[1].hex, C.COLOUR_CODE[1].hex,
+    C.COLOUR_CODE[2].hex, C.COLOUR_CODE[2].hex,
+    C.COLOUR_CODE[3].hex, C.COLOUR_CODE[3].hex,
+  ], 'pad fills');
 });
 
-s.check('EVERY WIRE HAS A CASING, SO BLACK AND WHITE BOTH SURVIVE', () => {
-  // A black wire on the dark board and a white one on the light board would each
-  // vanish without it.
+s.check('BLACK AND WHITE PADS BOTH SURVIVE ON EITHER GROUND', () => {
+  // Changed 2026-08-30: the casing was a halo under the drawn LINE. There is no
+  // line now, so the same job falls to the pad's outline — a black pad on the
+  // dark board and a white one on the light board would each vanish without it.
   for (const theme of ['light', 'dark']) {
-    const svg = R.renderBoard(withWires(['W10', 'W9']), { theme });
-    const casings = els(svg, 'wire-casing');
-    eq(casings.length, 2, `${theme}: one casing per wire`);
-    const wires = els(svg, 'wire');
-    for (let i = 0; i < 2; i += 1) {
-      ok(Number(attr(casings[i], 'stroke-width')) > Number(attr(wires[i], 'stroke-width')),
-        `${theme}: casing ${i} is wider than its wire`);
+    const svg = R.renderBoard(withWires([10, 9]), { theme });
+    const pads = els(svg, 'wire-pad');
+    eq(pads.length, 4, `${theme}: two pads per wire`);
+    for (const pad of pads) {
+      ok(attr(pad, 'stroke') && attr(pad, 'stroke') !== 'none',
+        `${theme}: the pad is outlined against the ground`);
+      ok(Number(attr(pad, 'stroke-width')) > 0, `${theme}: and the outline has width`);
     }
+    eq(attr(pads[0], 'fill'), C.COLOUR_CODE[0].hex, `${theme}: a 10-hole wire is black`);
+    eq(attr(pads[2], 'fill'), C.COLOUR_CODE[9].hex, `${theme}: a 9-hole wire is white`);
   }
 });
 
-s.check('the casing is painted before the wire, not over it', () => {
-  const svg = R.renderBoard(withWires(['W1']), {});
+s.check('a selected wire gets its line back, casing first', () => {
+  const svg = R.renderBoard(withWires([1]), { selection: { kind: 'wire', ref: 'W1' } });
   ok(svg.indexOf('data-kind="wire-casing"') < svg.indexOf('data-kind="wire"'), 'order');
 });
 
 s.check('an overridden wire colour reaches the drawing', () => {
-  const p = withWires(['W1']);
+  const p = withWires([1]);
   p.wires[0].colour = '#ff00ff';
-  eq(attr(els(R.renderBoard(p, {}), 'wire')[0], 'stroke'), '#ff00ff', 'stroke');
+  eq(attr(els(R.renderBoard(p, {}), 'wire-pad')[0], 'fill'), '#ff00ff', 'pad fill');
 });
 
 s.check("A PART'S SILK COLOUR REACHES ITS BODY", () => {

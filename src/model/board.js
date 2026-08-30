@@ -6,6 +6,7 @@
 
 import { hasPart, getPart, pinsOf } from '../parts/library.js';
 import { isRotation } from './rotate.js';
+import { columnLabel } from './labels.js';
 
 export const SCHEMA = 'stripex/1';
 
@@ -113,13 +114,21 @@ export function validateProject(project) {
 // Next free wire ref. Wires and placements share one ref namespace, so a
 // placement called W3 blocks W3 for wires — the run list a wiring pen is driven
 // from must have exactly one W3 in it.
+// A pen wire is labelled with a spreadsheet column: A, B, … Z, AA, AB. It is not
+// drawn as a line — it appears as two pads sharing this ID — so the label is the
+// whole of what identifies it on the board, and short beats numbered.
+//
+// The LOWEST free label, so deleting a wire frees its letter and labels stay
+// short. Refs already saved as W1, W2 simply occupy the namespace like any other
+// taken name; they are never rewritten, because nothing distinguishes an
+// auto-allocated ref from one somebody typed.
 export function nextWireRef(project) {
   const taken = new Set([
     ...(project.wires ?? []).map((w) => w.ref),
     ...(project.placements ?? []).map((pl) => pl.ref),
   ]);
   for (let i = 1; ; i += 1) {
-    const ref = `W${i}`;
+    const ref = columnLabel(i);
     if (!taken.has(ref)) return ref;
   }
 }

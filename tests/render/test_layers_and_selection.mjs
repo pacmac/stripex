@@ -31,7 +31,9 @@ function project() {
 
 s.check('everything is drawn when no layers option is given', () => {
   const svg = R.renderBoard(project(), {});
-  for (const kind of ['copper', 'break', 'hole', 'wire', 'part']) {
+  // wire-pad rather than wire: a pen wire is two pads and no line, the line
+  // appearing only while it is selected.
+  for (const kind of ['copper', 'break', 'hole', 'wire-pad', 'part']) {
     ok(els(svg, kind).length > 0, `${kind} is drawn by default`);
   }
 });
