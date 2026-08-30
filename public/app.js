@@ -83,6 +83,10 @@ const LAYER_ROWS = [
   ['breaks', 'Track breaks', '#8a7a5c'],
   ['copper', 'Copper strips', '#b87333'],
   ['holes', 'Holes', '#3a3226'],
+  // Its own row, and not part of "Refs and values": that layer names the parts
+  // you placed, this one names copper you did not. Turning off R1 and 10k is
+  // not asking for GND to go with them.
+  ['netNames', 'Net names', '#9c6428'],
   ['labels', 'Refs and values', '#241f18'],
   ['drc', 'Check markers', '#d1242f'],
 ];

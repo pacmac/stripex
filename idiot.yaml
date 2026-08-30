@@ -1200,3 +1200,33 @@
     failures: 0
     at: '2026-08-30T13:45:53.723'
     commit: bea8dcd-dirty
+- id: a-net-name-is-punched-through-by-the-holes-it-lies-over
+  type: bug
+  what: The net name is drawn in the copper pass and the holes are painted over it four passes later,
+    so the letters come back in fragments; and it rides the Refs-and-values layer, so it cannot be switched
+    off on its own.
+  spec: docs/specs/net-name-plate.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_net_name_plate.mjs
+    criterion: '20/20 checks pass: the plate is emitted after the last hole, opaque, inside the track,
+      ink readable on it, long names shrink rather than spill, and netNames is a separate default-on layer'
+    runs: 1
+  trial:
+    file: .proofs/a-net-name-is-punched-through-by-the-holes-it-lies-over.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T13:51:21.481'
+    commit: da5c2bd-dirty
+  fix:
+    file: .proofs/a-net-name-is-punched-through-by-the-holes-it-lies-over.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T13:55:58.582'
+    commit: da5c2bd-dirty

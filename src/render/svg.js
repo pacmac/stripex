@@ -326,8 +326,46 @@ export const DEFAULT_LAYERS = {
   links: true,
   components: true,
   labels: true,
+  // Separate from `labels` on purpose. That layer is refs and values — R1, 10k,
+  // the letter on a pen wire — which name the parts YOU placed. A net name is
+  // derived from where the copper runs, nothing placed it, and it repeats on
+  // every segment of its net. Wanting the captions off is not wanting R1 off.
+  netNames: true,
   drc: true,
 };
+
+// The plate behind a net name, sized without a text metric — this renderer has
+// no DOM to measure in.
+//
+// 0.62 em per character is sans-serif at weight 600, averaged; the padding is
+// what absorbs the error. The font SHRINKS to fit its segment rather than
+// letting the text spill, because a name spilling off its plate is the very
+// defect this exists to fix — letters back over the holes, now with a plate
+// pointing at them. Below MIN_NAME_MM the name is dropped for that segment,
+// which is safe only because it is drawn on every segment of the net.
+const NAME_EM = 0.62;
+// Half an em of clear space each side. IN EM, not millimetres: a fixed pad looks
+// generous at full size and cramped the moment the font shrinks to fit a short
+// segment, which is where the letters are already tightest.
+const NAME_PAD_EM = 0.5;
+const MIN_NAME_MM = PITCH_MM * 0.3;
+
+export function namePlate(name, segWidthMm, baseFontMm) {
+  const text = String(name ?? '');
+  if (!text || !(segWidthMm > 0)) return { show: false, w: 0, h: 0, fontSize: 0 };
+  // Width is one multiple of the font size, so the fit inverts exactly rather
+  // than being solved by trial.
+  const ems = NAME_EM * text.length + NAME_PAD_EM * 2;
+  const fontSize = Math.min(baseFontMm, segWidthMm / ems);
+  if (fontSize < MIN_NAME_MM) return { show: false, w: 0, h: 0, fontSize: 0 };
+  return {
+    show: true,
+    fontSize,
+    w: fontSize * ems,
+    // Inside the track, so it can never be mistaken for copper bridging two rows.
+    h: TRACK_W_MM * 0.92,
+  };
+}
 
 export function renderBoard(project, opts = {}) {
   const {
@@ -377,6 +415,8 @@ export function renderBoard(project, opts = {}) {
   // src/model/nets.js for why a net cannot own its own name.
   const netSegNet = (highlightNet || project.netLabels) ? netsFor(project).segmentNet : {};
   const labels = project.netLabels ? netLabelsByNet(project, netSegNet) : new Map();
+  // Filled by the copper pass, drawn after the holes — see pass 4b.
+  const netNames = [];
 
   if (L.copper) {
     for (const g of segs) {
@@ -408,18 +448,12 @@ export function renderBoard(project, opts = {}) {
         + ` fill="${fill}" opacity="${opacity}"/>`);
 
       // The name on every segment it covers, so GND reads across the board
-      // without selecting anything.
-      if (label?.name && L.labels) {
-        // The text sits ON the net's own colour, so it has to be chosen against
-        // it. Fixed ink made GND unreadable the moment the net was coloured
-        // black — dark on dark, which is the one combination naming a net for
-        // legibility must not produce.
-        out.push(`<text data-kind="net-name" data-name="${esc(label.name)}"`
-          + ` data-seg="${g.id}" x="${n(x + (right - left) / 2)}"`
-          + ` y="${n(y + TRACK_W_MM * 0.78)}" font-size="${n(PITCH_MM * 0.55)}"`
-          + ` fill="${readableOn(label.colour ?? fill, c)}" text-anchor="middle"`
-          + ` font-family="sans-serif"`
-          + ` pointer-events="none" font-weight="600">${esc(label.name)}</text>`);
+      // without selecting anything — but NOT drawn here. It is collected and
+      // emitted after the holes: this pass is step 2 and the holes are step 4,
+      // so a name written here came back punched through by every hole it lay
+      // over.
+      if (label?.name && L.netNames) {
+        netNames.push({ id: g.id, name: label.name, ground: fill, x, y, w: right - left });
       }
     }
   }
@@ -470,6 +504,42 @@ export function renderBoard(project, opts = {}) {
           + ` fill="${c.hole}" stroke="${c.holeRing}" stroke-width="0.08"/>`);
       }
     }
+  }
+
+  // 4b. net names, on an opaque plate.
+  //
+  // AFTER the holes, because that is the whole bug: 1.0 mm of dark hole painted
+  // over a 1.4 mm typeface takes most of the letter with it, and a name over
+  // three holes came back as fragments.
+  //
+  // The plate is the segment's own colour at FULL opacity — not a badge in some
+  // new colour, so it reads as a solid patch of that strip. That also makes the
+  // ink honest: on the top view the copper is drawn at 0.55 and blends with the
+  // substrate, so `readableOn(fill)` was choosing ink for a colour that was not
+  // on screen. Now it is.
+  //
+  // BEFORE the wires and components, which are objects ON the board; a name is
+  // annotation OF the board, and a link crossing a labelled strip has to be
+  // visible where it lands.
+  for (const nn of netNames) {
+    const plate = namePlate(nn.name, nn.w, PITCH_MM * 0.55);
+    if (!plate.show) continue;
+    const cx = nn.x + nn.w / 2;
+    const cy = nn.y + TRACK_W_MM / 2;
+    const ink = readableOn(nn.ground, c);
+    out.push(`<rect data-kind="net-name-plate" data-seg="${nn.id}"`
+      + ` x="${n(cx - plate.w / 2)}" y="${n(cy - plate.h / 2)}"`
+      + ` width="${n(plate.w)}" height="${n(plate.h)}" rx="${n(plate.h / 2)}"`
+      // The hairline the holes already use. On the underside the strip is
+      // already opaque, so without an edge the plate has no shape at all and
+      // the name floats.
+      + ` fill="${nn.ground}" stroke="${ink}" stroke-width="0.08"`
+      + ` stroke-opacity="0.22" pointer-events="none"/>`);
+    out.push(`<text data-kind="net-name" data-name="${esc(nn.name)}"`
+      + ` data-seg="${nn.id}" x="${n(cx)}"`
+      + ` y="${n(cy + plate.fontSize * 0.35)}" font-size="${n(plate.fontSize)}"`
+      + ` fill="${ink}" text-anchor="middle" font-family="sans-serif"`
+      + ` pointer-events="none" font-weight="600">${esc(nn.name)}</text>`);
   }
 
   // 5. pen wires — insulated, so they may cross each other freely.

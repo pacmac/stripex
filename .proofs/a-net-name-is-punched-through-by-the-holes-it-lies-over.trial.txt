@@ -1,0 +1,33 @@
+$ node tests/render/test_net_name_plate.mjs
+FAIL  THE PLATE IS DRAWN AFTER EVERY HOLE
+      a plate is drawn at all: expected truthy, got falsy
+FAIL  AND SO IS THE TEXT
+      the name comes after the last hole: expected truthy, got falsy
+FAIL  the plate is immediately before its text
+      nothing is drawn between them: />
+<rect data-kind="copper" data-seg="s:0:0" x="0" y="0.27" width="63.5" height=: expected truthy, got falsy
+FAIL  THE PLATE IS OPAQUE ON THE TOP VIEW
+      there is a plate to be opaque: expected truthy, got falsy
+FAIL  and on the underside too
+      there is a plate on the underside view: expected truthy, got falsy
+FAIL  THE INK IS CHOSEN AGAINST THE PLATE IT SITS ON
+      the ink is readable on the plate: expected "#141414", got "#d9a878"
+FAIL  a black net is not written in black on black
+      the plate takes the net colour: expected "#1c1c1c", got "#e8dcc0"
+FAIL  THE PLATE NEVER POKES OUT OF ITS STRIP
+      it has a height: expected truthy, got falsy
+FAIL  and never wider than the segment it names
+      the stub is labelled: expected truthy, got falsy
+FAIL  namePlate sizes a plate around the text
+      R.namePlate is not a function
+FAIL  A LONG NAME SHRINKS RATHER THAN SPILLING
+      R.namePlate is not a function
+FAIL  and vanishes rather than shrinking past legibility
+      R.namePlate is not a function
+FAIL  NET NAMES ARE THEIR OWN LAYER
+      on by default, so an old project opens with them: expected true, got undefined
+FAIL  switching the layer off removes plate and text
+      no name: expected -1, got 725
+FAIL  A REF IS NOT A NET NAME
+      the net name survives labels:false: expected truthy, got falsy
+net-name-plate: 5/20 checks passed
