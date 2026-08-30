@@ -70,6 +70,21 @@ const STORE_KEY = 'stripex.project';
 // Which board on the server this browser had open. The board itself lives on the
 // server now; this is only the bookmark.
 const OPEN_KEY = 'stripex.openBoard';
+// Whether this browser holds an edit the server has not got.
+//
+// THE QUESTION IS "UNSAVED WORK", NOT "DIFFERENT BYTES". A draft differs from
+// the server the moment anybody else edits the file, so comparing bytes told a
+// user who had typed nothing that his copy differed — on every load, for ever,
+// while showing him his own stale board. Three times I told Peter his wires were
+// there and three times he reloaded into a board without them.
+const DIRTY_KEY = 'stripex.dirty';
+const isDirty = () => localStorage.getItem(DIRTY_KEY) === '1';
+const setDirty = (on) => {
+  try {
+    if (on) localStorage.setItem(DIRTY_KEY, '1');
+    else localStorage.removeItem(DIRTY_KEY);
+  } catch { /* storage full is reported by persist */ }
+};
 
 // Repairs found on the last load, shown as a banner. Not a console warning:
 // load() used to return null on any problem, hand the user an empty board, and
@@ -408,6 +423,9 @@ const history = makeUndo(state.project);
 
 function commit(label) {
   history.commit(state.project);
+  // An edit. From here this browser holds something the server has not, until a
+  // save says otherwise.
+  setDirty(true);
   persist();
   draw(label);
 }
@@ -1872,10 +1890,14 @@ async function decideWhichBoard() {
     // clean browser was told its copy differed — and it does differ, and it is
     // not work, and refusing to open the board over it is the opposite of
     // protecting anything.
+    // Kept ONLY when this browser has work the server has not seen. A draft that
+    // merely differs — because somebody else edited the file — is not work, and
+    // holding it back is how a person ends up looking at their own stale board
+    // for ever.
     const { ok: readOk, body } = await api(`/api/boards/${wanted}`);
-    const differs = readOk && storedDraft
+    const unsaved = readOk && storedDraft && isDirty()
       && JSON.stringify(body.project) !== JSON.stringify(state.project);
-    await openBoard(wanted, { keepDraft: differs ? state.project : null });
+    await openBoard(wanted, { keepDraft: unsaved ? state.project : null });
     return;
   }
 

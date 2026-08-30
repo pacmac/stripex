@@ -76,10 +76,14 @@ s.check('A LOCAL DRAFT IS NOT REPLACED BY AN OLDER SERVER COPY', async () => {
     // and its persist() then overwrote the seed with the server's copy. That
     // made this check pass about half the time — and an intermittent check on a
     // data-loss defect is worse than none, because a green run means nothing.
+    // WITH THE UNSAVED MARKER, because that is the scenario: his saves had been
+    // refused as stale, so the work was in the browser and nowhere else. A draft
+    // without that marker is a saved board and gives way — see the check below.
     await page.addInitScript(([p, sl]) => {
       localStorage.clear();
       localStorage.setItem('stripex.project', JSON.stringify(p));
       localStorage.setItem('stripex.openBoard', sl);
+      localStorage.setItem('stripex.dirty', '1');
     }, [board('Draft Test', ['R1', 'R2', 'R3']), slug]);
     await page.goto(base);
     await page.waitForSelector('#boardWrap svg');
@@ -185,6 +189,87 @@ s.check('A BROWSER WITH NO DRAFT OPENS THE BOARD', async () => {
     eq(seen.parts, 2, 'and its parts');
     ok(!seen.banners.some((b) => /NOT the one on the server/i.test(b)),
       `and it is not told its empty board differs: ${JSON.stringify(seen.banners)}`);
+  } finally { await page.close(); }
+});
+
+s.check('A DRAFT WITH NOTHING UNSAVED IN IT GIVES WAY', async () => {
+  // THE RULE IS "UNSAVED WORK", NOT "DIFFERENT BYTES".
+  //
+  // Peter opened a board, typed nothing, and I changed the file from outside.
+  // His draft then differed from the server — of course it did — so the editor
+  // kept his copy and asked him to choose. He had nothing to choose: he had made
+  // no changes. Three times I told him it was fixed and three times he reloaded
+  // into his own stale board, because "differs" is not the same question as "has
+  // this browser got work the server has not".
+  needBrowser();
+  const made = await api('/api/boards', {
+    method: 'POST',
+    body: JSON.stringify({ name: 'Nothing Unsaved', project: board('Nothing Unsaved', ['R1']) }),
+  });
+  const slug = made.body.slug;
+
+  // Somebody else adds a wire to the file — me, writing his rotator wiring.
+  const cur = await api(`/api/boards/${slug}`);
+  const withWire = {
+    ...cur.body.project,
+    wires: [{ ref: 'A', from: { col: 1, row: 1 }, to: { col: 6, row: 6 } }],
+  };
+  const put = await api(`/api/boards/${slug}`, {
+    method: 'PUT', body: JSON.stringify({ project: withWire, version: cur.body.version }),
+  });
+  eq(put.status, 200, 'the outside edit landed');
+
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  try {
+    // HIS EXACT STATE: a draft of the board as it was, no dirty flag, because he
+    // has typed nothing since it last saved.
+    await page.addInitScript(([p, sl]) => {
+      localStorage.clear();
+      localStorage.setItem('stripex.project', JSON.stringify(p));
+      localStorage.setItem('stripex.openBoard', sl);
+    }, [board('Nothing Unsaved', ['R1']), slug]);
+    await page.goto(base);
+    await page.waitForSelector('#boardWrap svg');
+    await page.waitForTimeout(1500);
+
+    const seen = await page.evaluate(() => ({
+      pads: document.querySelectorAll('[data-kind="wire-pad"]').length,
+      banners: [...document.querySelectorAll('.banner')].map((b) => b.textContent),
+    }));
+    eq(seen.pads, 2, 'he sees the wire, with no clicking and no banner');
+    ok(!seen.banners.some((b) => /NOT the one on the server/i.test(b)),
+      `and is not asked to choose: ${JSON.stringify(seen.banners)}`);
+  } finally { await page.close(); }
+});
+
+s.check('but a draft with REAL unsaved work is still kept', async () => {
+  // The protection that matters stays. Here the browser has an edit that never
+  // reached the server, and the server has moved underneath it.
+  needBrowser();
+  const made = await api('/api/boards', {
+    method: 'POST',
+    body: JSON.stringify({ name: 'Real Work', project: board('Real Work', ['R1']) }),
+  });
+  const slug = made.body.slug;
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  try {
+    // A draft marked as carrying unsaved work — what an edit leaves behind.
+    await page.addInitScript(([p, sl]) => {
+      localStorage.clear();
+      localStorage.setItem('stripex.project', JSON.stringify(p));
+      localStorage.setItem('stripex.openBoard', sl);
+      localStorage.setItem('stripex.dirty', '1');
+    }, [board('Real Work', ['R1', 'R2', 'R3']), slug]);
+    await page.goto(base);
+    await page.waitForSelector('#boardWrap svg');
+    await page.waitForTimeout(1500);
+    const seen = await page.evaluate(() => ({
+      parts: document.querySelectorAll('g[data-kind="part"]').length,
+      banners: [...document.querySelectorAll('.banner')].map((b) => b.textContent),
+    }));
+    eq(seen.parts, 3, 'his three parts are what he is looking at');
+    ok(seen.banners.some((b) => /server/i.test(b) && /browser/i.test(b)),
+      `and he is told: ${JSON.stringify(seen.banners)}`);
   } finally { await page.close(); }
 });
 

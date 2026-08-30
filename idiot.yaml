@@ -2066,3 +2066,64 @@
     failures: 0
     at: '2026-08-30T17:11:56.179'
     commit: 123f89f-dirty
+- id: the-editor-asks-about-a-draft-with-nothing-unsaved-in-it
+  type: bug
+  what: The reload path compares the browser's draft with the server byte for byte and keeps the draft
+    whenever they differ. A draft differs the moment anyone else edits the file, so a user who has typed
+    nothing is told 'the copy in your browser is NOT the one on the server' on every single load, is shown
+    his own stale board, and cannot get to the new one without knowing to click through the Board card.
+    The question must be 'has this browser got unsaved work', not 'do the bytes differ'.
+  spec: docs/specs/boards-on-the-server.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_draft_survives.mjs
+    criterion: '6/6 browser checks: a draft with nothing unsaved gives way silently, a draft with real
+      unsaved work is kept and reported, a clean browser opens the board, a reload with no edits writes
+      nothing, and a differing draft is never destroyed'
+    runs: 1
+  trial:
+    file: .proofs/the-editor-asks-about-a-draft-with-nothing-unsaved-in-it.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T17:24:27.437'
+    commit: c9d0f77-dirty
+  fix: null
+- id: the-design-rules-bind-nothing-and-a-board-cannot-be-built-headlessly
+  type: new
+  what: "Peter's design rules \u2014 links are straight, point to point is for signals only, power uses\
+    \ links \u2014 live in a spec document and in my memory, so nothing enforces them: I broke two of\
+    \ them wiring his rotator board and the DRC reported zero errors. And every edit lives inside the\
+    \ editor's click handler, so building a board means throwaway scripts that re-implement hole-finding,\
+    \ occupancy and straightness, wrongly."
+  spec: docs/specs/rules-and-ops.md
+  files:
+  - src/model/rules.js
+  - src/model/ops.js
+  - src/server/index.js
+  test:
+    command:
+    - sh
+    - -c
+    - node tests/model/test_rules.mjs && node tests/model/test_ops.mjs
+    criterion: 'rules 14/14 and ops 16/16: the rules are data in the project, netClassOf reads power from
+      the name, checkRules flags the two faults I made, and every op returns a new board or refuses with
+      the rule named'
+    runs: 1
+  trial:
+    file: .proofs/the-design-rules-bind-nothing-and-a-board-cannot-be-built-headlessly.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T17:42:01.161'
+    commit: c9d0f77-dirty
+  fix:
+    file: .proofs/the-design-rules-bind-nothing-and-a-board-cannot-be-built-headlessly.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T17:46:55.618'
+    commit: c9d0f77-dirty

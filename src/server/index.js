@@ -13,6 +13,8 @@ import { partList } from '../parts/library.js';
 import { validateProject, makeProject } from '../model/board.js';
 import { renderBoard, findingsFor, netsFor, runList } from '../render/svg.js';
 import * as boards from './boards.js';
+import * as ops from '../model/ops.js';
+import * as rules from '../model/rules.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const app = express();
@@ -122,6 +124,46 @@ app.put('/api/boards/:slug', (req, res) => {
 app.post('/api/boards/:slug/rename', (req, res) => {
   try { return res.json(boards.rename(boardsDir(), req.params.slug, String(req.body?.name ?? ''))); }
   catch (e) { return boardError(res, e); }
+});
+
+// A board BUILT over HTTP, rather than clicked.
+//
+// Applied in order, ALL OR NOTHING: the first refusal aborts the batch and the
+// file is untouched, so a half-built board cannot exist. The response says which
+// operation stopped it and why, with the rule named.
+//
+// Same version guard as PUT — and unlike the way I used PUT today, the content
+// written is derived from the snapshot the version came from, in one request.
+app.post('/api/boards/:slug/ops', (req, res) => {
+  let read;
+  try { read = boards.read(boardsDir(), req.params.slug); }
+  catch (e) { return boardError(res, e); }
+
+  const given = req.body?.version;
+  if (given != null && given !== read.version) {
+    return res.status(409).json({
+      error: 'the board changed since you read it', code: 'stale',
+      version: read.version, project: read.project,
+    });
+  }
+
+  const result = ops.applyOps(read.project, req.body?.ops ?? []);
+  if (result.error) {
+    return res.status(400).json({
+      error: result.error, code: result.code, index: result.index,
+    });
+  }
+  const problems = validateProject(result.project);
+  if (problems.length) return res.status(400).json({ error: problems[0].message, problems });
+
+  try {
+    const written = boards.write(boardsDir(), req.params.slug, result.project, read.version);
+    return res.json({
+      ...written,
+      refs: result.refs,
+      findings: [...findingsFor(result.project), ...rules.checkRules(result.project)],
+    });
+  } catch (e) { return boardError(res, e); }
 });
 
 app.delete('/api/boards/:slug', (req, res) => {

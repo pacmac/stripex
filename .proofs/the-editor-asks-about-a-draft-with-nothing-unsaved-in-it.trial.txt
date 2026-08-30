@@ -1,0 +1,4 @@
+$ node tests/browser/test_draft_survives.mjs
+FAIL  A DRAFT WITH NOTHING UNSAVED IN IT GIVES WAY
+      he sees the wire, with no clicking and no banner: expected 2, got 0
+draft-survives: 5/6 checks passed
