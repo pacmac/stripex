@@ -1,0 +1,2 @@
+$ node tests/model/test_views.mjs
+views: 7/7 checks passed

@@ -1590,15 +1590,29 @@
   type: bug
   what: provideSegmentNet() in src/model/nets.js sets globalThis.__stripexSegmentNet__ and nothing anywhere
     reads it.
-  spec: docs/specs/architecture-for-netlist.md
+  spec: docs/specs/views-out-of-the-renderer.md
   files:
   - src/model/nets.js
   test:
-    command: null
-    criterion: the export and the global are gone and every suite still passes
+    command:
+    - node
+    - tests/model/test_views.mjs
+    criterion: provideSegmentNet is no longer exported and no global is written; every suite still passes
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/providesegmentnet-writes-a-global-nothing-reads.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T19:36:25.660'
+    commit: ef5cec8-dirty
+  fix:
+    file: .proofs/providesegmentnet-writes-a-global-nothing-reads.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:36:25.956'
+    commit: ef5cec8-dirty
 - id: drc-is-one-function-not-a-list-of-rules
   type: new
   what: "drc() is a single 209-line function with comment-separated sections, so a new check \u2014 netlist\
