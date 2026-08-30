@@ -278,7 +278,7 @@
       "name": "CLK"
     },
     "8,14": {
-      "name": "UART"
+      "name": "URT"
     },
     "8,15": {
       "name": "PDN"

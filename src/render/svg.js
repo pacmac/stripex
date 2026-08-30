@@ -415,6 +415,11 @@ export const DEFAULT_LAYERS = {
   // derived from where the copper runs, nothing placed it, and it repeats on
   // every segment of its net. Wanting the captions off is not wanting R1 off.
   netNames: true,
+  // OFF, alone among these. Every other layer draws something the board HAS;
+  // this one draws an annotation you ask for, and a board covered in pin names
+  // is unreadable while you are placing parts and essential while you are
+  // wiring. Turning it on is the deliberate act of "now I am wiring".
+  pinNames: false,
   drc: true,
 };
 
@@ -434,6 +439,59 @@ const NAME_EM = 0.62;
 const NAME_PAD_EM = 0.5;
 const MIN_NAME_MM = PITCH_MM * 0.3;
 
+// 0.42 of the pitch, the same size as a net name.
+//
+// It was 0.5 and three-character names touched: a row of pads a pitch apart read
+// as "GND3V3" because GND ended where 3V3 began. At 0.42 a three-character name
+// is about 2.0 mm against a 2.54 mm pitch, so there is half a millimetre of air
+// between neighbours — tight, and legible, which is the trade a pin name is for.
+export const PIN_NAME_MM = PITCH_MM * 0.42;
+
+// The clear space either side of the board where a net name goes when its strip
+// reaches the edge. Wide enough for about eight characters at the net-name size.
+export const NET_NAME_GUTTER_MM = PITCH_MM * 3.2;
+
+// Where a pin's name goes: beside its pad, on the side AWAY from the package.
+//
+// Derived from the shape of the pin field rather than from the rotation, so it
+// follows a part around with no special case. A DIL's two rows separate along
+// ONE axis — vertically at rot 0, horizontally at 90 — and the outward direction
+// is along that axis. A single-row part has no outward, so its names go above.
+export function pinNamePlacement(pad, pts) {
+  const gap = PAD_R_MM + PITCH_MM * 0.2;
+  const cx = pts.reduce((a, q) => a + q.x, 0) / pts.length;
+  const cy = pts.reduce((a, q) => a + q.y, 0) / pts.length;
+
+  // THE ROW DIRECTION COMES FROM THE PIN ORDER, not from the bounding box.
+  // Pins 1 and 2 are always adjacent along a row, so the vector between them IS
+  // the row. A box cannot tell: a XIAO is 15.24 mm along its rows and 15.24 mm
+  // between them, so a square footprint made the box ambiguous and every name
+  // went the same way at every rotation.
+  const a = pts[0];
+  const b = pts[1] ?? null;
+  const rx = b ? b.x - a.x : 1;
+  const ry = b ? b.y - a.y : 0;
+  const len = Math.hypot(rx, ry) || 1;
+  // Perpendicular to the row: the direction "away from the package".
+  const px = -ry / len;
+  const py = rx / len;
+
+  const outward = (pad.x - cx) * px + (pad.y - cy) * py;
+  if (Math.abs(outward) < PAD_R_MM) {
+    // One row, or a pin on the centre line: above it.
+    return { x: pad.x, y: pad.y - gap, anchor: 'middle' };
+  }
+  const s = Math.sign(outward);
+  const dx = px * s * gap;
+  const dy = py * s * gap;
+  const sideways = Math.abs(px) > Math.abs(py);
+  return {
+    x: pad.x + dx,
+    y: pad.y + dy + (sideways ? PIN_NAME_MM * 0.35 : (dy > 0 ? PIN_NAME_MM * 0.8 : 0)),
+    anchor: sideways ? (dx > 0 ? 'start' : 'end') : 'middle',
+  };
+}
+
 export function namePlate(name, segWidthMm, baseFontMm) {
   const text = String(name ?? '');
   if (!text || !(segWidthMm > 0)) return { show: false, w: 0, h: 0, fontSize: 0 };
@@ -446,8 +504,12 @@ export function namePlate(name, segWidthMm, baseFontMm) {
     show: true,
     fontSize,
     w: fontSize * ems,
-    // Inside the track, so it can never be mistaken for copper bridging two rows.
-    h: TRACK_W_MM * 0.92,
+    // THE PLATE FOLLOWS THE FONT. It was a fixed 0.92 of the track, so when the
+    // text shrank the pill stayed the same and became the loud part — the
+    // "domineering" thing was then the plate, not the name. 1.7 em is enough
+    // ground for the letters with a little air; the track height is a ceiling,
+    // so it can still never be mistaken for copper bridging two rows.
+    h: Math.min(TRACK_W_MM * 0.92, fontSize * 1.7),
   };
 }
 
@@ -484,8 +546,14 @@ export function renderBoard(project, opts = {}) {
   const cuts = effectiveBreaks(project);
   const segs = segments(b, cuts);
 
+  // Room either side for a net name that has been pushed off the edge of the
+  // board — see pass 7b. The gutter is always there rather than appearing when
+  // the first rail is named, because a board that changes size when you type a
+  // name is a board that jumps under the pointer.
+  const gutter = NET_NAME_GUTTER_MM;
   const out = [];
-  out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}"`
+  out.push(`<svg xmlns="http://www.w3.org/2000/svg"`
+    + ` viewBox="${n(-gutter)} 0 ${n(w + gutter * 2)} ${h}"`
     + ` data-view="${view}" data-theme="${theme}" width="100%" height="100%">`);
 
   // 1. substrate
@@ -773,6 +841,24 @@ export function renderBoard(project, opts = {}) {
         ? `<rect ${common} x="${n(p.x - padR)}" y="${n(p.y - padR)}"`
           + ` width="${padR * 2}" height="${padR * 2}"/>`
         : `<circle ${common} cx="${n(p.x)}" cy="${n(p.y)}" r="${padR}"/>`);
+
+      // The name BESIDE the pad, never over it: the pad is what you are aiming
+      // at, and a name on top of it is in the way of the click it exists to
+      // help you make.
+      //
+      // Which side is derived from where the pad sits relative to the part's
+      // centre, so it follows rotation with no special case. A single-row part
+      // has no left or right, so its names go above.
+      if (L.pinNames && pinName) {
+        const place = pinNamePlacement(p, pts);
+        out.push(`<text data-kind="pin-name" data-ref="${esc(pl.ref)}"`
+          + ` data-pin="${esc(pinName)}"`
+          + ` x="${n(place.x)}" y="${n(place.y)}"`
+          + ` font-size="${n(PIN_NAME_MM)}" fill="${padInk}"`
+          + ` text-anchor="${place.anchor}"`
+          + ` font-family="sans-serif" pointer-events="none"`
+          + `>${esc(pinName)}</text>`);
+      }
     }
     out.push('</g>');
   }
@@ -818,17 +904,47 @@ export function renderBoard(project, opts = {}) {
   // substrate, so `readableOn(fill)` was choosing ink for a colour that was not
   // on screen. Now it is.
   for (const nn of netNames) {
-    // Peter, 2026-08-30: "font size net names on board strips can be reduced by
-    // about 20 - 25%". 0.55 -> 0.42 of the pitch is 24% off, so a name takes
-    // less of the strip it is written on and more of the copper stays visible.
-    // The plate follows, being sized from the font.
-    const plate = namePlate(nn.name, nn.w, PITCH_MM * 0.42);
+    // Peter, twice: "font size net names on board strips can be reduced by about
+    // 20 - 25%", then "net names font is still too large / domineering". 0.55 ->
+    // 0.42 -> 0.34 of the pitch, which is 38% off the original. A net name is a
+    // caption on somebody else's copper: it has to be readable and it has no
+    // business being the loudest thing on the board. The plate follows, being
+    // sized from the font.
+    const plate = namePlate(nn.name, nn.w, PITCH_MM * 0.34);
     if (!plate.show) continue;
-    const cx = nn.x + nn.w / 2;
     const cy = nn.y + TRACK_W_MM / 2;
+    // A NAME ON A STRIP THAT REACHES AN EDGE GOES OUTSIDE THE BOARD.
+    //
+    // Peter: "if a net name extends to either the righ or left edge of the
+    // board, then move the net name just to the right or left of the actual
+    // board." A rail runs the full width and its name sat in the middle of it,
+    // on top of the parts and holes you are trying to read. Off the edge it
+    // labels the row the way a schematic labels a bus, and covers nothing.
+    //
+    // Only when the segment actually TOUCHES an edge: a short strip in the
+    // middle of the board has no edge to go to, and its name stays on it.
+    const touchesLeft = nn.x <= 0.01;
+    const touchesRight = nn.x + nn.w >= w - 0.01;
+    const outside = PITCH_MM * 0.35;
+    let cx = nn.x + nn.w / 2;
+    let anchor = 'middle';
+    let plateX = cx - plate.w / 2;
+    if (touchesLeft && !touchesRight) {
+      plateX = -outside - plate.w;
+      cx = plateX + plate.w / 2;
+    } else if (touchesRight && !touchesLeft) {
+      plateX = w + outside;
+      cx = plateX + plate.w / 2;
+    } else if (touchesLeft && touchesRight) {
+      // A full-width rail: put it off the RIGHT, where a schematic puts a bus
+      // label, and leave the left edge for the row numbers a person reads first.
+      plateX = w + outside;
+      cx = plateX + plate.w / 2;
+    }
+    void anchor;
     const ink = readableOn(nn.ground, c);
     out.push(`<rect data-kind="net-name-plate" data-seg="${nn.id}"`
-      + ` x="${n(cx - plate.w / 2)}" y="${n(cy - plate.h / 2)}"`
+      + ` x="${n(plateX)}" y="${n(cy - plate.h / 2)}"`
       + ` width="${n(plate.w)}" height="${n(plate.h)}" rx="${n(plate.h / 2)}"`
       // The hairline the holes already use. On the underside the strip is
       // already opaque, so without an edge the plate has no shape at all and

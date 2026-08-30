@@ -87,7 +87,10 @@ body {
   margin-right: 4px;
 }
 
-.sep { width: 1px; height: 22px; background: var(--line); }
+/* Peter: "the padding either side of the button dividers can be increased to
+   create more distinct groups." The separator is what says where one group ends,
+   and it was doing that job inside the bar's own 8px gap. */
+.sep { width: 1px; height: 22px; background: var(--line); margin: 0 12px; }
 .spacer { flex: 1; }
 .group, .tools { display: flex; align-items: center; gap: 5px; }
 
@@ -407,6 +410,10 @@ main {
 
 /* The view group wears the same "this is the current one" mark as the tools, so
    the toolbar has one idiom for it rather than two. */
+/* The two cut styles, lit the same way as the tools and the view. */
+.cuts { display: flex; gap: 6px; margin-bottom: 6px; }
+.cutbtn { flex: 1; justify-content: flex-start; }
+.cutbtn.is-on,
 .viewbtn.is-on {
   background: var(--accent);
   color: var(--accent-ink);

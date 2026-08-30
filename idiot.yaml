@@ -1698,17 +1698,32 @@
   what: A device's pin names reach the placement, the resolved pins and the DRC messages, but nothing
     draws them on the board, so on a 14-pin XIAO you cannot tell which pad is D4 without counting. They
     need a layer of their own.
-  spec: docs/specs/requested-next.md
+  spec: docs/specs/pin-names-layer.md
   files:
   - src/render/svg.js
   - public/app.js
   test:
-    command: null
-    criterion: pin names are drawn beside their pads under a pinNames layer that defaults off, and switching
-      it does not affect the other label layers
+    command:
+    - node
+    - tests/parts/test_devices.mjs
+    criterion: '37/37: the pinNames layer is off by default, a placed XIAO draws its fourteen names beside
+      their pads anchored outward, a generic DIP names its numbered pins, and the layer is independent
+      of labels'
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/pin-names-are-carried-but-never-drawn.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:28:44.891'
+    commit: 31562aa-dirty
+  fix:
+    file: .proofs/pin-names-are-carried-but-never-drawn.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:31:07.981'
+    commit: 31562aa-dirty
 - id: boards-live-in-one-browser-and-have-no-name
   type: new
   what: "The board lives in localStorage on one machine, there is only ever one of it, and it has no name\

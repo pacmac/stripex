@@ -37,11 +37,22 @@ s.check('renders an svg document', () => {
   ok(svg.trimEnd().endsWith('</svg>'), 'ends with </svg>');
 });
 
-s.check('the viewBox is the board size in millimetres', () => {
+s.check('the viewBox is the board size plus a gutter each side', () => {
+  // It was exactly the board. A net name whose strip reaches an edge is now
+  // drawn OUTSIDE the board — see docs/specs/net-name-plate.md — so there has to
+  // be room for it, and the room is always there rather than appearing when the
+  // first rail is named: a board that changes size when you type a name is a
+  // board that jumps under the pointer.
   const p = project();
-  const svg = R.renderBoard(p, {});
+  const svg = String(R.renderBoard(p, {}));
   const { w, h } = geom.boardSizeMm(p.board);
-  ok(svg.includes(`viewBox="0 0 ${w} ${h}"`), `viewBox is 0 0 ${w} ${h}`);
+  const m = /viewBox="(-?[\d.]+) 0 ([\d.]+) ([\d.]+)"/.exec(svg);
+  ok(m, `a viewBox: ${svg.slice(0, 120)}`);
+  const [x0, vw, vh] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  eq(vh, h, 'the height is the board');
+  ok(x0 < 0, `it starts left of the board: ${x0}`);
+  ok(Math.abs(vw - (w - x0 * 2)) < 0.01, `and is symmetric: ${vw} for a ${w} board`);
+  ok(vw > w, 'so a name pushed off the edge has somewhere to be');
 });
 
 s.check('one copper rect per strip segment', () => {

@@ -90,6 +90,10 @@ const LAYER_ROWS = [
   // a list that disagrees with the drawing order is a second description of the
   // same fact — the shape this project has already paid for twice.
   ['netNames', 'Net names', '#9c6428'],
+  // Off by default — the only one that is. It draws an annotation you ask for
+  // rather than something the board has, and a board covered in pin names is
+  // unreadable while placing and essential while wiring.
+  ['pinNames', 'Pin names', '#3d4450'],
   ['components', 'Components', '#3d4450'],
   ['links', 'Wire links', '#8e9099'],
   ['wires', 'Pen wires', '#1f6feb'],
@@ -1383,19 +1387,30 @@ function partHint(part) {
 }
 
 function paintCutting() {
+  // TWO BUTTONS, not two radios. Peter: "instead of having a cut style radio
+  // selector in the left panel. create 2 bottons: cut icon = knife and spot:
+  // icon=crosshairs". A radio needs the label read to know which is which; a lit
+  // button says it at a glance, and it is the same idiom as the tools and the
+  // view group rather than a third one.
+  const btn = (value, icon, label, hint) => `
+    <button class="cutbtn iconbtn ${state.cut === value ? 'is-on' : ''}"
+      data-cut="${value}" title="${escapeHtml(hint)}" aria-label="${escapeHtml(label)}">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-${icon}"/></svg>${escapeHtml(label)}
+    </button>`;
   $('[data-cardbody="cutting"]').innerHTML = `
     <div class="cuts">
-      <label><input type="radio" name="cut" value="gap"
-        ${state.cut === 'gap' ? 'checked' : ''}>
-        <span>Knife — between two holes</span></label>
-      <label><input type="radio" name="cut" value="hole"
-        ${state.cut === 'hole' ? 'checked' : ''}>
-        <span>Spot-face cutter — at a hole</span></label>
+      ${btn('gap', 'knife', 'Knife', 'Cut between two holes, with a knife')}
+      ${btn('hole', 'spot', 'Spot-face', 'Drill the copper away at a hole')}
     </div>
-    <p class="hint">A spot-face kills the hole as well as the track: nothing
-      soldered there connects to anything.</p>`;
-  for (const r of $('[data-cardbody="cutting"]').querySelectorAll('input[name="cut"]')) {
-    r.addEventListener('change', (e) => { state.cut = e.target.value; setTool('break'); });
+    <p class="hint">${state.cut === 'hole'
+    ? 'A spot-face kills the hole as well as the track: nothing soldered there connects to anything.'
+    : 'A knife cut separates the two holes either side of it. The holes stay usable.'}</p>`;
+  for (const b of $('[data-cardbody="cutting"]').querySelectorAll('[data-cut]')) {
+    b.addEventListener('click', () => {
+      state.cut = b.dataset.cut;
+      setTool('break');
+      paintCutting();
+    });
   }
 }
 

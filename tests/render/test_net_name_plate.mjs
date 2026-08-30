@@ -150,6 +150,34 @@ s.check('a black net is not written in black on black', () => {
 
 // --------------------------------------------------------------- it fits
 
+s.check('A NAME ON A STRIP THAT REACHES AN EDGE GOES OUTSIDE THE BOARD', () => {
+  // Peter: "if a net name extends to either the righ or left edge of the board,
+  // then move the net name just to the right or left of the actual board." A
+  // rail runs the full width and its name sat in the middle of it, on top of the
+  // parts and holes you are trying to read.
+  const p = board('GND');                       // row 3 uncut: full width
+  const out = svg(p);
+  const plate = tagAt(out, plateAt(out));
+  const x = Number(attr(plate, 'x'));
+  const boardW = G.PITCH_MM * 25;
+  ok(x >= boardW || x + Number(attr(plate, 'width')) <= 0,
+    `the plate is off the board, not on it: x=${x} against a ${boardW} mm board`);
+});
+
+s.check('but a strip in the middle keeps its name on it', () => {
+  // Only when the segment actually TOUCHES an edge. A short strip in the middle
+  // has no edge to go to.
+  const p = board('MID', { breaks: [
+    { row: 3, x: 3, at: 'gap' }, { row: 3, x: 9, at: 'gap' },
+  ] });
+  // The label anchor 4,3 is on the middle segment, cols 4..9.
+  const out = svg(p);
+  const plate = tagAt(out, plateAt(out));
+  const x = Number(attr(plate, 'x'));
+  const boardW = G.PITCH_MM * 25;
+  ok(x > 0 && x < boardW, `still on the board: x=${x}`);
+});
+
 s.check('THE PLATE NEVER POKES OUT OF ITS STRIP', () => {
   const out = svg(board());
   const h = Number(attr(tagAt(out, plateAt(out)), 'height'));
