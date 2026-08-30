@@ -1202,7 +1202,11 @@ function onBoardClick(evt) {
       const partEl = evt.target.closest('[data-kind="part"]');
       // wire-pad first: with no line drawn, the pads ARE the wire on the board.
       const wireEl = evt.target.closest(
-        '[data-kind="wire-pad"], [data-kind="wire"], [data-kind="wire-label"]',
+        // wire-pad-hit is the invisible target painted ABOVE the components, so
+        // a pad under a DIP is reachable. It carries the same data-ref, so it is
+        // treated as the wire it stands for.
+        '[data-kind="wire-pad"], [data-kind="wire-pad-hit"],'
+        + ' [data-kind="wire"], [data-kind="wire-label"]',
       );
       // break-hit is the invisible target painted above the parts, so a cut
       // under a component is reachable. It carries the same data-break, so it
@@ -1236,7 +1240,11 @@ function onBoardClick(evt) {
       const partEl = evt.target.closest('[data-kind="part"]');
       // wire-pad first: with no line drawn, the pads ARE the wire on the board.
       const wireEl = evt.target.closest(
-        '[data-kind="wire-pad"], [data-kind="wire"], [data-kind="wire-label"]',
+        // wire-pad-hit is the invisible target painted ABOVE the components, so
+        // a pad under a DIP is reachable. It carries the same data-ref, so it is
+        // treated as the wire it stands for.
+        '[data-kind="wire-pad"], [data-kind="wire-pad-hit"],'
+        + ' [data-kind="wire"], [data-kind="wire-label"]',
       );
       // break-hit is the invisible target painted above the parts, so a cut
       // under a component is reachable. It carries the same data-break, so it

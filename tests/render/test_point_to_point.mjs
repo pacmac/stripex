@@ -306,6 +306,54 @@ s.check('and the fill is still the length colour', () => {
   }
 });
 
+// ------------------------------- a pad under a component can still be clicked
+// Governed by docs/specs/wire-pad-hit-targets.md
+
+// A pen wire whose pad sits inside a DIP's footprint — the case Peter hit.
+function wireUnderChip() {
+  const p = boardm.makeProject({ cols: 20, rows: 14 });
+  p.placements.push({ ref: 'U1', part: 'dip', at: { col: 4, row: 3 }, rot: 0, span: 7, width: 3 });
+  p.wires.push({ ref: 'A', from: { col: 6, row: 4 }, to: { col: 15, row: 10 } });
+  return p;
+}
+
+s.check('EVERY PEN WIRE END HAS A HIT TARGET', () => {
+  // Pen wires are pass 5 and components are pass 6, so a body — translucent but
+  // painted — is the topmost element over any pad beneath it and takes the
+  // click. This is break-hit-targets.md again for a different object; wire pads
+  // never got one because nobody had yet drawn a pen wire under a chip.
+  const svg = R.renderBoard(wireUnderChip(), {});
+  eq(els(svg, 'wire-pad-hit').length, 2, 'one per end');
+  eq(els(svg, 'wire-pad-hit').map((e) => attr(e, 'data-ref')), ['A', 'A'],
+    'each naming the wire it stands for');
+});
+
+s.check('AND IT IS DRAWN AFTER THE COMPONENT BODIES', () => {
+  // Which is the entire point: an element that is not on top takes no clicks.
+  const svg = String(R.renderBoard(wireUnderChip(), {}));
+  const body = svg.lastIndexOf('data-kind="part-body"');
+  const hit = svg.indexOf('data-kind="wire-pad-hit"');
+  ok(body > -1 && hit > -1, 'both are drawn');
+  ok(hit > body, `the target (${hit}) comes after the body (${body})`);
+});
+
+s.check('and it is no bigger than the pad it stands for', () => {
+  // The break targets learned this the hard way: a generous target measured 44%
+  // of a DIL's body and selecting the chip became a coin flip.
+  const svg = R.renderBoard(wireUnderChip(), {});
+  const pad = Number(attr(els(svg, 'wire-pad')[0], 'r'));
+  const hit = Number(attr(els(svg, 'wire-pad-hit')[0], 'r'));
+  ok(hit > 0, 'it has a size');
+  ok(hit <= pad + 0.01, `${hit} is no larger than the ${pad} mm pad`);
+});
+
+s.check('and none is emitted when the wires layer is off', () => {
+  // A hidden layer that still swallowed clicks is the fault layers exist to
+  // avoid — the break targets already say so.
+  eq(els(R.renderBoard(wireUnderChip(), { layers: { wires: false } }), 'wire-pad-hit').length, 0,
+    'nothing to click');
+});
+
 s.check('the nets a pen wire joins are unchanged by any of this', () => {
   const p = withWire();
   const { segmentNet } = R.netsFor(p);

@@ -68,9 +68,19 @@ s.check('THE NAME IS THE TOP LAYER — A WIRE DOES NOT COVER IT', () => {
   // read the board BY, and a caption you have to move something to see has
   // stopped working.
   const out = svg(board('GND', { wires: [{ ref: 'A', kind: 'link', from: { col: 2, row: 3 }, to: { col: 2, row: 8 } }] }));
-  const wire = out.lastIndexOf('data-kind="wire');
+  // The VISIBLE parts of a wire. `wire-pad-hit` is an invisible target painted
+  // above everything so a pad under a chip can be clicked — it covers nothing,
+  // and matching it here made this check fail for a wire nobody can see.
+  const wire = Math.max(
+    out.lastIndexOf('data-kind="wire-pad"'),
+    out.lastIndexOf('data-kind="wire-label"'),
+    out.lastIndexOf('data-kind="wire"'),
+  );
   ok(wire > -1, 'the wire is drawn');
   ok(plateAt(out) > wire, `the plate (${plateAt(out)}) is above the wire (${wire})`);
+  // And the invisible target is deliberately above it, which is not a covering.
+  const hit = out.lastIndexOf('data-kind="wire-pad-hit"');
+  ok(hit === -1 || hit > plateAt(out), 'the hit target stays on top, being invisible');
 });
 
 s.check('NOR DOES A COMPONENT SITTING ACROSS THE STRIP', () => {

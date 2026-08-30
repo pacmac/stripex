@@ -1008,6 +1008,30 @@ export function renderBoard(project, opts = {}) {
     }
   }
 
+  // 8b. hit targets for the pen-wire pads, for exactly the same reason.
+  //
+  // A pen wire is pass 5 and a component is pass 6, so a body sitting over a pad
+  // took its click and a pad under a DIP could not be selected at all. The cuts
+  // were given targets when this was found for them; the pads were not, because
+  // at the time nobody had drawn a pen wire under a chip. The rotator board has
+  // four of them and two land inside the XIAO's footprint.
+  //
+  // Sized like the pad and no larger: a generous target measured 44% of a DIL's
+  // body when the break targets tried it, and selecting the chip became a coin
+  // flip. Precision decides who wins, as it does for the cuts.
+  if (L.wires) {
+    for (const wire of project.wires ?? []) {
+      if (!wire.from || !wire.to) continue;
+      for (const [end, hole] of [['from', wire.from], ['to', wire.to]]) {
+        const p = holeToMm(hole.col, hole.row);
+        out.push(`<circle data-kind="wire-pad-hit" data-ref="${esc(wire.ref)}"`
+          + ` data-end="${end}" data-hole="${hole.col},${hole.row}"`
+          + ` cx="${n(mx(p.x))}" cy="${n(p.y)}" r="${n(PEN_PAD_R_MM)}"`
+          + ' fill="none" pointer-events="all"/>');
+      }
+    }
+  }
+
   // 9. the armed move handle, drawn last so nothing covers the pin you are
   //    about to move the part by. Not the selection halo: a part can be selected
   //    and not armed, and armed without being selected.
