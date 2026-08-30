@@ -1645,16 +1645,54 @@
   type: new
   what: 'Every tool is verb-then-noun: arm the tool, then click the thing. Selecting a component and then
     pressing Move or Delete does nothing. Rotate is the exception, which is why the asymmetry shows.'
-  spec: docs/specs/requested-next.md
+  spec: docs/specs/verb-after-noun.md
   files:
   - public/app.js
   test:
-    command: null
-    criterion: with a part selected, pressing Delete deletes it and pressing Move arms the move on it,
-      while the tools that create something at a hole are unchanged
+    command:
+    - node
+    - tests/browser/test_layout.mjs
+    criterion: '18/18 browser checks: a selected part is deleted by the Delete button and the tool disarms,
+      a selected wire likewise, a selected part is picked up by Move on its pin 1, a selected net is not
+      deleted, nothing selected simply arms, and arm-then-click still works'
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/a-tool-cannot-act-on-a-component-that-is-already-selected.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:26:26.844'
+    commit: ec689f8-dirty
+  fix:
+    file: .proofs/a-tool-cannot-act-on-a-component-that-is-already-selected.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:26:49.219'
+    commit: ec689f8-dirty
+  voided:
+  - trial:
+      file: .proofs/a-tool-cannot-act-on-a-component-that-is-already-selected.trial.txt
+      exit: 1
+      runs: 1
+      failures: 1
+      at: '2026-08-30T16:22:41.518'
+      commit: ec689f8-dirty
+    fix:
+      file: .proofs/a-tool-cannot-act-on-a-component-that-is-already-selected.fix.txt
+      exit: 0
+      runs: 1
+      failures: 0
+      at: '2026-08-30T16:25:41.501'
+      commit: ec689f8-dirty
+    why: 'the check is the browser suite, and a check must not be in the file list: it is written before
+      the trial and must not change after it, so naming it made closure impossible'
+    at: '2026-08-30T16:26:09.657'
+    was:
+      files:
+      - public/app.js
+      - tests/browser/test_layout.mjs
+      spec: docs/specs/verb-after-noun.md
 - id: pin-names-are-carried-but-never-drawn
   type: new
   what: A device's pin names reach the placement, the resolved pins and the DRC messages, but nothing

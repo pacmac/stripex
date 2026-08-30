@@ -62,7 +62,7 @@ function swatches(field, current, effective, label) {
         data-hex="" title="Default">&times;</button></div>`;
 }
 import {
-  partList, getPart, defaultRotOf, placesWith, CATEGORIES,
+  partList, getPart, defaultRotOf, placesWith, CATEGORIES, pinLabel,
 } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -1159,10 +1159,13 @@ function onBoardClick(evt) {
       // Delete fires once: having removed something, the tool disarms, so the
       // next click cannot take a second thing with it. A MISS does not disarm —
       // you are still aiming at what you meant to hit.
+      // Disarm first, commit second: setTool says the new tool's help text, so
+      // the other order replaced "deleted R1" with a hint the instant it
+      // appeared.
       const removed = (label) => {
-        commit(label);
         const next = toolAfterDelete(true);
         if (next) setTool(next);
+        commit(label);
       };
       const partEl = evt.target.closest('[data-kind="part"]');
       // wire-pad first: with no line drawn, the pads ARE the wire on the board.
@@ -1475,9 +1478,70 @@ function markPaletteArmed() {
   if (body) body.classList.toggle('is-armed', armed);
 }
 
+// Did this tool have something to act on already? Returns true when it did the
+// work, so setTool leaves the tool where it was.
+//
+// A NET IS NOT AN OBJECT YOU CAN DELETE OR MOVE. Selecting a strip and pressing
+// Delete must not do something surprising to the copper, so only a part or a pen
+// wire counts here.
+function actOnSelection(tool) {
+  const sel = state.selection;
+  if (!sel || (sel.kind !== 'part' && sel.kind !== 'wire')) return false;
+  const p = state.project;
+
+  if (tool === 'delete') {
+    const before = (p.placements?.length ?? 0) + (p.wires?.length ?? 0);
+    if (sel.kind === 'part') p.placements = p.placements.filter((x) => x.ref !== sel.ref);
+    else p.wires = p.wires.filter((x) => x.ref !== sel.ref);
+    if ((p.placements.length + p.wires.length) === before) return false;   // nothing matched
+    state.selection = null;
+    // DISARM FIRST, COMMIT SECOND. setTool says the new tool's help text, so
+    // committing first left "deleted R1" on screen for an instant and then
+    // replaced it with "Click a part or wire to select it" — the one message
+    // that mattered, overwritten by a hint.
+    const next = toolAfterDelete(true);
+    if (next && next !== 'delete') setTool(next);
+    commit(`deleted ${sel.ref}`);
+    return true;
+  }
+
+  if (tool === 'move' && sel.kind === 'part') {
+    // Held by PIN 1 — the pin every part has, marked square on the board, and
+    // the one a person points at when they say "this part". Picking another pin
+    // still re-arms, because that is what the move tool already does.
+    const pl = p.placements.find((x) => x.ref === sel.ref);
+    const part = pl && getPart(pl.part);
+    const pin = part ? pinLabel(part, 0) : null;
+    const where = pl && pin ? pinLocation(pl, getPart, pin) : null;
+    if (!where) return false;
+    state.tool = 'move';
+    state.wireStart = null;
+    state.moveAnchor = { ref: sel.ref, pin, ...where };
+    for (const b of document.querySelectorAll('.tool')) {
+      b.classList.toggle('is-on', b.dataset.tool === 'move');
+    }
+    $('#boardWrap').style.cursor = cursorFor('move');
+    draw(`holding ${sel.ref} by pin ${pin} — click the hole it goes in`);
+    return true;
+  }
+
+  return false;
+}
+
 // ---------------------------------------------------------------------- wiring
 
 function setTool(tool) {
+  // VERB AFTER NOUN, as well as noun after verb.
+  //
+  // Peter: "sometimes I will select a component then press the move/delete etc
+  // button, but sometimes I will select the move/delete etc and then select the
+  // component. only the latter is now supported." Rotate already worked the
+  // first way, which is exactly why the other two stood out.
+  //
+  // Only for the tools that act on an object that already exists. Place, wire
+  // and break need a HOLE, and a selection is not one.
+  if (actOnSelection(tool)) return;
+
   state.tool = tool;
   state.wireStart = null;
   state.moveAnchor = null;

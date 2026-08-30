@@ -434,6 +434,150 @@ s.check('A BOARD CAN BE RESIZED', async () => {
   } finally { await page.close(); }
 });
 
+// -------------------------------------- a tool acts on what is already picked
+// Governed by docs/specs/verb-after-noun.md
+
+// Open the editor with a known board and nothing else in the way.
+async function withBoard(fn, project) {
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  try {
+    await page.addInitScript((p) => {
+      localStorage.clear();
+      localStorage.setItem('stripex.project', JSON.stringify(p));
+    }, project);
+    await page.goto(base);
+    await page.waitForSelector('#boardWrap svg');
+    await page.waitForTimeout(700);
+    return await fn(page);
+  } finally { await page.close(); }
+}
+
+const TWO_PARTS = {
+  schema: 'stripex/1',
+  name: 'verb after noun',
+  board: { cols: 25, rows: 20, pattern: 'strip' },
+  breaks: [],
+  wires: [{ ref: 'A', from: { col: 14, row: 2 }, to: { col: 14, row: 8 } }],
+  placements: [
+    { ref: 'R1', part: 'res-axial', at: { col: 2, row: 2 }, rot: 0, span: 4 },
+    { ref: 'R2', part: 'res-axial', at: { col: 2, row: 8 }, rot: 0, span: 4 },
+  ],
+};
+
+s.check('A SELECTED PART IS DELETED BY THE DELETE BUTTON', async () => {
+  // Peter: "sometimes I will select a component then press the move/delete etc
+  // button". Rotate already worked that way, which is why the other two stood
+  // out.
+  needBrowser();
+  const r = await withBoard(async (page) => {
+    const g = await page.locator('g[data-kind="part"][data-ref="R1"]').boundingBox();
+    await page.mouse.click(g.x + g.width / 2, g.y + g.height / 2);
+    const selected = await page.locator('#status').textContent();
+    await page.locator('.tool[data-tool="delete"]').click();
+    await page.waitForTimeout(200);
+    return {
+      selected,
+      refs: await page.evaluate(() => JSON.parse(localStorage.getItem('stripex.project'))
+        .placements.map((x) => x.ref)),
+      armed: await page.evaluate(() =>
+        document.querySelector('.tool.is-on')?.dataset.tool),
+      status: await page.locator('#status').textContent(),
+    };
+  }, TWO_PARTS);
+  ok(/R1/.test(r.selected), `R1 was selected first: ${r.selected}`);
+  eq(r.refs, ['R2'], 'R1 is gone and R2 is not');
+  eq(r.armed, 'select', 'and the tool disarmed, as delete-disarms says');
+  ok(/R1/.test(r.status), `and it said so: ${r.status}`);
+});
+
+s.check('a selected pen wire is deleted the same way', async () => {
+  needBrowser();
+  const r = await withBoard(async (page) => {
+    const pad = await page.locator('[data-kind="wire-pad"]').first().boundingBox();
+    await page.mouse.click(pad.x + pad.width / 2, pad.y + pad.height / 2);
+    await page.locator('.tool[data-tool="delete"]').click();
+    await page.waitForTimeout(200);
+    return page.evaluate(() => JSON.parse(localStorage.getItem('stripex.project')).wires.length);
+  }, TWO_PARTS);
+  eq(r, 0, 'the wire is gone');
+});
+
+s.check('A SELECTED PART IS PICKED UP BY THE MOVE BUTTON', async () => {
+  // Held by pin 1: the pin every part has, marked square on the board, and the
+  // one a person points at when they say "this part".
+  needBrowser();
+  const r = await withBoard(async (page) => {
+    const g = await page.locator('g[data-kind="part"][data-ref="R1"]').boundingBox();
+    await page.mouse.click(g.x + g.width / 2, g.y + g.height / 2);
+    await page.locator('.tool[data-tool="move"]').click();
+    await page.waitForTimeout(200);
+    return {
+      handle: await page.locator('[data-kind="move-anchor"]').count(),
+      ref: await page.evaluate(() =>
+        document.querySelector('[data-kind="move-anchor"]')?.dataset.ref),
+      status: await page.locator('#status').textContent(),
+    };
+  }, TWO_PARTS);
+  eq(r.handle, 1, 'the move handle is on the board');
+  eq(r.ref, 'R1', 'holding R1');
+  ok(/R1/.test(r.status), `and it says so: ${r.status}`);
+});
+
+s.check('a selected NET is not deleted by the delete button', async () => {
+  // A net is not an object you can delete. Selecting a strip and pressing
+  // Delete must not do something surprising to the copper.
+  needBrowser();
+  const r = await withBoard(async (page) => {
+    const hit = await page.evaluate(() => {
+      const el = document.querySelector('[data-kind="copper"][data-seg="s:15:0"]');
+      const b = el.getBoundingClientRect();
+      const y = b.top + b.height / 2;
+      for (let x = b.right - 3; x > b.left + 3; x -= 2) {
+        if (document.elementFromPoint(x, y) === el) return { x, y };
+      }
+      return null;
+    });
+    await page.mouse.click(hit.x, hit.y);
+    await page.locator('.tool[data-tool="delete"]').click();
+    await page.waitForTimeout(200);
+    return page.evaluate(() => {
+      const p = JSON.parse(localStorage.getItem('stripex.project'));
+      return { parts: p.placements.length, breaks: (p.breaks ?? []).length,
+        armed: document.querySelector('.tool.is-on')?.dataset.tool };
+    });
+  }, TWO_PARTS);
+  eq(r.parts, 2, 'both parts still there');
+  eq(r.breaks, 0, 'and no copper was cut or restored');
+  eq(r.armed, 'delete', 'the tool simply armed');
+});
+
+s.check('and with nothing selected the tool just arms', async () => {
+  needBrowser();
+  const r = await withBoard(async (page) => {
+    await page.keyboard.press('Escape');
+    await page.locator('.tool[data-tool="delete"]').click();
+    await page.waitForTimeout(200);
+    return page.evaluate(() => ({
+      parts: JSON.parse(localStorage.getItem('stripex.project')).placements.length,
+      armed: document.querySelector('.tool.is-on')?.dataset.tool,
+    }));
+  }, TWO_PARTS);
+  eq(r, { parts: 2, armed: 'delete' }, 'nothing deleted, tool armed');
+});
+
+s.check('and the old way still works', async () => {
+  needBrowser();
+  const r = await withBoard(async (page) => {
+    await page.locator('.tool[data-tool="delete"]').click();
+    const g = await page.locator('g[data-kind="part"][data-ref="R2"]').boundingBox();
+    await page.mouse.click(g.x + g.width / 2, g.y + g.height / 2);
+    await page.waitForTimeout(200);
+    return page.evaluate(() => JSON.parse(localStorage.getItem('stripex.project'))
+      .placements.map((x) => x.ref));
+  }, TWO_PARTS);
+  eq(r, ['R1'], 'arm then click still deletes');
+});
+
 s.check('and the editor reaches that point without a script error', async () => {
   needBrowser();
   const r = await withPage(SIZES[0], async () => ({}));

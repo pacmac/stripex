@@ -818,7 +818,11 @@ export function renderBoard(project, opts = {}) {
   // substrate, so `readableOn(fill)` was choosing ink for a colour that was not
   // on screen. Now it is.
   for (const nn of netNames) {
-    const plate = namePlate(nn.name, nn.w, PITCH_MM * 0.55);
+    // Peter, 2026-08-30: "font size net names on board strips can be reduced by
+    // about 20 - 25%". 0.55 -> 0.42 of the pitch is 24% off, so a name takes
+    // less of the strip it is written on and more of the copper stays visible.
+    // The plate follows, being sized from the font.
+    const plate = namePlate(nn.name, nn.w, PITCH_MM * 0.42);
     if (!plate.show) continue;
     const cx = nn.x + nn.w / 2;
     const cy = nn.y + TRACK_W_MM / 2;
