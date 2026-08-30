@@ -252,22 +252,11 @@ function bodyFor(part, pts, c, box) {
     }
     case 'dip': {
       const { x: x0, y: y0, w, h } = box;
-      // The notch at the pin-1 end and a ring on pin 1 itself: the two marks a
-      // real DIL silkscreen carries.
-      const horiz = w >= h;
-      const notchR = PITCH_MM * 0.34;
-      const notch = horiz
-        ? `<path d="M ${n(x0)} ${n(y0 + h / 2 - notchR)} A ${n(notchR)} ${n(notchR)} 0 0 0`
-          + ` ${n(x0)} ${n(y0 + h / 2 + notchR)}" fill="none" stroke="${c.silk}"`
-          + ` stroke-width="${SILK_STROKE_MM}"/>`
-        : `<path d="M ${n(x0 + w / 2 - notchR)} ${n(y0)} A ${n(notchR)} ${n(notchR)} 0 0 1`
-          + ` ${n(x0 + w / 2 + notchR)} ${n(y0)}" fill="none" stroke="${c.silk}"`
-          + ` stroke-width="${SILK_STROKE_MM}"/>`;
-      // No separate pin-1 ring: pin 1 is marked by its square pad now, on every
-      // part alike, and two markers on one pin would be a double outline for no
-      // reason. The notch stays — it marks the PACKAGE, not the pin.
+      // A plain rounded rectangle. No pin-1 ring and no notch: pin 1 is marked
+      // by its SQUARE PAD, on every part alike, and both of those were second
+      // ways of saying the same thing on this one package.
       return `<rect data-kind="part-body" x="${n(x0)}" y="${n(y0)}" width="${n(w)}"`
-        + ` height="${n(h)}" rx="${n(PITCH_MM * 0.2)}" ${silk(c)}/>${notch}`;
+        + ` height="${n(h)}" rx="${n(PITCH_MM * 0.2)}" ${silk(c)}/>`;
     }
     case 'header': {
       // The shroud is the whole box; each way gets a square inside it.

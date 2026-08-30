@@ -107,6 +107,20 @@ s.check('the pads are drawn on the underside view too', () => {
   eq(pads(R.renderBoard(project([dip]), { view: 'underside' })).length, 14, 'fourteen pads');
 });
 
+s.check('A DIL HAS NO NOTCH — THE SQUARE PAD SAYS WHICH END IS PIN 1', () => {
+  // The notch was added when the DIL body drew its own pin-1 ring. That ring is
+  // gone and pin 1 is the square pad on every part alike, so the notch became a
+  // second way of saying the same thing, on one part only.
+  const svg = R.renderBoard(project([dip]), {});
+  const chunk = svg.slice(svg.indexOf('data-ref="U1"'));
+  const group = chunk.slice(0, chunk.indexOf('</g>'));
+  ok(!group.includes('<path'), 'no path element in the DIL group');
+  ok(group.includes('data-kind="part-body"'), 'the body is still drawn');
+  const first = pads(group).filter((el) => attr(el, 'data-first') === 'true');
+  eq(first.length, 1, 'and pin 1 is still identifiable');
+  eq(tagOf(first[0]), 'rect', 'by its square pad');
+});
+
 s.check('hiding the components layer takes its pads with it', () => {
   eq(pads(R.renderBoard(project([dip]), { layers: { components: false } })).length, 0,
     'no pads for a hidden part');

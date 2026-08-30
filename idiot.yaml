@@ -703,3 +703,30 @@
     failures: 0
     at: '2026-08-30T10:17:05.133'
     commit: 46543d7-dirty
+- id: a-dil-still-draws-a-notch-that-duplicates-the-square-pad
+  type: bug
+  what: The DIL body draws a notch arc on its pin-1 end, which now duplicates the square pin-1 pad that
+    marks orientation on every part
+  spec: docs/specs/drop-dil-notch.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_pads.mjs
+    criterion: 'tests/render/test_pads.mjs passes its notch check: a DIL group contains no path element'
+    runs: 1
+  trial:
+    file: .proofs/a-dil-still-draws-a-notch-that-duplicates-the-square-pad.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:20:05.508'
+    commit: 341e803-dirty
+  fix:
+    file: .proofs/a-dil-still-draws-a-notch-that-duplicates-the-square-pad.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:20:40.591'
+    commit: 341e803-dirty
