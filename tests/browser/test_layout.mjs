@@ -323,6 +323,117 @@ s.check('and the board list separates a name from its part count', async () => {
   } finally { await page.close(); }
 });
 
+// ------------------------------------------------ the toolbar
+// Governed by docs/specs/toolbar-icons-and-view-group.md
+
+s.check('THE VIEW IS A BUTTON GROUP, NOT A DROPDOWN', async () => {
+  // Two options behind a select costs two clicks and a menu. Two buttons cost
+  // one, and show which side you are looking at without being opened.
+  needBrowser();
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  try {
+    await page.goto(base);
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.waitForSelector('#boardWrap svg');
+    const before = await page.evaluate(() => ({
+      selects: document.querySelectorAll('.bar select').length,
+      views: document.querySelectorAll('.bar [data-view]').length,
+      lit: [...document.querySelectorAll('.bar [data-view].is-on')].map((b) => b.dataset.view),
+    }));
+    eq(before.selects, 0, 'no dropdown in the toolbar');
+    eq(before.views, 2, 'two view buttons');
+    eq(before.lit, ['top'], 'exactly one is lit, and it is Top');
+
+    // The board actually turns over — checked by the drawing, not by a class.
+    const firstHoleX = () => page.evaluate(() => {
+      const h = document.querySelector('[data-kind="hole"][data-hole="0,0"]');
+      return Math.round(h.getBoundingClientRect().x);
+    });
+    const topX = await firstHoleX();
+    await page.locator('.bar [data-view="underside"]').click();
+    const underX = await firstHoleX();
+    const after = await page.evaluate(() => ({
+      lit: [...document.querySelectorAll('.bar [data-view].is-on')].map((b) => b.dataset.view),
+      view: JSON.parse(localStorage.getItem('stripex.layers') ?? '{}') && document.body ? null : null,
+    }));
+    eq(after.lit, ['underside'], 'the other one is lit now');
+    ok(Math.abs(underX - topX) > 20,
+      `hole 0,0 moved when the board turned over: ${topX} -> ${underX}`);
+  } finally { await page.close(); }
+});
+
+s.check('EVERY ICON-ONLY BUTTON HAS A NAME', async () => {
+  // An icon with no name is a puzzle. The tooltip is the label, and the
+  // keyboard shortcut stays in it where there is one.
+  needBrowser();
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  try {
+    await page.goto(base);
+    await page.waitForSelector('#boardWrap svg');
+    const bad = await page.evaluate(() => {
+      const out = [];
+      for (const b of document.querySelectorAll('.bar button')) {
+        const words = b.textContent.replace(/\s+/g, '');
+        const icon = b.querySelector('svg.ico');
+        if (words.length > 2 && !icon) continue;      // a plain word button
+        if (!b.title || !b.getAttribute('aria-label')) {
+          out.push({ id: b.id || b.className, why: 'no name' });
+          continue;
+        }
+        if (!icon) { out.push({ id: b.id, why: 'no drawn icon' }); continue; }
+        // DRAWN, not a font glyph. Peter's complaint was that the glyphs were
+        // illegible, and a glyph with no font coverage renders as a box at
+        // whatever size the font picks.
+        const r = icon.getBoundingClientRect();
+        if (r.width < 14 || r.height < 14) {
+          out.push({ id: b.id, why: `icon only ${Math.round(r.width)}x${Math.round(r.height)}` });
+        }
+      }
+      return out;
+    });
+    eq(bad, [], 'every icon button has a name and a drawn icon of a usable size');
+  } finally { await page.close(); }
+});
+
+s.check('A BOARD CAN BE RESIZED', async () => {
+  // Peter: "I cannot resize a board." The Board card and the toolbar both used
+  // id="cols", so $('#cols') always found the toolbar's — the card's input never
+  // got a handler, and the toolbar's only got one after the card had been opened
+  // once, bound from inside the card's painter. Two elements, one id, one
+  // handler, and no combination of them that a person would find.
+  needBrowser();
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  try {
+    await page.goto(base);
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.waitForSelector('#boardWrap svg');
+    await page.waitForTimeout(700);
+
+    const dupes = await page.evaluate(() => ({
+      cols: document.querySelectorAll('[id="cols"]').length,
+      rows: document.querySelectorAll('[id="rows"]').length,
+    }));
+    eq(dupes, { cols: 1, rows: 1 }, 'one element per id, always');
+
+    const holes = () => page.locator('[data-kind="hole"]').count();
+    eq(await holes(), 500, 'a 25x20 board to start');
+
+    const cols = page.locator('#cols');
+    await cols.fill('30');
+    await cols.dispatchEvent('change');
+    await page.waitForTimeout(400);
+    eq(await holes(), 600, 'thirty columns of twenty holes');
+
+    const rows = page.locator('#rows');
+    await rows.fill('10');
+    await rows.dispatchEvent('change');
+    await page.waitForTimeout(400);
+    eq(await holes(), 300, 'and ten rows of thirty');
+  } finally { await page.close(); }
+});
+
 s.check('and the editor reaches that point without a script error', async () => {
   needBrowser();
   const r = await withPage(SIZES[0], async () => ({}));

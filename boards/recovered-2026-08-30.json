@@ -2,8 +2,8 @@
   "schema": "stripex/1",
   "name": "recovered 2026-08-30",
   "board": {
-    "cols": 25,
-    "rows": 20,
+    "cols": 12,
+    "rows": 19,
     "pattern": "strip"
   },
   "breaks": [

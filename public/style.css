@@ -103,8 +103,12 @@ button, select, input {
 button { cursor: pointer; }
 button:hover { border-color: var(--accent); }
 
+/* The tools are icon-only now. Their names live in the title and the aria-label,
+   and the keyboard letter is in the title with them. */
 .tool { display: inline-flex; align-items: center; gap: 6px; }
 .tool span { font-size: 14px; line-height: 1; }
+/* A lit tool has to be unmistakable when there is no word to read. */
+.tool.is-on .ico { stroke-width: 2.2; }
 .tool.is-on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
 label { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-dim); }
@@ -372,6 +376,38 @@ main {
   color: var(--accent);
 }
 .palette.is-armed button.is-on {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+/* An icon button. The first attempt used typographic glyphs and Peter's verdict
+   was "tiny / illegible" — a font glyph renders at whatever size and weight the
+   font decides, and several of the ones I chose have no glyph at all in common
+   fonts. These are drawn: 18px of stroke on currentColor, so they take the
+   button's own colour in both themes and cannot fall back to a box. */
+.iconbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 34px;
+  padding: 5px 8px;
+  justify-content: center;
+  /* Without this the one icon button that carries a word — Boards — wrapped,
+     putting its label under its icon and making the whole bar taller. */
+  white-space: nowrap;
+}
+.ico {
+  width: 18px;
+  height: 18px;
+  display: block;
+  flex: 0 0 auto;
+}
+#boards .ico { opacity: 0.75; }
+
+/* The view group wears the same "this is the current one" mark as the tools, so
+   the toolbar has one idiom for it rather than two. */
+.viewbtn.is-on {
   background: var(--accent);
   color: var(--accent-ink);
   border-color: var(--accent);

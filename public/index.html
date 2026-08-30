@@ -9,35 +9,150 @@
 </head>
 <body>
 
+<!--
+  The icon set, drawn rather than borrowed from a font.
+
+  The first attempt used typographic glyphs — ⟳ ↶ ↷ ⭳ ⭱ ⭯ ⧉ — and Peter's verdict
+  was "tiny / illegible, impossible to figure out what a button is for". He was
+  right: those characters render at whatever size and weight the font decides,
+  several have no glyph in common fonts and fall back to a box, and none of them
+  is a shape anyone has been taught.
+
+  These are 24×24 strokes on currentColor, so they take the button's colour in
+  both themes, scale with it, and are the shapes people already know from every
+  other editor. Every button keeps its title and aria-label as well: the drawing
+  is a reminder, not the only way to know.
+-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <g id="i-rotate" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/>
+    </g>
+    <g id="i-undo" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 10h9a5 5 0 0 1 0 10h-3"/><path d="M8 6l-4 4 4 4"/>
+    </g>
+    <g id="i-redo" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 10h-9a5 5 0 0 0 0 10h3"/><path d="M16 6l4 4-4 4"/>
+    </g>
+    <g id="i-download" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3v11"/><path d="M8 10l4 4 4-4"/><path d="M4 19h16"/>
+    </g>
+    <g id="i-upload" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 19h16"/>
+    </g>
+    <g id="i-restore" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 12a8 8 0 1 0 2.34-5.66"/><path d="M4 4v5h5"/><path d="M12 8v4l3 2"/>
+    </g>
+    <g id="i-export" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>
+      <path d="M14 3v5h5"/><path d="M21 3l-7 7"/>
+    </g>
+    <g id="i-theme" stroke="currentColor" stroke-width="2" fill="none">
+      <circle cx="12" cy="12" r="8"/>
+      <path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/>
+    </g>
+    <g id="i-boards" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="2"/>
+      <path d="M3 9h18"/><path d="M8 4v16"/>
+    </g>
+
+    <!-- The six tools. Each is the thing it does to the board, not an
+         abstraction of it: a pointer, a chip, a knife, a wire, a compass of
+         arrows, a bin. -->
+    <g id="i-select" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 3l14 8-6 1.6L10 19z" fill="currentColor" stroke="none"/>
+      <path d="M5 3l14 8-6 1.6L10 19z"/>
+    </g>
+    <g id="i-place" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="8" width="12" height="8" rx="1"/>
+      <path d="M4 10h2M4 14h2M18 10h2M18 14h2"/>
+      <path d="M12 2v4"/><path d="M10 4l2 2 2-2"/>
+    </g>
+    <g id="i-break" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12h6"/><path d="M15 12h6"/>
+      <path d="M10 7l4 10"/>
+    </g>
+    <g id="i-wire" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="6" r="2.5"/>
+      <path d="M7 16.5C10 13 9 9 12 9s5 3 5 3"/>
+    </g>
+    <g id="i-move" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3v18M3 12h18"/>
+      <path d="M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>
+    </g>
+    <g id="i-delete" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 7h16"/><path d="M10 4h4"/>
+      <path d="M6 7l1 13h10l1-13"/>
+      <path d="M10 11v6M14 11v6"/>
+    </g>
+  </defs>
+</svg>
+
 <header class="bar">
   <span class="brand">stripex</span>
 
-  <div class="tools" role="toolbar" aria-label="Tools">
-    <button class="tool" data-tool="select" title="Select and move (V)"><span>▶</span>Select</button>
-    <button class="tool" data-tool="place"  title="Place the palette part (P)"><span>⬒</span>Place</button>
-    <button class="tool" data-tool="break"  title="Cut or restore a strip (B)"><span>✂</span>Break</button>
-    <button class="tool" data-tool="wire"   title="Draw a pen wire (W)"><span>⌇</span>Wire</button>
-    <button class="tool" data-tool="move"   title="Move a device by one of its pins (M)"><span>✥</span>Move</button>
-    <button class="tool" data-tool="delete" title="Delete (X)"><span>⌫</span>Delete</button>
+  <!-- GROUPED BY WHAT THEY DO TO THE BOARD, not by how often they are used.
+       First the tools that act on something already there, then the ones that
+       put something new on it, then history. A separator between each, so the
+       eye finds the group before it finds the button. -->
+  <div class="tools" role="toolbar" aria-label="Edit what is there">
+    <button class="tool iconbtn" data-tool="select" title="Select (V)" aria-label="Select">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-select"/></svg></button>
+    <button class="tool iconbtn" data-tool="move" title="Move a device by one of its pins (M)"
+      aria-label="Move"><svg class="ico" viewBox="0 0 24 24"><use href="#i-move"/></svg></button>
+    <button id="rotate" class="iconbtn" title="Rotate (R)" aria-label="Rotate">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-rotate"/></svg></button>
+    <button class="tool iconbtn" data-tool="delete" title="Delete (X)" aria-label="Delete">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-delete"/></svg></button>
   </div>
 
   <div class="sep"></div>
 
-  <div class="group">
-    <button id="rotate" title="Rotate the pending part (R)">Rotate</button>
-    <button id="undo" title="Undo (Ctrl+Z)">Undo</button>
-    <button id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button>
+  <div class="tools" role="toolbar" aria-label="Add to the board">
+    <button class="tool iconbtn" data-tool="place" title="Place the palette part (P)"
+      aria-label="Place"><svg class="ico" viewBox="0 0 24 24"><use href="#i-place"/></svg></button>
+    <button class="tool iconbtn" data-tool="wire" title="Draw a pen wire (W)"
+      aria-label="Wire"><svg class="ico" viewBox="0 0 24 24"><use href="#i-wire"/></svg></button>
+    <button class="tool iconbtn" data-tool="break" title="Cut or restore a strip (B)"
+      aria-label="Break"><svg class="ico" viewBox="0 0 24 24"><use href="#i-break"/></svg></button>
   </div>
 
   <div class="sep"></div>
 
+  <div class="group" role="group" aria-label="History">
+    <button id="undo" class="iconbtn" title="Undo (Ctrl+Z)" aria-label="Undo">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-undo"/></svg></button>
+    <button id="redo" class="iconbtn" title="Redo (Ctrl+Shift+Z)" aria-label="Redo">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-redo"/></svg></button>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- Two options behind a dropdown cost two clicks and a menu; two buttons cost
+       one, and say which side you are looking at without being opened. Marked
+       with is-on, the same idiom the tool buttons use. -->
+  <div class="group" role="group" aria-label="View">
+    <button class="viewbtn is-on" data-view="top"
+      title="Top — the component side">Top</button>
+    <button class="viewbtn" data-view="underside"
+      title="Underside — the solder side, mirrored">Underside</button>
+  </div>
+
   <div class="group">
-    <label>View
-      <select id="view">
-        <option value="top">Top (component side)</option>
-        <option value="underside">Underside (solder side)</option>
-      </select>
-    </label>
     <label>Board
       <input id="cols" type="number" min="4" max="120" value="25" title="columns"> ×
       <input id="rows" type="number" min="2" max="120" value="20" title="rows">
@@ -51,18 +166,28 @@
          Save here for it: this button is how you pick another board or start
          one, which had no way in at all while the board list lived only inside
          a collapsed card. -->
-    <button id="boards" title="Pick a board, or start a new one">▤ <span id="boardLabel">Boards</span></button>
+    <button id="boards" class="iconbtn" title="Pick a board, or start a new one" aria-label="Boards">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-boards"/></svg><span id="boardLabel">Boards</span></button>
     <span id="saveState" class="save-state" title="Saved automatically to the server"></span>
   </div>
 
   <div class="group">
-    <button id="theme" title="Light / dark">◐</button>
+    <button id="theme" class="iconbtn" title="Light / dark" aria-label="Light or dark theme">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-theme"/></svg></button>
     <!-- Download / upload a COPY. The board itself lives on the server and
          saves itself; these are for handing someone a file. -->
-    <button id="save" title="Download a copy of this board as a file">Download</button>
-    <button id="load" title="Open a board from a file on this machine">Upload</button>
-    <button id="restore" title="Go back to an earlier snapshot">Restore</button>
-    <button id="export">Export SVG</button>
+    <button id="save" class="iconbtn" title="Download a copy of this board as a file"
+      aria-label="Download a copy">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-download"/></svg></button>
+    <button id="load" class="iconbtn" title="Open a board from a file on this machine"
+      aria-label="Open from a file">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-upload"/></svg></button>
+    <button id="restore" class="iconbtn" title="Go back to an earlier snapshot"
+      aria-label="Restore an earlier snapshot">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-restore"/></svg></button>
+    <button id="export" class="iconbtn" title="Export the board as an SVG"
+      aria-label="Export as SVG">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-export"/></svg></button>
   </div>
 </header>
 

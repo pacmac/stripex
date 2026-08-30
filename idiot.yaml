@@ -1798,3 +1798,65 @@
     failures: 0
     at: '2026-08-30T16:07:21.628'
     commit: da41265-dirty
+- id: the-view-is-a-dropdown-and-the-actions-are-words
+  type: new
+  what: The Top/Underside view is a two-option dropdown, which costs two clicks and a menu where two buttons
+    cost one; and seven action buttons are words in a bar that already overflows at 1280, competing with
+    the six tool buttons you actually reach for. The theme button is already an icon with no aria-label.
+  spec: docs/specs/toolbar-icons-and-view-group.md
+  files:
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_layout.mjs
+    criterion: '11/11 browser checks: the view is two buttons with exactly one lit and clicking the other
+      turns the board over, and every icon-only toolbar button has both a title and an aria-label'
+    runs: 1
+  trial:
+    file: .proofs/the-view-is-a-dropdown-and-the-actions-are-words.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:10:48.853'
+    commit: 4728a65-dirty
+  fix:
+    file: .proofs/the-view-is-a-dropdown-and-the-actions-are-words.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:20:17.728'
+    commit: 4728a65-dirty
+- id: a-board-cannot-be-resized
+  type: bug
+  what: "The Board card and the toolbar both use id='cols' and id='rows'. $('#cols') therefore always\
+    \ returns the toolbar's input, so the card's inputs never get a handler and the toolbar's only gets\
+    \ one after the card has been opened once \u2014 bound from inside the card's painter. Changing either\
+    \ box leaves the board at its old size."
+  spec: docs/specs/toolbar-icons-and-view-group.md
+  files:
+  - public/index.html
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_layout.mjs
+    criterion: '12/12 browser checks: one element per id, and changing columns then rows actually redraws
+      the board at the new size'
+    runs: 1
+  trial:
+    file: .proofs/a-board-cannot-be-resized.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:13:45.728'
+    commit: 4728a65-dirty
+  fix:
+    file: .proofs/a-board-cannot-be-resized.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:20:07.616'
+    commit: 4728a65-dirty

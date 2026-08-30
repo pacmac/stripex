@@ -1283,13 +1283,17 @@ function paintCards() {
   // WHICH BOARD, not how big. The card is collapsed by default, so this line was
   // the only place the open board could be named and it was showing "25 × 20" —
   // the size is set by two inputs a few pixels below, inside the card.
-  const boardName = state.project.name && state.project.name !== 'untitled'
+  const named = Boolean(state.project.name) && state.project.name !== 'untitled';
+  $('[data-cardsub="board"]').textContent = named
     ? state.project.name
     : `${state.project.board.cols} × ${state.project.board.rows}`;
-  $('[data-cardsub="board"]').textContent = boardName;
   // And in the toolbar, where the eye goes for "which document is this".
+  // The toolbar button says the board's NAME, or "Boards" when there is not one
+  // yet. It must never fall back to the size: that sat inches from the size
+  // inputs and read as a second, disagreeing copy of them.
   const label = $('#boardLabel');
-  if (label) label.textContent = boardName;
+  if (label) label.textContent = named ? state.project.name : 'Boards';
+  syncBoardSize();
 
   if (state.openCard === 'library') paintLibrary();
   if (state.openCard === 'cutting') paintCutting();
@@ -1413,10 +1417,13 @@ function paintBoardCard() {
         </button>`).join('') || '<p class="empty">No boards on the server yet.</p>'}
     </div>
     <button id="newBoard">New board…</button>
-    <label class="span-row">Columns
-      <input id="cols" type="number" min="4" max="120" value="${state.project.board.cols}"></label>
-    <label class="span-row">Rows
-      <input id="rows" type="number" min="2" max="120" value="${state.project.board.rows}"></label>`;
+    <p class="hint">The board's size is in the toolbar, beside the view.</p>`;
+  // THE SIZE INPUTS ARE NOT HERE. They were, with the same ids as the toolbar's,
+  // so $('#cols') always found the toolbar's one: the card's inputs never got a
+  // handler and the toolbar's only got one after this card had been opened once.
+  // Two elements, one id, one handler, and no combination a person would find —
+  // which is why Peter could not resize a board. One control, in the toolbar,
+  // where it is always visible.
 
   $('#boardName').addEventListener('change', (e) => renameBoard(e.target.value));
   $('#newBoard').addEventListener('click', () => {
@@ -1426,13 +1433,30 @@ function paintBoardCard() {
   for (const b of $('[data-cardbody="board"]').querySelectorAll('[data-open-board]')) {
     b.addEventListener('click', () => openBoard(b.dataset.openBoard));
   }
+}
+
+// The size inputs, wired ONCE at boot rather than from a panel painter. Bound
+// inside the painter they only existed after that card had been opened, which
+// is half of why resizing did not work.
+function wireBoardSize() {
   for (const id of ['#cols', '#rows']) {
-    $(id).addEventListener('change', () => {
+    const el = $(id);
+    if (!el) continue;
+    el.addEventListener('change', () => {
       state.project.board.cols = Math.max(4, Number($('#cols').value) || 25);
       state.project.board.rows = Math.max(2, Number($('#rows').value) || 20);
       commit(`board is ${state.project.board.cols} × ${state.project.board.rows}`);
     });
   }
+}
+
+// The toolbar's boxes show the board that is open, not the one that was open
+// when the page loaded.
+function syncBoardSize() {
+  const c = $('#cols');
+  const r = $('#rows');
+  if (c) c.value = state.project.board.cols;
+  if (r) r.value = state.project.board.rows;
 }
 
 function buildPalette() {
@@ -1487,6 +1511,8 @@ function setTool(tool) {
 function boot() {
   buildTabs();
   buildCards();
+  wireBoardSize();
+  syncBoardSize();
   setTool('select');
 
   document.addEventListener('click', (evt) => {
@@ -1573,10 +1599,19 @@ function boot() {
   $('#undo').addEventListener('click', undo);
   $('#redo').addEventListener('click', redo);
 
-  $('#view').addEventListener('change', (e) => {
-    state.view = e.target.value;
-    draw(state.view === 'underside' ? 'underside — mirrored, this is what you solder' : 'top');
-  });
+  // One click, and the lit button says which side you are looking at without
+  // being opened. `state.view` is unchanged, so nothing downstream moved.
+  for (const b of document.querySelectorAll('[data-view]')) {
+    b.addEventListener('click', () => {
+      state.view = b.dataset.view;
+      for (const other of document.querySelectorAll('[data-view]')) {
+        other.classList.toggle('is-on', other === b);
+      }
+      draw(state.view === 'underside'
+        ? 'underside — mirrored, this is what you solder'
+        : 'top');
+    });
+  }
 
   // The way IN to the board list. It lived only inside a card that is collapsed
   // by default, under a header that said "25 × 20", so there was no way to pick
