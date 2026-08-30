@@ -341,28 +341,38 @@ async function openBoard(slug, { keepDraft = null } = {}) {
   const { ok, body } = await api(`/api/boards/${slug}`);
   if (!ok) return say(body?.error ?? 'could not open that board');
 
-  // WORK IN THIS BROWSER IS NEVER SILENTLY REPLACED.
+  // WORK IN THIS BROWSER IS NEVER SILENTLY REPLACED — AND NEVER TURNED INTO A
+  // QUESTION EITHER.
   //
   // This installed the server's copy and persisted it, so a draft that the
   // server had not got was destroyed on reload — which is what happened to
   // Peter: his saves had been refused as stale after the file changed under
   // him, his work was only in localStorage, and reloading threw it away.
   //
-  // A difference is a QUESTION. The copy the user can see wins by default,
-  // because it is the one they remember making, and the server's is offered.
+  // The fix for that asked him instead, in four sentences, on every reload with
+  // unsaved work: "yours is what you are looking at ... make any edit to save
+  // yours, or open the board again to take the server's and lose yours." Peter,
+  // 2026-08-30: "get rid of this". He is right. It was the last survivor of the
+  // draft reconciliation he had already called convoluted and confusing, and it
+  // asked a question that answers itself: the unsaved work is the newer thing,
+  // so it is what gets written.
+  //
+  // SAFE BECAUSE THE WRITE IS GUARDED, not because we guessed. The save carries
+  // the version this fetch returned, so if the file moves again between here and
+  // the write, the server refuses it and the existing 409 path says so. Nothing
+  // is lost silently in either direction.
   if (keepDraft) {
     state.slug = slug;
     state.version = body.version;
-    state.conflict = body.project;
+    state.conflict = null;
     state.selection = null;
     history.reset(state.project);
     localStorage.setItem(OPEN_KEY, slug);
     paintCards();
-    draw('kept the work in this browser');
-    banner('The copy of this board in your browser is NOT the one on the server, and '
-      + 'yours is what you are looking at. Nothing has been overwritten. Make any edit '
-      + 'to save yours over the server’s, or open the board again from the Board card '
-      + 'to take the server’s and lose yours.', 'error');
+    draw('kept the work in this browser and sent it to the server');
+    // scheduleSave defers itself until boot is finished — it sets savePending
+    // and connectBoards flushes it — so this is a request, not a race.
+    scheduleSave();
     return;
   }
 
@@ -2143,9 +2153,10 @@ async function connectBoards() {
     // while I was making it. Peter: "even if I make no changes and refresh the
     // page, it seems it saves it overwriting any beckend changes."
     //
-    // Only an edit that actually happened during the boot window is flushed,
-    // and not even that when a differing draft was kept: there the banner says
-    // "make any edit to save yours", and the user's next edit is what does it.
+    // Only an edit that actually happened during the boot window is flushed —
+    // plus the deferred save that openBoard asks for when it kept unsaved work,
+    // which is the same mechanism and is why that path no longer has to ask the
+    // user to "make any edit to save yours".
     state.ready = true;
     if (savePending && !state.conflict) scheduleSave();
     savePending = false;

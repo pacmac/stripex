@@ -99,11 +99,12 @@ s.check('A LOCAL DRAFT IS NOT REPLACED BY AN OLDER SERVER COPY', async () => {
     // one-part server copy is exactly what happened to Peter.
     eq(after.stored.length, 3, `the draft survives in this browser: ${after.stored.join(' ')}`);
     eq(after.onScreen.length, 3, `and is what is on screen: ${after.onScreen.join(' ')}`);
-    // Reported, and reported as a DIFFERENCE between two places — a banner that
-    // only said "conflict" would leave you guessing which copy you are looking
-    // at, which is the thing that has to be unambiguous.
-    ok(after.banners.some((b) => /server/i.test(b) && /browser/i.test(b)),
-      `and the difference is reported, naming both copies: ${JSON.stringify(after.banners)}`);
+    // AND NOT REPORTED AS A QUESTION. This used to assert a four-sentence banner
+    // asking which copy to keep. Peter, 2026-08-30: "get rid of this". The
+    // unsaved work is the newer thing, so it is written; the version guard is
+    // what makes that safe, not the user answering a prompt.
+    const shouty = after.banners.filter((b) => /NOT the one on the server|lose yours/i.test(b));
+    eq(shouty, [], `no interrogation: ${JSON.stringify(after.banners)}`);
   } finally { await page.close(); }
 });
 
@@ -268,8 +269,9 @@ s.check('but a draft with REAL unsaved work is still kept', async () => {
       banners: [...document.querySelectorAll('.banner')].map((b) => b.textContent),
     }));
     eq(seen.parts, 3, 'his three parts are what he is looking at');
-    ok(seen.banners.some((b) => /server/i.test(b) && /browser/i.test(b)),
-      `and he is told: ${JSON.stringify(seen.banners)}`);
+    // Kept, and saved — not kept and queried. See the check above.
+    const shouty = seen.banners.filter((b) => /NOT the one on the server|lose yours/i.test(b));
+    eq(shouty, [], `and not interrogated about it: ${JSON.stringify(seen.banners)}`);
   } finally { await page.close(); }
 });
 

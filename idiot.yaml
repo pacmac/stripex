@@ -2594,3 +2594,27 @@
     runs: 1
   trial: null
   fix: null
+- id: reopening-a-board-interrogates-the-user-instead-of-saving
+  type: bug
+  what: On reload with unsaved work, openBoard shows a four-sentence banner telling the user their copy
+    is NOT the server's and making them choose between 'make any edit to save yours' and 'open it again
+    to take theirs and lose yours'. It is the last survivor of the draft-reconciliation system Peter called
+    convoluted and confusing, and it asks a question the version guard can answer.
+  spec: docs/specs/live-board-feed.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_reopen_keeps_work.mjs
+    criterion: a reload with unsaved work raises no interrogation banner, keeps the work, and writes it
+      to the server
+    runs: 1
+  trial:
+    file: .proofs/reopening-a-board-interrogates-the-user-instead-of-saving.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T20:28:18.185'
+    commit: 5e4cda2-dirty
+  fix: null
