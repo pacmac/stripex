@@ -1,0 +1,2 @@
+$ node tests/render/test_keys.mjs
+keys: 7/7 checks passed

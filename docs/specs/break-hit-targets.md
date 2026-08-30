@@ -35,6 +35,60 @@ package you are clicking is predictable rather than random.
 
 A check now asserts a target is no bigger than a pad, so this cannot regress.
 
+---
+
+# Three follow-on requests, and one defect found while verifying
+
+## Wire links default to vertical
+
+Peter: *"wire links should default to vertical."*
+
+`part.defaultRot`, which the palette arms when you pick the part. The wire link declares 90.
+
+It is the only orientation in which a link is a link: **along** a strip it joins a segment
+to itself and the DRC calls it `link-redundant`. That should not be the default you have to
+remember to change. Checked both ways — at 90 the two strips become one net, at 0 the
+finding fires.
+
+## The Delete key
+
+Peter: *"delete key should be mapped to delete button."*
+
+`Delete` and `Backspace` both arm the Delete tool. Backspace as well because on many
+keyboards that is the key labelled Delete; both are `preventDefault`ed, since Backspace
+navigates back in some browsers.
+
+The map lives in `src/render/keys.js` so a check can assert **every tool the toolbar can arm
+is reachable from the keyboard** — the same trick as the cursor map, which caught the move
+tool the day it was added.
+
+## The status line went stale — found, not reported
+
+While verifying the hit targets I clicked bare board, the selection cleared, and the status
+line went on saying *"selected break at 4,9"*. It made me misread my own test result, which
+is what a stale readout costs.
+
+`draw('')` means "clear the line", and the editor tested the message for **truthiness** —
+and `''` is falsy. The distinction is presence, not truthiness: `''` clears, `undefined`
+leaves it alone. `shouldSetStatus` now says so in one place a check can reach.
+
+Filed as its own entry with its own red rather than folded in silently, because a fix made
+in passing with no failing check first is exactly what this workflow exists to stop. The
+one-line fix was reverted, the check written, the red taken, and the fix reapplied.
+
+## Results
+
+| entry | red | green |
+|---|---|---|
+| a cut under a component cannot be clicked | 5/10 | 11/11 |
+| wire links default to lying along a strip | 3/7 | 7/7 |
+| the status line goes stale | 0/4 | 4/4 |
+| the delete key does nothing | 1/7 | 7/7 |
+
+25 suites, 354 checks. Verified in Chromium: a wire link places at rot 90 bridging two
+strips with no redundancy finding; `Delete` and `Backspace` each arm the Delete tool from
+Select; and the status line clears to empty on deselect.
+
 Peter, 2026-08-30: *"a knife break or spot face behind a componnet cannot be selected."*
 
 ## Cause

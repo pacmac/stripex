@@ -1,0 +1,14 @@
+$ node tests/render/test_keys.mjs
+FAIL  THE DELETE KEY ARMS THE DELETE TOOL
+      module ../../src/render/keys.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/keys.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  so does Backspace, which is the delete key on a lot of keyboards
+      module ../../src/render/keys.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/keys.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the letter shortcuts still work
+      module ../../src/render/keys.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/keys.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  shortcuts are case insensitive
+      module ../../src/render/keys.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/keys.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a key that is not a shortcut maps to nothing
+      module ../../src/render/keys.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/keys.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  EVERY TOOL IN THE TOOLBAR HAS A SHORTCUT
+      select has a key: expected truthy, got falsy
+keys: 1/7 checks passed

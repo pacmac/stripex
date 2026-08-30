@@ -759,3 +759,89 @@
     failures: 0
     at: '2026-08-30T10:29:40.326'
     commit: f979aa9-dirty
+- id: the-status-line-goes-stale-when-a-selection-is-cleared
+  type: bug
+  what: draw('') does not clear the status line because an empty message is falsy, so after deselecting
+    the line still names the last thing selected
+  spec: docs/specs/break-hit-targets.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_status_line.mjs
+    criterion: 'tests/render/test_status_line.mjs passes: an empty message clears the line and no message
+      leaves it alone'
+    runs: 1
+  trial:
+    file: .proofs/the-status-line-goes-stale-when-a-selection-is-cleared.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:31:12.407'
+    commit: d233cd8-dirty
+  fix:
+    file: .proofs/the-status-line-goes-stale-when-a-selection-is-cleared.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:33:15.477'
+    commit: d233cd8-dirty
+- id: wire-links-default-to-lying-along-a-strip
+  type: bug
+  what: A wire link is placed at whatever rotation is pending, so it defaults to lying along a strip where
+    it joins a segment to itself and does nothing
+  spec: docs/specs/break-hit-targets.md
+  files:
+  - src/parts/library.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/parts/test_default_rotation.mjs
+    criterion: 'tests/parts/test_default_rotation.mjs passes: choosing the wire link arms 90 degrees,
+      so it bridges two strips'
+    runs: 1
+  trial:
+    file: .proofs/wire-links-default-to-lying-along-a-strip.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:31:12.586'
+    commit: d233cd8-dirty
+  fix:
+    file: .proofs/wire-links-default-to-lying-along-a-strip.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:33:15.343'
+    commit: d233cd8-dirty
+- id: the-delete-key-does-nothing
+  type: bug
+  what: The Delete key is not bound to anything, so the Delete tool can only be armed from the toolbar
+    or by pressing X
+  spec: docs/specs/break-hit-targets.md
+  files:
+  - src/render/keys.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_keys.mjs
+    criterion: 'tests/render/test_keys.mjs passes: Delete and Backspace map to the delete tool alongside
+      the letter keys'
+    runs: 1
+  trial:
+    file: .proofs/the-delete-key-does-nothing.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:31:46.857'
+    commit: d233cd8-dirty
+  fix:
+    file: .proofs/the-delete-key-does-nothing.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:33:15.616'
+    commit: d233cd8-dirty

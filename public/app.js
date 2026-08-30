@@ -10,7 +10,10 @@ import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/mod
 import { rotatePlacement } from '/src/model/rotate.js';
 import { requiredBreaks, ownerOf, effectiveBreaks } from '/src/model/breaks.js';
 import { cursorFor } from '/src/render/cursors.js';
-import { TABS, DEFAULT_TAB, focusTabFor, bodyId, inspectorKey } from '/src/render/panels.js';
+import {
+  TABS, DEFAULT_TAB, focusTabFor, bodyId, inspectorKey, shouldSetStatus,
+} from '/src/render/panels.js';
+import { toolForKey } from '/src/render/keys.js';
 import { applyPlacementEdit, applyWireEdit, editableFields } from '/src/model/edit.js';
 import { movePlacementByPin, pinLocation } from '/src/model/move.js';
 import {
@@ -38,7 +41,7 @@ function swatches(field, current, effective, label) {
       <button class="sw sw-clear${current ? '' : ' is-on'}" data-swatch="${field}"
         data-hex="" title="Default">&times;</button></div>`;
 }
-import { partList, getPart } from '/src/parts/library.js';
+import { partList, getPart, defaultRotOf } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STORE_KEY = 'stripex.project';
@@ -169,7 +172,7 @@ function draw(message) {
   paintLayers();
   markSelectedRows();
   focusOnSelectionChange();
-  if (message) say(message);
+  if (shouldSetStatus(message)) say(message);
 }
 
 function buildTabs() {
@@ -860,6 +863,9 @@ function boot() {
     const part = evt.target.closest('[data-part]');
     if (part) {
       state.part = part.dataset.part;
+      // Arm the rotation the part asks for. A wire link declares 90 because a
+      // link along a strip joins a segment to itself and does nothing.
+      state.rot = defaultRotOf(getPart(state.part));
       buildPalette();
       setTool('place');
       return;
@@ -997,7 +1003,6 @@ function boot() {
 
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input, select, textarea')) return;
-    const keys = { v: 'select', p: 'place', b: 'break', w: 'wire', m: 'move', x: 'delete' };
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       e.preventDefault();
       return e.shiftKey ? redo() : undo();
@@ -1012,8 +1017,12 @@ function boot() {
       return draw('cancelled');
     }
     if (e.key.toLowerCase() === 'r') return $('#rotate').click();
-    const t = keys[e.key.toLowerCase()];
-    if (t) setTool(t);
+    const t = toolForKey(e.key);
+    if (t) {
+      // Backspace navigates back in some browsers, and Delete can scroll.
+      if (e.key === 'Delete' || e.key === 'Backspace') e.preventDefault();
+      setTool(t);
+    }
   });
 
   $('#cols').value = state.project.board.cols;

@@ -32,6 +32,16 @@ export function focusTabFor(selection) {
 
 export const bodyId = (tabId) => `tab-${tabId}`;
 
+// Should this message replace the status line?
+//
+// The editor tested the message for TRUTHINESS, and '' — which means "clear the
+// line" — is falsy. So after deselecting, the line went on naming the thing you
+// had just deselected. It misled me while I was verifying something else, which
+// is exactly how a stale readout costs more than it looks.
+//
+// The distinction is presence, not truthiness: '' clears, undefined leaves alone.
+export const shouldSetStatus = (message) => message !== undefined && message !== null;
+
 // Identifies the SHAPE of the Focus panel: which object it is describing and
 // which fields that object offers. It deliberately ignores the values in those
 // fields.

@@ -1,0 +1,10 @@
+$ node tests/parts/test_default_rotation.mjs
+FAIL  A WIRE LINK DECLARES 90 DEGREES
+      wire-link defaultRot: expected 90, got undefined
+FAIL  a part that declares nothing is placed flat
+      lib.defaultRotOf is not a function
+FAIL  ...so the declared default is the one that is not redundant
+      lib.defaultRotOf is not a function
+FAIL  the default is a legal rotation
+      lib.defaultRotOf is not a function
+default-rotation: 3/7 checks passed
