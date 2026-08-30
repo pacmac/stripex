@@ -1,2 +1,2 @@
 $ node tests/render/test_net_labels.mjs
-net-labels: 16/16 checks passed
+net-labels: 22/22 checks passed

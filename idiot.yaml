@@ -31,8 +31,8 @@
     exit: 0
     runs: 1
     failures: 0
-    at: '2026-08-29T19:54:09.236'
-    commit: 5a80088
+    at: '2026-08-30T19:03:46.808'
+    commit: 0bd7f40-dirty
 - id: there-is-no-board-editor
   type: new
   what: 'There is no way to see or edit a stripboard layout: no renderer, no server, no tools for parts,
@@ -963,8 +963,8 @@
     exit: 0
     runs: 1
     failures: 0
-    at: '2026-08-30T12:06:44.419'
-    commit: 0952b41-dirty
+    at: '2026-08-30T19:03:47.126'
+    commit: 0bd7f40-dirty
 - id: nets-cannot-be-named-or-coloured
   type: new
   what: A net has no name and no colour, so GND and +5V are invisible until you click each strip in turn
@@ -1135,8 +1135,8 @@
     exit: 0
     runs: 1
     failures: 0
-    at: '2026-08-30T12:06:39.462'
-    commit: 0952b41-dirty
+    at: '2026-08-30T19:03:48.087'
+    commit: 0bd7f40-dirty
 - id: the-left-panel-stacks-unrelated-things-and-cannot-hold-a-library
   type: new
   what: Parts, part parameters, the break tool's cut type and layer visibility are stacked flat, parameters
@@ -1849,8 +1849,8 @@
     exit: 0
     runs: 1
     failures: 0
-    at: '2026-08-30T16:07:21.628'
-    commit: da41265-dirty
+    at: '2026-08-30T19:03:34.862'
+    commit: 0bd7f40-dirty
 - id: the-view-is-a-dropdown-and-the-actions-are-words
   type: new
   what: The Top/Underside view is a two-option dropdown, which costs two clicks and a menu where two buttons
@@ -2091,7 +2091,13 @@
     failures: 1
     at: '2026-08-30T17:24:27.437'
     commit: c9d0f77-dirty
-  fix: null
+  fix:
+    file: .proofs/the-editor-asks-about-a-draft-with-nothing-unsaved-in-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:03:46.553'
+    commit: 0bd7f40-dirty
 - id: the-design-rules-bind-nothing-and-a-board-cannot-be-built-headlessly
   type: new
   what: "Peter's design rules \u2014 links are straight, point to point is for signals only, power uses\
