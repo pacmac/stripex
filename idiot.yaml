@@ -1566,3 +1566,32 @@
     failures: 0
     at: '2026-08-30T15:19:01.069'
     commit: 5e2c281-dirty
+- id: a-rotated-jst-draws-its-shroud-around-one-pin
+  type: bug
+  what: 'The jst body case builds an axis-aligned rectangle from box.w, which at rot 90 is one pin wide,
+    so the shroud collapses onto pin 1 and the rest of the connector is bare pads. Measured in Chromium:
+    a 4-way drew 172x49 px at rot 0 and 43x49 at rot 90.'
+  spec: docs/specs/jst-rotation.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/parts/test_devices.mjs
+    criterion: '31/31 checks: every pin falls inside its own shroud at all four rotations for both bodies
+      and three widths, the shroud does not collapse, and straight and right angle stay visibly different'
+    runs: 1
+  trial:
+    file: .proofs/a-rotated-jst-draws-its-shroud-around-one-pin.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:21:31.181'
+    commit: 9e43e4e-dirty
+  fix:
+    file: .proofs/a-rotated-jst-draws-its-shroud-around-one-pin.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T15:22:46.816'
+    commit: 9e43e4e-dirty

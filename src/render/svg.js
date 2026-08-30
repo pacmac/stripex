@@ -310,15 +310,29 @@ function bodyFor(part, pts, c, box, pl = {}) {
       // RIGHT ANGLE: the cable leaves sideways, so the body lies over the board
       // to ONE SIDE of the pin row, and that offset is the difference you can
       // see at a glance.
+      // DRAWN ALONG THE PIN AXIS, in a rotated group — the way `axial` and
+      // `chip` already do it, and not from `box`.
+      //
+      // It was built from box.w, the footprint's width in BOARD axes. At rot 0 a
+      // one-row connector is wide and shallow so that happened to be its length;
+      // at rot 90 the pins run down the board, box.w is one pin wide, and the
+      // shroud collapsed onto pin 1 with the rest of the connector left bare.
+      //
+      // `dip`, `header` and `tab` survive rotation by using both box.w and
+      // box.h. A JST cannot: its body is DEEPER than the pin row on one side and,
+      // for a right-angle, offset entirely to one side. That asymmetry is the
+      // whole reason to draw a connector rather than a box, and a bounding box
+      // has no side.
       const right = pl.angle === 'right';
-      const w = box.w;
+      // Half a pitch of shroud past each end pin.
+      const w = len + PITCH_MM;
       // Deep enough to read as a shroud rather than a line. The right-angle body
       // is deeper because it is lying down.
       const d = right ? PITCH_MM * 1.9 : PITCH_MM * 1.15;
-      const x0 = box.x;
+      const x0 = -w / 2;
       // Straight: centred on the pins. Right angle: hanging off one side of them,
       // with a strip still over the pin row so the two are visibly one part.
-      const y0 = right ? a.y - PITCH_MM * 0.45 : a.y - d / 2;
+      const y0 = right ? -PITCH_MM * 0.45 : -d / 2;
       const ramp = right
         // on the far edge, where the cable leaves
         ? `<rect data-kind="jst-ramp" x="${n(x0 + w * 0.3)}" y="${n(y0 + d - PITCH_MM * 0.34)}"`
@@ -333,8 +347,9 @@ function bodyFor(part, pts, c, box, pl = {}) {
           + ` width="${n(w * 0.36)}" height="${n(PITCH_MM * 0.3)}"`
           + ` rx="${n(PITCH_MM * 0.08)}" fill="${c.silk}" fill-opacity="0.55"`
           + ` stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"/>`;
-      return `<rect data-kind="part-body" x="${n(x0)}" y="${n(y0)}" width="${n(w)}"`
-        + ` height="${n(d)}" rx="${n(PITCH_MM * 0.14)}" ${silk(c)}/>${ramp}`;
+      return `<g transform="translate(${n(mx)} ${n(my)}) rotate(${n(angle)})">`
+        + `<rect data-kind="part-body" x="${n(x0)}" y="${n(y0)}" width="${n(w)}"`
+        + ` height="${n(d)}" rx="${n(PITCH_MM * 0.14)}" ${silk(c)}/>${ramp}</g>`;
     }
     case 'hole': {
       return `<circle data-kind="part-body" cx="${n(a.x)}" cy="${n(a.y)}"`
