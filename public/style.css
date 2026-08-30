@@ -19,6 +19,9 @@
   --wire: #1f6feb;
   --radius: 7px;
   --bar-h: 46px;
+  /* The fade at the edge of a list that has more below it. Dark ink on a light
+     ground here; see the dark theme for why it inverts rather than darkens. */
+  --scroll-shade: rgba(0, 0, 0, 0.22);
 }
 
 :root[data-theme="dark"] {
@@ -36,6 +39,9 @@
   --warning: #e3b341;
   --ok: #4ac26b;
   --wire: #58a6ff;
+  /* Black on a #1e1a13 panel is no shadow at all — there is nothing darker to
+     go. The fade has to be light here. */
+  --scroll-shade: rgba(255, 255, 255, 0.16);
 }
 
 * { box-sizing: border-box; }
@@ -168,10 +174,35 @@ main {
 
 /* ------------------------------------------------------------------ palette */
 
-/* Cards: each owns the settings that belong to it. */
-.panel.left { padding: 0; }
+/* Cards: each owns the settings that belong to it.
+ *
+ * A COLUMN, so the open card can be given what is left rather than a guess at
+ * it. `overflow: hidden` is what makes the card the scroller instead of the
+ * panel — if the panel scrolled, the other three headers would leave with it,
+ * which is the thing the card layout exists to prevent. */
+.panel.left {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
 
-.card { border-bottom: 1px solid var(--line); }
+/* A closed card is exactly its header. It must not stretch, or the four headers
+   would share the panel between them and none would hold a list. */
+.card {
+  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+
+/* The open one takes the remainder. min-height: 0 because a flex item refuses
+   to shrink below its content otherwise, and the list is taller than the panel. */
+.card.is-open {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 
 .card-head {
   display: flex;
@@ -204,16 +235,72 @@ main {
 
 /* An open card scrolls inside itself. Without this the Library's list pushes the
    other three headers off the bottom of the panel, so you cannot see that
-   Cutting, Layers and Board exist — which defeats the point of cards. */
+   Cutting, Layers and Board exist — which defeats the point of cards.
+ *
+ * It used to say `max-height: 52vh`, which was a guess at how much room three
+ * closed headers need. At 1000 px it threw away 180 px of panel that nothing
+ * else wanted and put five of the fourteen parts below the fold — DIP among
+ * them — and it read as the parts having been deleted. The flex column above
+ * asks the layout instead, and the answer stays right when a fifth card is
+ * added. */
 .card-body {
   padding: 0 10px 10px;
-  max-height: 52vh;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 }
 
 /* Headers stay put while their body scrolls. */
 .card-head { position: sticky; top: 0; z-index: 1; background: var(--panel); }
 .card.is-open .card-head { background: var(--panel-2); }
+
+/* A LIST THAT CONTINUES HAS TO LOOK LIKE ONE.
+ *
+ * The scrollbar cannot be relied on to say it. Measured in Chromium 150: the
+ * card body's scrollbar is 0 px wide with 386 px of content below the fold, and
+ * it stays 0 px under `scrollbar-width: auto`, under `scrollbar-width: thin`
+ * with a colour, and under `::-webkit-scrollbar { width: 8px }` — this build
+ * has overlay scrollbars and no CSS turns them off.
+ *
+ * So the affordance that carries the meaning is the SHADOW below, which is
+ * painted by the element itself and owes the browser's scrollbar policy
+ * nothing. The scrollbar rules are kept because where they are honoured they
+ * help, but nothing depends on them. */
+.card-body,
+.panel {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.card-body::-webkit-scrollbar,
+.panel::-webkit-scrollbar { width: 8px; }
+.card-body::-webkit-scrollbar-track,
+.panel::-webkit-scrollbar-track { background: transparent; }
+.card-body::-webkit-scrollbar-thumb,
+.panel::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+.card-body::-webkit-scrollbar-thumb:hover,
+.panel::-webkit-scrollbar-thumb:hover { background: var(--ink-dim); }
+
+/* The shadow itself: two covers painted in the panel colour that SCROLL WITH
+   THE CONTENT (`local`), and two shades that stay pinned to the edges
+   (`scroll`). At the top of the list the first cover sits over the top shade
+   and hides it; scroll down and the cover moves away, uncovering it. So the
+   fade appears exactly when there is something past that edge, and goes when
+   there is not — no JS, no scroll handler, nothing to keep in step. */
+.card-body,
+.panel {
+  background-image:
+    linear-gradient(var(--panel), transparent),
+    linear-gradient(transparent, var(--panel)),
+    radial-gradient(farthest-side at 50% 0, var(--scroll-shade), transparent),
+    radial-gradient(farthest-side at 50% 100%, var(--scroll-shade), transparent);
+  background-repeat: no-repeat;
+  background-size: 100% 22px, 100% 22px, 100% 10px, 100% 10px;
+  background-position: top, bottom, top, bottom;
+  background-attachment: local, local, scroll, scroll;
+}
 
 .lib-search {
   width: 100%;

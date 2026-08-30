@@ -1,0 +1,2 @@
+$ node tests/render/test_left_panel_room.mjs
+left-panel-room: 12/12 checks passed

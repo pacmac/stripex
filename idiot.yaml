@@ -1230,3 +1230,49 @@
     failures: 0
     at: '2026-08-30T13:55:58.582'
     commit: da5c2bd-dirty
+- id: the-library-card-hides-five-parts-below-a-fixed-cap
+  type: bug
+  what: "The open card body is capped at 52vh and its scrollbar measures 0px wide, so five of the fourteen\
+    \ parts \u2014 DIP among them \u2014 sit below the fold with nothing to say the list continues, and\
+    \ the cut lands under a category heading that then reads as empty."
+  spec: docs/specs/library-card-room.md
+  files:
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/render/test_left_panel_room.mjs
+    criterion: '10/10 checks: no fixed cap on an open card body, the left panel is a flex column whose
+      open card fills it and scrolls, and a scrollbar of declared non-zero width on both card bodies and
+      panels'
+    runs: 1
+  trial:
+    file: .proofs/the-library-card-hides-five-parts-below-a-fixed-cap.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T14:01:58.994'
+    commit: 8403819-dirty
+  fix:
+    file: .proofs/the-library-card-hides-five-parts-below-a-fixed-cap.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T14:04:27.951'
+    commit: 8403819-dirty
+- id: nothing-measures-the-rendered-layout
+  type: new
+  what: "Every suite runs in node, so no check can measure a rendered size, an overflow or a scrollbar\
+    \ width. Two layout defects have now been found by eye \u2014 the toolbar at 1280 and the library\
+    \ card at 52vh \u2014 and neither could have been caught by the harness."
+  spec: docs/specs/library-card-room.md
+  files:
+  - scripts/check_all.mjs
+  - package.json
+  test:
+    command: null
+    criterion: a check reports the library card's clientHeight and scrollHeight from a real browser and
+      fails when content is clipped with no visible scrollbar
+    runs: 1
+  trial: null
+  fix: null
