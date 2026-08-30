@@ -245,6 +245,67 @@ s.check('a component pad is left exactly where it was', () => {
   ok(Math.abs(r - R.PAD_R_MM) < 0.01, `still ${R.PAD_R_MM}: got ${r}`);
 });
 
+// ------------------------------------ a pad is visible whatever colour it is
+// Governed by docs/specs/pen-pad-contrast.md
+
+// Relative luminance, the same weights readableOn uses.
+function lum(hex) {
+  const m = /^#([0-9a-f]{6})$/i.exec(String(hex ?? ''));
+  if (!m) return null;
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255);
+  const lin = (v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+// A wire of a chosen length, so its code colour is chosen rather than hoped for.
+function wireOfLength(holes) {
+  const p = boardm.makeProject({ cols: 30, rows: 20 });
+  p.wires.push({ ref: 'A', from: { col: 2, row: 2 }, to: { col: 2 + holes, row: 2 } });
+  return p;
+}
+
+s.check('A WHITE PEN WIRE IS NOT DRAWN WHITE ON WHITE', () => {
+  // Peter: "well I cannot see any point to points you have added." Two of the
+  // five were 9 holes long, and 9 in the colour code is white — filled #f1f3f5
+  // and outlined #fbf7ee on a #e8dcc0 board. Three tones of off-white: drawn,
+  // in the DOM, and invisible.
+  const p = wireOfLength(9);
+  const pad = els(R.renderBoard(p, {}), 'wire-pad')[0];
+  const fill = attr(pad, 'fill');
+  const stroke = attr(pad, 'stroke');
+  eq(fill, C.COLOUR_CODE[9].hex, 'a 9-hole wire is white, as the code says');
+  ok(lum(stroke) < 0.3, `and its outline is dark: ${stroke} (luminance ${lum(stroke)?.toFixed(2)})`);
+});
+
+s.check('and a black one is not drawn black on black', () => {
+  const p = wireOfLength(10);              // 10 holes -> code 0 -> black
+  const pad = els(R.renderBoard(p, {}), 'wire-pad')[0];
+  ok(lum(attr(pad, 'stroke')) > 0.5,
+    `a dark pad gets a light outline: ${attr(pad, 'stroke')}`);
+});
+
+s.check('EVERY CODE COLOUR HAS A VISIBLE OUTLINE', () => {
+  // All ten, not just the two extremes — the middle ones are where a rule that
+  // only handles black and white quietly fails.
+  for (let holes = 1; holes <= 10; holes += 1) {
+    const pad = els(R.renderBoard(wireOfLength(holes), {}), 'wire-pad')[0];
+    const f = lum(attr(pad, 'fill'));
+    const s2 = lum(attr(pad, 'stroke'));
+    ok(Math.abs(f - s2) > 0.2,
+      `${holes} holes: fill ${attr(pad, 'fill')} vs outline ${attr(pad, 'stroke')}`
+      + ` — luminance gap ${Math.abs(f - s2).toFixed(2)}`);
+  }
+});
+
+s.check('and the fill is still the length colour', () => {
+  // Load-bearing: it says which pre-cut wire to take from the drawer.
+  for (const holes of [3, 6, 9]) {
+    const p = wireOfLength(holes);
+    const pad = els(R.renderBoard(p, {}), 'wire-pad')[0];
+    eq(attr(pad, 'fill'), C.wireColour(p.wires[0]), `${holes} holes keeps its colour`);
+  }
+});
+
 s.check('the nets a pen wire joins are unchanged by any of this', () => {
   const p = withWire();
   const { segmentNet } = R.netsFor(p);

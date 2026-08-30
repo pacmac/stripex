@@ -710,9 +710,17 @@ export function renderBoard(project, opts = {}) {
         out.push(`<circle data-kind="wire-pad" data-ref="${esc(wire.ref)}"`
           + ` data-end="${end}" data-hole="${hole.col},${hole.row}"`
           + `${sel ? ' data-selected="true"' : ''} pointer-events="all"`
+          // OUTLINED AGAINST ITS OWN FILL, not against the theme.
+          //
+          // It used c.wireCasing, a LIGHT halo on the light theme — right for a
+          // dark line on a light ground, and exactly backwards for a disc filled
+          // white. A 9-hole wire is white in the colour code, so it drew
+          // #f1f3f5 ringed #fbf7ee on a #e8dcc0 board: three tones of off-white,
+          // present in the DOM and invisible. Peter could not see the wires I
+          // had added.
           + ` cx="${n(mx(pt.x))}" cy="${n(pt.y)}" r="${padR}"`
-          + ` fill="${ink}" stroke="${c.wireCasing}"`
-          + ` stroke-width="${n(SILK_STROKE_MM * 0.7)}"/>`);
+          + ` fill="${ink}" stroke="${readableOn(ink, c)}"`
+          + ` stroke-width="${n(SILK_STROKE_MM * 1.1)}"/>`);
         if (L.labels) {
           // INSIDE the pad, centred: the pad and its ID are one mark, not a
           // marker with a caption. Above it, the ID was larger than the pad it

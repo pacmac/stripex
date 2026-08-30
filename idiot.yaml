@@ -2004,3 +2004,65 @@
     failures: 0
     at: '2026-08-30T16:55:34.566'
     commit: fd77d5f-dirty
+- id: a-white-pen-wire-is-invisible-on-a-light-board
+  type: bug
+  what: 'A pen pad is filled with the wire''s length colour and outlined in c.wireCasing, which on the
+    light theme is #fbf7ee. A 9-hole wire is white (#f1f3f5), so it renders as three tones of off-white
+    on a #e8dcc0 board: drawn, in the DOM, and invisible. Peter: ''well I cannot see any point to points
+    you have added.'''
+  spec: docs/specs/pen-pad-contrast.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_point_to_point.mjs
+    criterion: '31/31 checks: a white pen pad gets a dark outline and a black one a light outline, every
+      code colour has a real luminance gap between fill and outline, and the fill is still the length
+      colour'
+    runs: 1
+  trial:
+    file: .proofs/a-white-pen-wire-is-invisible-on-a-light-board.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T17:08:16.382'
+    commit: 123f89f-dirty
+  fix:
+    file: .proofs/a-white-pen-wire-is-invisible-on-a-light-board.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T17:11:48.146'
+    commit: 123f89f-dirty
+- id: a-clean-browser-refuses-to-open-a-board
+  type: bug
+  what: 'The editor treats the blank board it starts with as a draft worth protecting, so a browser with
+    nothing in localStorage refuses to open the board it was told to open: it reports ''the copy in your
+    browser is NOT the one on the server'', keeps the empty grid, and draws none of the board''s parts
+    or wires. Peter could not see five wires sitting in the file, through a hard refresh.'
+  spec: docs/specs/boards-on-the-server.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_draft_survives.mjs
+    criterion: '4/4 browser checks: a browser with no stored draft opens the server board and draws its
+      wires and parts with no warning, a real differing draft is still kept, a reload with no edits writes
+      nothing, and an identical draft opens quietly'
+    runs: 1
+  trial:
+    file: .proofs/a-clean-browser-refuses-to-open-a-board.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T17:10:15.257'
+    commit: 123f89f-dirty
+  fix:
+    file: .proofs/a-clean-browser-refuses-to-open-a-board.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T17:11:56.179'
+    commit: 123f89f-dirty

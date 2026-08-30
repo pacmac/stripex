@@ -107,8 +107,14 @@ const LAYER_ROWS = [
   ['drc', 'Check markers', '#d1242f'],
 ];
 
+// Was there anything in this browser at all? A blank board the editor made for
+// itself is NOT a draft: treating it as one made a clean browser refuse to open
+// the board it was bookmarked to, report that its copy differed, and draw an
+// empty grid over a file full of work.
+const storedDraft = load();
+
 const state = {
-  project: load() ?? makeProject({ cols: 25, rows: 20 }),
+  project: storedDraft ?? makeProject({ cols: 25, rows: 20 }),
   tool: 'select',
   part: 'res-axial',
   // The armed DEVICE, or null for a generic part. It arms its base part
@@ -1861,8 +1867,14 @@ async function decideWhichBoard() {
     // Is the draft in this browser the same board the server has? Compared by
     // CONTENT, because that is the question — not by version, which the browser
     // may never have seen, and not by timestamp, which neither side keeps.
+    // Only a draft that CAME FROM THIS BROWSER can be worth keeping. Comparing
+    // the server's board against a blank one the editor invented meant every
+    // clean browser was told its copy differed — and it does differ, and it is
+    // not work, and refusing to open the board over it is the opposite of
+    // protecting anything.
     const { ok: readOk, body } = await api(`/api/boards/${wanted}`);
-    const differs = readOk && JSON.stringify(body.project) !== JSON.stringify(state.project);
+    const differs = readOk && storedDraft
+      && JSON.stringify(body.project) !== JSON.stringify(state.project);
     await openBoard(wanted, { keepDraft: differs ? state.project : null });
     return;
   }

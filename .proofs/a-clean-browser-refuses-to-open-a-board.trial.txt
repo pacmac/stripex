@@ -1,0 +1,4 @@
+$ node tests/browser/test_draft_survives.mjs
+FAIL  A BROWSER WITH NO DRAFT OPENS THE BOARD
+      the wire on the server is drawn, both pads: expected 2, got 0
+draft-survives: 3/4 checks passed

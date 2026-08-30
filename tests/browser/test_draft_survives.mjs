@@ -147,6 +147,47 @@ s.check('A RELOAD WITH NO EDITS WRITES NOTHING', async () => {
   } finally { await page.close(); }
 });
 
+s.check('A BROWSER WITH NO DRAFT OPENS THE BOARD', async () => {
+  // The blank board the editor starts with is NOT work. Treating it as a draft
+  // worth protecting meant a clean browser — or one whose storage had been
+  // cleared — refused to open the board it was told to open, showed "your copy
+  // differs", and drew an empty grid. Peter could not see five wires that were
+  // sitting in the file, through a hard refresh and everything.
+  needBrowser();
+  const made = await api('/api/boards', {
+    method: 'POST',
+    body: JSON.stringify({ name: 'Fresh Eyes', project: board('Fresh Eyes', ['R1', 'R2']) }),
+  });
+  const slug = made.body.slug;
+  // Give it a wire, since wires are what he could not see.
+  const cur = await api(`/api/boards/${slug}`);
+  const withWire = { ...cur.body.project, wires: [{ ref: 'A', from: { col: 1, row: 1 }, to: { col: 5, row: 5 } }] };
+  await api(`/api/boards/${slug}`, {
+    method: 'PUT', body: JSON.stringify({ project: withWire, version: cur.body.version }),
+  });
+
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  try {
+    // Nothing stored but the bookmark — the state after clearing site data.
+    await page.addInitScript((sl) => {
+      localStorage.clear();
+      localStorage.setItem('stripex.openBoard', sl);
+    }, slug);
+    await page.goto(base);
+    await page.waitForSelector('#boardWrap svg');
+    await page.waitForTimeout(1500);
+    const seen = await page.evaluate(() => ({
+      pads: document.querySelectorAll('[data-kind="wire-pad"]').length,
+      parts: document.querySelectorAll('g[data-kind="part"]').length,
+      banners: [...document.querySelectorAll('.banner')].map((b) => b.textContent),
+    }));
+    eq(seen.pads, 2, 'the wire on the server is drawn, both pads');
+    eq(seen.parts, 2, 'and its parts');
+    ok(!seen.banners.some((b) => /NOT the one on the server/i.test(b)),
+      `and it is not told its empty board differs: ${JSON.stringify(seen.banners)}`);
+  } finally { await page.close(); }
+});
+
 s.check('and an identical draft opens the server copy without fuss', async () => {
   needBrowser();
   const made = await api('/api/boards', {
