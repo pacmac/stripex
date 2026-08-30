@@ -12,6 +12,7 @@ import { networkInterfaces } from 'node:os';
 import { partList } from '../parts/library.js';
 import { validateProject, makeProject } from '../model/board.js';
 import { renderBoard, findingsFor, netsFor, runList } from '../render/svg.js';
+import * as boards from './boards.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const app = express();
@@ -48,12 +49,83 @@ app.post('/api/check', (req, res) => {
   });
 });
 
-// Project storage belongs to the storage-api task and is NOT here yet. Saying so
-// with a 501 rather than letting the editor discover it as a 404: the editor
-// keeps its work in localStorage until this is real, and it says so on screen.
-app.all('/api/projects{/*rest}', (_req, res) => res.status(501).json({
-  error: 'project storage is not implemented yet — the editor is using localStorage',
-}));
+// ----------------------------------------------------------------- boards
+//
+// Files on disk, in the repository, so a board can be shared, edited by hand,
+// read by Claude, and recovered from git. That last one is not theoretical: a
+// board has already been lost in this project.
+//
+// EVERY WRITE IS GUARDED BY A VERSION. If somebody edits boards/x.json while the
+// editor has it open, the editor's next autosave would erase it silently. A
+// write presenting a version that is not the one on disk is refused with 409 and
+// the current board, and the editor asks rather than choosing.
+
+const boardsDir = path.join(root, 'boards');
+
+// One place that turns a store error into a status, so a new error code cannot
+// quietly become a 500.
+const BOARD_STATUS = {
+  'bad-slug': 400,
+  'bad-name': 400,
+  'no-such-board': 404,
+  exists: 409,
+  stale: 409,
+};
+
+function boardError(res, e) {
+  const status = BOARD_STATUS[e?.code];
+  if (!status) throw e;                       // not ours: let it be a 500 and be logged
+  const body = { error: e.message, code: e.code };
+  if (e.version) body.version = e.version;
+  if (e.project) body.project = e.project;    // a stale write is handed the newer board
+  return res.status(status).json(body);
+}
+
+app.get('/api/boards', (_req, res) => res.json({ boards: boards.list(boardsDir) }));
+
+app.post('/api/boards', (req, res) => {
+  const name = String(req.body?.name ?? '').trim();
+  const slug = boards.slugFor(name);
+  if (!slug) return res.status(400).json({ error: 'that name has nothing usable in it', code: 'bad-name' });
+  const project = req.body?.project
+    ? { ...req.body.project, name }
+    : makeProject({
+      cols: Number(req.body?.cols ?? 25),
+      rows: Number(req.body?.rows ?? 20),
+      name,
+    });
+  const problems = validateProject(project);
+  if (problems.length) return res.status(400).json({ error: problems[0].message, problems });
+  try {
+    return res.status(201).json({ ...boards.write(boardsDir, slug, project, null), name, project });
+  } catch (e) { return boardError(res, e); }
+});
+
+app.get('/api/boards/:slug', (req, res) => {
+  try { return res.json(boards.read(boardsDir, req.params.slug)); }
+  catch (e) { return boardError(res, e); }
+});
+
+app.put('/api/boards/:slug', (req, res) => {
+  const project = req.body?.project;
+  // Validated BEFORE it is written. A store that accepts a board the editor
+  // cannot open is a store that loses boards.
+  const problems = validateProject(project);
+  if (problems.length) return res.status(400).json({ error: problems[0].message, problems });
+  try {
+    return res.json(boards.write(boardsDir, req.params.slug, project, req.body?.version ?? null));
+  } catch (e) { return boardError(res, e); }
+});
+
+app.post('/api/boards/:slug/rename', (req, res) => {
+  try { return res.json(boards.rename(boardsDir, req.params.slug, String(req.body?.name ?? ''))); }
+  catch (e) { return boardError(res, e); }
+});
+
+app.delete('/api/boards/:slug', (req, res) => {
+  try { return res.json(boards.remove(boardsDir, req.params.slug)); }
+  catch (e) { return boardError(res, e); }
+});
 
 const port = Number(process.env.PORT ?? 3020);
 

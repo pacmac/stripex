@@ -1626,3 +1626,65 @@
     failures: 0
     at: '2026-08-30T15:31:39.469'
     commit: d9f836e-dirty
+- id: a-tool-cannot-act-on-a-component-that-is-already-selected
+  type: new
+  what: 'Every tool is verb-then-noun: arm the tool, then click the thing. Selecting a component and then
+    pressing Move or Delete does nothing. Rotate is the exception, which is why the asymmetry shows.'
+  spec: docs/specs/requested-next.md
+  files:
+  - public/app.js
+  test:
+    command: null
+    criterion: with a part selected, pressing Delete deletes it and pressing Move arms the move on it,
+      while the tools that create something at a hole are unchanged
+    runs: 1
+  trial: null
+  fix: null
+- id: pin-names-are-carried-but-never-drawn
+  type: new
+  what: A device's pin names reach the placement, the resolved pins and the DRC messages, but nothing
+    draws them on the board, so on a 14-pin XIAO you cannot tell which pad is D4 without counting. They
+    need a layer of their own.
+  spec: docs/specs/requested-next.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command: null
+    criterion: pin names are drawn beside their pads under a pinNames layer that defaults off, and switching
+      it does not affect the other label layers
+    runs: 1
+  trial: null
+  fix: null
+- id: boards-live-in-one-browser-and-have-no-name
+  type: new
+  what: "The board lives in localStorage on one machine, there is only ever one of it, and it has no name\
+    \ \u2014 every downloaded file is untitled. Nobody else can open it, it cannot be edited from outside\
+    \ the browser, and clearing site data destroys it, which has already happened once in this project."
+  spec: docs/specs/boards-on-the-server.md
+  files:
+  - src/server/boards.js
+  - src/server/index.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/server/test_boards.mjs
+    criterion: '19/19 checks: slugs are validated as a whitelist and never reach the filesystem when bad,
+      a board written comes back identically with a version that changes when it does, a write presenting
+      a stale version is refused and leaves the file alone, and rename moves the file'
+    runs: 1
+  trial:
+    file: .proofs/boards-live-in-one-browser-and-have-no-name.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:35:28.549'
+    commit: 53b878c-dirty
+  fix:
+    file: .proofs/boards-live-in-one-browser-and-have-no-name.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T15:39:23.462'
+    commit: 53b878c-dirty

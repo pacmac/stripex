@@ -381,6 +381,35 @@ main {
   background: color-mix(in srgb, var(--error) 22%, var(--panel));
   font-weight: 600;
 }
+/* Something went RIGHT and is worth saying once — a board that was only in this
+   browser is now a file on the server. */
+.banner-ok {
+  background: color-mix(in srgb, var(--ok) 18%, var(--panel));
+}
+
+/* The boards on the server. Scrolls at ten, because a bench accumulates them. */
+.board-list {
+  max-height: 190px;
+  overflow-y: auto;
+  margin: 6px 0;
+}
+.board-list button {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 3px;
+}
+.board-list .kind {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+.board-list button.is-on { border-color: var(--accent); color: var(--accent); }
 .palette .kind {
   font-size: 10px;
   text-transform: uppercase;

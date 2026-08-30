@@ -67,6 +67,9 @@ import {
 
 const $ = (sel) => document.querySelector(sel);
 const STORE_KEY = 'stripex.project';
+// Which board on the server this browser had open. The board itself lives on the
+// server now; this is only the bookmark.
+const OPEN_KEY = 'stripex.openBoard';
 
 // Repairs found on the last load, shown as a banner. Not a console warning:
 // load() used to return null on any problem, hand the user an empty board, and
@@ -107,6 +110,13 @@ const state = {
   // The armed DEVICE, or null for a generic part. It arms its base part
   // alongside itself, so everything that asks "what is armed" still works.
   device: null,
+  // The board on the SERVER: which one, and the version it was read at. The
+  // version is what stops an autosave erasing somebody else's edit to the file.
+  slug: null,
+  version: null,
+  boards: [],
+  conflict: null,
+  serverError: null,
   span: 4,
   width: 3,
   cut: 'gap',
@@ -180,7 +190,132 @@ function persist() {
   // History second, and never at the board's expense: pushSnapshot drops its own
   // oldest entries until it fits rather than touching the board.
   try { pushSnapshot(localStorage, state.project); } catch { /* history is expendable */ }
+  // And to the server, where the board actually lives. localStorage is now a
+  // DRAFT CACHE: it survives the server being down, so you can keep drawing.
+  scheduleSave();
   return ok;
+}
+
+// ------------------------------------------------------------- the server
+
+const api = async (url, opts) => {
+  const res = await fetch(url, {
+    headers: { 'content-type': 'application/json' },
+    ...opts,
+  });
+  let body = null;
+  try { body = await res.json(); } catch { /* a body is optional */ }
+  return { ok: res.ok, status: res.status, body };
+};
+
+async function refreshBoards() {
+  const { ok, body } = await api('/api/boards');
+  if (ok) state.boards = body.boards ?? [];
+  return state.boards;
+}
+
+// Debounced, because a commit happens on every click and a board is small but a
+// write is a write.
+let saveTimer = null;
+let saving = false;
+function scheduleSave() {
+  if (!state.slug) return;                    // nothing to save to yet
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveToServer, 400);
+}
+
+async function saveToServer() {
+  if (!state.slug || saving) return;
+  saving = true;
+  try {
+    const { ok, status, body } = await api(`/api/boards/${state.slug}`, {
+      method: 'PUT',
+      body: JSON.stringify({ project: state.project, version: state.version }),
+    });
+    if (ok) {
+      state.version = body.version;
+      state.serverError = null;
+      return;
+    }
+    if (status === 409) {
+      // SOMEBODY ELSE CHANGED IT. Not overwritten and not silently reloaded —
+      // the work on screen is as real as the work on disk, so it is a question.
+      state.conflict = body.project ?? null;
+      banner(`This board changed on the server since you opened it. Your work is `
+        + 'NOT saved. Open the Board card to take theirs, or Save to keep a copy of yours.',
+      'error');
+      return;
+    }
+    state.serverError = body?.error ?? `save failed (${status})`;
+    banner(`NOT SAVED to the server — ${state.serverError}. Your work is still in this `
+      + 'browser; use Save to download it.', 'error');
+  } catch (e) {
+    state.serverError = e.message;
+    banner(`The server is not answering (${e.message}). Still drawing, still kept in this `
+      + 'browser — nothing is lost, but nothing is being shared either.', 'warn');
+  } finally {
+    saving = false;
+  }
+}
+
+async function openBoard(slug) {
+  const { ok, body } = await api(`/api/boards/${slug}`);
+  if (!ok) return say(body?.error ?? 'could not open that board');
+  const { project, repairs } = loadProject(JSON.stringify(body.project));
+  if (!project) return say('that board could not be read');
+  loadRepairs = repairs;
+  state.project = project;
+  state.slug = slug;
+  state.version = body.version;
+  state.conflict = null;
+  state.selection = null;
+  history.reset(state.project);
+  localStorage.setItem(OPEN_KEY, slug);
+  persist();
+  await refreshBoards();
+  paintCards();
+  draw(`opened ${project.name ?? slug}`);
+  if (repairs.length) {
+    banner(`${repairs.length} thing${repairs.length === 1 ? '' : 's'} in that board `
+      + `could not be read and ${repairs.length === 1 ? 'was' : 'were'} dropped: `
+      + repairs.map((r) => r.message).join('; '), 'warn');
+  }
+}
+
+async function newBoard(name, project = null) {
+  const { ok, body } = await api('/api/boards', {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      project: project ?? undefined,
+      cols: state.project?.board?.cols ?? 25,
+      rows: state.project?.board?.rows ?? 20,
+    }),
+  });
+  if (!ok) return say(body?.error ?? 'could not create that board');
+  await refreshBoards();
+  return openBoard(body.slug);
+}
+
+async function renameBoard(name) {
+  const wanted = String(name ?? '').trim();
+  if (!wanted || wanted === state.project.name) return;
+  if (!state.slug) {
+    // Not on the server yet: naming it is what puts it there.
+    return newBoard(wanted, state.project);
+  }
+  const { ok, body } = await api(`/api/boards/${state.slug}/rename`, {
+    method: 'POST',
+    body: JSON.stringify({ name: wanted }),
+  });
+  if (!ok) return say(body?.error ?? 'could not rename that board');
+  state.slug = body.slug;
+  state.version = body.version;
+  state.project.name = wanted;
+  localStorage.setItem(OPEN_KEY, body.slug);
+  await refreshBoards();
+  paintCards();
+  return draw(`renamed to ${wanted}`);
 }
 
 // ------------------------------------------------------------------------ undo
@@ -1171,11 +1306,39 @@ function paintCutting() {
 }
 
 function paintBoardCard() {
+  // The card that owns the DOCUMENT: which board this is, what it is called, and
+  // how big. The board list lives here rather than in the toolbar because the
+  // toolbar already overflows at 1280, and because "which board am I editing" is
+  // a property of the document, not a tool.
+  const open = state.boards.find((b) => b.slug === state.slug);
   $('[data-cardbody="board"]').innerHTML = `
+    <label class="span-row">Name
+      <input id="boardName" type="text" value="${escapeHtml(state.project.name ?? '')}"
+        placeholder="name this board"></label>
+    ${state.slug ? `<p class="hint">boards/${escapeHtml(state.slug)}.json${
+  open?.version ? ` — ${escapeHtml(open.version.slice(0, 8))}` : ''}</p>`
+    : '<p class="hint" style="color:var(--warning)">Not saved on the server yet.</p>'}
+    <div class="board-list">
+      ${state.boards.map((b) => `
+        <button data-open-board="${escapeHtml(b.slug)}"
+          class="${b.slug === state.slug ? 'is-on' : ''}">
+          ${escapeHtml(b.name)}<span class="kind">${b.parts ?? 0} parts</span>
+        </button>`).join('') || '<p class="empty">No boards on the server yet.</p>'}
+    </div>
+    <button id="newBoard">New board…</button>
     <label class="span-row">Columns
       <input id="cols" type="number" min="4" max="120" value="${state.project.board.cols}"></label>
     <label class="span-row">Rows
       <input id="rows" type="number" min="2" max="120" value="${state.project.board.rows}"></label>`;
+
+  $('#boardName').addEventListener('change', (e) => renameBoard(e.target.value));
+  $('#newBoard').addEventListener('click', () => {
+    const name = window.prompt('Name the new board');
+    if (name) newBoard(name);
+  });
+  for (const b of $('[data-cardbody="board"]').querySelectorAll('[data-open-board]')) {
+    b.addEventListener('click', () => openBoard(b.dataset.openBoard));
+  }
   for (const id of ['#cols', '#rows']) {
     $(id).addEventListener('change', () => {
       state.project.board.cols = Math.max(4, Number($('#cols').value) || 25);
@@ -1452,9 +1615,56 @@ function boot() {
       + loadRepairs.map((r) => r.message).join(' · '), 'error');
   }
 
-  document.body.insertAdjacentHTML('afterbegin',
-    '<p class="banner">Project storage is not built yet — this board lives in '
-    + 'this browser only. Use Save to download a copy.</p>');
+  // The board lives on the server now. This runs after the first draw on
+  // purpose: the editor is usable in the time the fetch takes, and it is still
+  // usable if the fetch never answers.
+  connectBoards();
+}
+
+// Find out what is on the server and open the right thing — without ever losing
+// what is in this browser.
+//
+// THE MIGRATION IS THE POINT. There is a board in localStorage right now with
+// twelve net names on it. "Storage moved to the server" must not mean "your
+// board is gone", which is the failure this project has already had once.
+async function connectBoards() {
+  let boardList;
+  try {
+    boardList = await refreshBoards();
+  } catch (e) {
+    return banner(`The board server is not answering (${e.message}). You can keep `
+      + 'drawing — this board is kept in your browser — but it is not being shared.', 'warn');
+  }
+
+  const wanted = localStorage.getItem(OPEN_KEY);
+  if (wanted && boardList.some((b) => b.slug === wanted)) {
+    await openBoard(wanted);
+    return;
+  }
+
+  // Nothing to reopen. Whatever is on screen came from localStorage, so put it
+  // somewhere it can be shared — under its own name if it has one, and under a
+  // plain one if it does not.
+  const hasWork = (state.project.placements?.length ?? 0) > 0
+    || (state.project.wires?.length ?? 0) > 0
+    || (state.project.breaks?.length ?? 0) > 0;
+  if (hasWork) {
+    const name = state.project.name && state.project.name !== 'untitled'
+      ? state.project.name
+      : `recovered ${new Date().toISOString().slice(0, 10)}`;
+    await newBoard(name, { ...state.project, name });
+    banner(`Your board is now on the server as boards/${state.slug}.json, so it can be `
+      + 'shared and edited. It was only in this browser until now.', 'ok');
+    return;
+  }
+
+  if (boardList.length) {
+    await openBoard(boardList[0].slug);
+    return;
+  }
+  paintCards();
+  banner('No boards on the server yet. Name this one in the Board card and it will '
+    + 'be saved as a file.', 'warn');
 }
 
 boot();

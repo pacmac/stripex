@@ -1,0 +1,2 @@
+$ node tests/server/test_boards.mjs
+boards: 19/19 checks passed
