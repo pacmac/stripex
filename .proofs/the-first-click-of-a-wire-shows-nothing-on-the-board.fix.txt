@@ -1,0 +1,2 @@
+$ node tests/render/test_pending_wire.mjs
+pending-wire: 10/10 checks passed

@@ -908,3 +908,32 @@
     failures: 0
     at: '2026-08-30T10:50:22.200'
     commit: 17ffa94-dirty
+- id: the-first-click-of-a-wire-shows-nothing-on-the-board
+  type: bug
+  what: After the first click of a point to point wire the board is byte identical, so the only feedback
+    is one line of text at the bottom edge of the window
+  spec: docs/specs/pending-wire-feedback.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_pending_wire.mjs
+    criterion: 'tests/render/test_pending_wire.mjs passes: a pending wire draws a start marker on its
+      hole and a rubber band from it'
+    runs: 1
+  trial:
+    file: .proofs/the-first-click-of-a-wire-shows-nothing-on-the-board.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:56:49.361'
+    commit: 0f923e1-dirty
+  fix:
+    file: .proofs/the-first-click-of-a-wire-shows-nothing-on-the-board.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:58:06.519'
+    commit: 0f923e1-dirty

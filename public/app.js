@@ -163,6 +163,7 @@ function draw(message) {
     selection: state.selection,
     layers: state.layers,
     moveAnchor: state.moveAnchor,
+    pendingWire: state.wireStart,
   });
 
   paintFindings(lastFindings);
@@ -691,11 +692,13 @@ function onBoardClick(evt) {
       if (!hole) return say('click a hole');
       if (!state.wireStart) {
         state.wireStart = hole;
-        return say(`wire from (${hole.col},${hole.row}) — click the other end`);
+        // draw, not say: the marker and the band are the feedback that matters.
+        // The status line is at the bottom edge, nowhere near where you clicked.
+        return draw(`wire from (${hole.col},${hole.row}) — click the other end`);
       }
       if (state.wireStart.col === hole.col && state.wireStart.row === hole.row) {
         state.wireStart = null;
-        return say('cancelled — a wire needs two different holes');
+        return draw('cancelled — a wire needs two different holes');
       }
       const wire = { ref: nextWireRef(p), from: state.wireStart, to: hole };
       p.wires.push(wire);
@@ -917,6 +920,21 @@ function boot() {
     state.layers = { ...DEFAULT_LAYERS };
     try { localStorage.setItem(LAYER_KEY, JSON.stringify(state.layers)); } catch { /* full */ }
     draw('all layers shown');
+  });
+
+  // The rubber band follows the cursor by moving ONE existing element. draw()
+  // rebuilds the whole board as a string, and doing that per mousemove would
+  // rebuild five hundred holes to move one line.
+  $('#boardWrap').addEventListener('mousemove', (evt) => {
+    if (!state.wireStart) return;
+    const band = $('[data-kind="wire-band"]');
+    if (!band) return;
+    const pos = pointerHole(evt);
+    if (!pos) return;
+    const PITCH = 2.54;
+    const w = state.project.board.cols * PITCH;
+    band.setAttribute('x2', state.view === 'underside' ? w - pos.x : pos.x);
+    band.setAttribute('y2', pos.y);
   });
 
   $('#span').addEventListener('change', (e) => {

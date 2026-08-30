@@ -320,6 +320,7 @@ export function renderBoard(project, opts = {}) {
     selection = null,
     layers = {},
     moveAnchor = null,
+    pendingWire = null,
   } = opts;
 
   const L = { ...DEFAULT_LAYERS, ...layers };
@@ -658,6 +659,39 @@ export function renderBoard(project, opts = {}) {
       + ` data-pin="${esc(moveAnchor.pin ?? '')}" cx="${n(mx(p.x))}" cy="${n(p.y)}"`
       + ` r="${n(PITCH_MM * 0.42)}" fill="${c.select}" fill-opacity="0.35"`
       + ` stroke="${c.select}" stroke-width="${n(PITCH_MM * 0.14)}"/>`);
+  }
+
+  // 10. the half-drawn wire.
+  //
+  // Before this, the first click of a point-to-point wire changed NOTHING on the
+  // board — the element inventory was identical before and after — and the only
+  // feedback was one line of text at the bottom edge of the window, nowhere near
+  // where you are looking or clicking.
+  //
+  // The marker uses the selection colour, the same as the move anchor, because
+  // both mean the same thing: the editor is holding this point and waiting for
+  // you. They should not look like two different mechanisms.
+  //
+  // Both are pointer-events="none". The band follows the cursor, so it lies
+  // directly under the pointer at the moment of the second click and would
+  // otherwise eat it.
+  if (pendingWire && Number.isInteger(pendingWire.col) && Number.isInteger(pendingWire.row)) {
+    const p = holeToMm(pendingWire.col, pendingWire.row);
+    const px = n(mx(p.x));
+    const py = n(p.y);
+    // Emitted collapsed onto the hole; the editor moves x2/y2 on mousemove by
+    // setting them on THIS element, never by re-rendering — renderBoard builds
+    // the whole board as a string, and doing that per mousemove would rebuild
+    // five hundred holes to move one line.
+    out.push(`<line data-kind="wire-band" x1="${px}" y1="${py}" x2="${px}" y2="${py}"`
+      + ` stroke="${c.select}" stroke-width="${n(PITCH_MM * 0.18)}"`
+      + ' stroke-linecap="round" stroke-dasharray="1.2 0.9" opacity="0.85"'
+      + ' pointer-events="none"/>');
+    out.push(`<circle data-kind="wire-start"`
+      + ` data-hole="${pendingWire.col},${pendingWire.row}"`
+      + ` cx="${px}" cy="${py}" r="${n(PAD_R_MM)}" fill="${c.select}" fill-opacity="0.3"`
+      + ` stroke="${c.select}" stroke-width="${n(PITCH_MM * 0.14)}"`
+      + ' pointer-events="none"/>');
   }
 
   out.push('</svg>');
