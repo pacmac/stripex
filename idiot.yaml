@@ -2224,3 +2224,36 @@
     failures: 0
     at: '2026-08-30T18:10:00.664'
     commit: 719375e-dirty
+- id: the-api-cannot-place-a-real-component
+  type: new
+  what: "addPart copies 'device' as a tag but never calls placementFor, so a XIAO placed through the API\
+    \ comes back as a bare DIP \u2014 span 7, width 3, zero pin names \u2014 instead of 7x6 with fourteen\
+    \ names. There is no GET /api/devices, so a caller cannot discover what components exist. And freeHolesOn,\
+    \ the query that decides where a wire may land, has no HTTP route, so a caller must guess endpoints\
+    \ \u2014 which is how nine wires ended up on pins."
+  spec: docs/specs/device-aware-api.md
+  files:
+  - src/model/ops.js
+  - src/server/index.js
+  test:
+    command:
+    - node
+    - tests/server/test_api_devices.mjs
+    criterion: '9/9 api checks: a device placed by API is the device and not its footprint, devices can
+      be discovered with their unverified pins, free holes can be asked for per pin, and a two-module
+      board is built and wired through HTTP alone'
+    runs: 1
+  trial:
+    file: .proofs/the-api-cannot-place-a-real-component.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T18:49:49.832'
+    commit: 0094992-dirty
+  fix:
+    file: .proofs/the-api-cannot-place-a-real-component.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T18:51:52.306'
+    commit: 0094992-dirty

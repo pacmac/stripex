@@ -10,7 +10,9 @@ import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
-import { partList } from '../parts/library.js';
+import { partList, getPart } from '../parts/library.js';
+import { deviceList } from '../parts/devices.js';
+import { resolvePins } from '../model/rotate.js';
 import { validateProject, makeProject } from '../model/board.js';
 import { renderBoard, findingsFor, netsFor, runList } from '../render/svg.js';
 import * as boards from './boards.js';
@@ -26,6 +28,11 @@ app.use('/src', express.static(path.join(root, 'src')));
 app.use(express.static(path.join(root, 'public')));
 
 app.get('/api/parts', (_req, res) => res.json(partList()));
+
+// The named components — XIAO, TMC2209, the JST family. /api/parts has always
+// existed; this never did, so a caller had no way to learn that any of them
+// exist, let alone which of their pin names are unverified.
+app.get('/api/devices', (_req, res) => res.json({ devices: deviceList() }));
 
 app.get('/api/new', (req, res) => {
   const cols = Number(req.query.cols ?? 25);
@@ -166,6 +173,34 @@ app.post('/api/boards/:slug/ops', (req, res) => {
       findings: [...findingsFor(result.project), ...rules.checkRules(result.project)],
     });
   } catch (e) { return boardError(res, e); }
+});
+
+// WHERE MAY A WIRE LAND? The holes on a pin's strip that nothing occupies.
+//
+// This is the query I wrote three times in three scratch scripts and got wrong
+// twice — once counting the pin's own hole as free, once excluding every column
+// any part used anywhere. Without a route, a caller has to guess, and guessing
+// is how nine wire ends came to sit on top of pins.
+app.get('/api/boards/:slug/free-holes', (req, res) => {
+  const { ref, pin } = req.query;
+  if (!ref || pin == null) {
+    return res.status(400).json({ error: 'ref and pin are both needed', code: 'bad-request' });
+  }
+  let read;
+  try { read = boards.read(boardsDir(), req.params.slug); }
+  catch (e) { return boardError(res, e); }
+
+  // A pin that is not there is a 404, NOT an empty list: an empty list reads as
+  // "nowhere to put it" and sends a caller looking for a routing problem that
+  // does not exist.
+  const hasPin = resolvePins(read.project.placements ?? [], getPart)
+    .some((p) => p.ref === ref && String(p.pin) === String(pin));
+  if (!hasPin) {
+    return res.status(404).json({
+      error: `${ref} has no pin ${pin} on this board`, code: 'no-such-pin',
+    });
+  }
+  return res.json({ ref, pin, holes: ops.freeHolesOn(read.project, ref, pin) });
 });
 
 app.delete('/api/boards/:slug', (req, res) => {

@@ -17,6 +17,7 @@
 
 import { makeProject, nextWireRef, nextPartRef, validateProject } from './board.js';
 import { getPart, hasPart, sideOf } from '../parts/library.js';
+import { getDevice, placementFor } from '../parts/devices.js';
 import { resolvePins, isRotation } from './rotate.js';
 import { segments, segmentIndex, holeKey } from '../net/segments.js';
 import { effectiveBreaks } from './breaks.js';
@@ -95,16 +96,37 @@ export function freeHolesOn(project, ref, pin) {
 // ------------------------------------------------------------------ parts
 
 export function addPart(project, { part, at, rot = 0, span, width, device, silk, value } = {}) {
-  if (!hasPart(part)) return fail('no-such-part', `${JSON.stringify(part)} is not in the library`);
   if (!onBoard(project, at)) return fail('off-board', `(${at?.col},${at?.row}) is not on this board`);
   if (!isRotation(rot)) return fail('bad-rotation', `${rot} is not a rotation`);
+
+  // A DEVICE BRINGS ITS OWN EVERYTHING. placementFor copies its span, width,
+  // silk, cut setting and PIN NAMES onto the placement — which is the whole
+  // point of the catalogue, and was being skipped: `device` was carried as a tag
+  // and a XIAO placed through the API came back as a bare DIP, span 7 width 3
+  // with no names at all. A chip of the wrong size with numbered pins is exactly
+  // what the catalogue exists to prevent.
+  if (device) {
+    const d = getDevice(device);
+    if (!d) return fail('no-such-device', `${JSON.stringify(device)} is not a device`);
+    const next = clone(project);
+    const pl = placementFor(device, { col: at.col, row: at.row }, rot,
+      nextPartRef(next, d.base));
+    if (!pl) return fail('no-such-device', `${JSON.stringify(device)} could not be placed`);
+    if (silk) pl.silk = silk;
+    if (value) pl.value = value;
+    next.placements.push(pl);
+    const bad = validateProject(next);
+    if (bad.length) return fail('invalid', bad[0].message);
+    return { project: next, ref: pl.ref };
+  }
+
+  if (!hasPart(part)) return fail('no-such-part', `${JSON.stringify(part)} is not in the library`);
   const next = clone(project);
   const def = getPart(part);
   const pl = { ref: nextPartRef(next, part), part, at: { col: at.col, row: at.row }, rot };
   if (def.parametric && span != null) pl.span = span;
   else if (def.parametric) pl.span = def.defaultSpan ?? 1;
   if (def.defaultWidth != null) pl.width = width ?? def.defaultWidth;
-  if (device) pl.device = device;
   if (silk) pl.silk = silk;
   if (value) pl.value = value;
   next.placements.push(pl);

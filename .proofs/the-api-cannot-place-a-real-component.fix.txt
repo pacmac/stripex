@@ -1,0 +1,2 @@
+$ node tests/server/test_api_devices.mjs
+api-devices: 9/9 checks passed
