@@ -52,6 +52,39 @@ s.check('no key is bound to two different tools', () => {
   eq(new Set(keys.map((k) => k.toLowerCase())).size, keys.length, 'no duplicate keys');
 });
 
+// -------------------------------------------------- the tool after an action
+// Governed by docs/specs/delete-disarms.md
+
+s.check('A DELETE THAT REMOVED SOMETHING RETURNS TO SELECT', () => {
+  // Delete stayed armed, so deleting a resistor and then clicking near another
+  // part to look at it deleted that one too. Nothing on screen distinguishes
+  // "about to delete" from "just deleted".
+  eq(K.toolAfterDelete(true), 'select', 'something was removed');
+});
+
+s.check('and one that removed nothing leaves the tool alone', () => {
+  // Clicking slightly off a pad, or on a cut that belongs to a component and is
+  // refused, leaves you still aiming. Disarming there costs a click every time
+  // you miss, and teaches you to re-arm without looking — which is how the tool
+  // ends up armed when you think it is not.
+  eq(K.toolAfterDelete(false), null, 'nothing to change');
+});
+
+s.check('BOTH "WHICH TOOL COMES NEXT" RULES LIVE IN ONE PLACE', () => {
+  // TOOL_AFTER_ESCAPE was in colours.js, a file about colours. Two rules of the
+  // same kind in two files is the shape this project has already paid for.
+  ok(K.TOOL_AFTER_DELETE, 'the delete rule is here');
+  ok(K.TOOL_AFTER_ESCAPE, 'and so is the escape rule');
+});
+
+s.check('and both name a tool the toolbar can actually arm', () => {
+  // Against the tool list, not against the literal 'select' — a constant that
+  // agrees with a copy of itself proves nothing.
+  const tools = new Set(Object.values(K.TOOL_KEYS));
+  ok(tools.has(K.TOOL_AFTER_DELETE), `${K.TOOL_AFTER_DELETE} is a real tool`);
+  ok(tools.has(K.TOOL_AFTER_ESCAPE), `${K.TOOL_AFTER_ESCAPE} is a real tool`);
+});
+
 // ------------------------------------------------- undo and redo on the keyboard
 // Governed by docs/specs/undo-shortcut.md
 

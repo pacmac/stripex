@@ -1595,3 +1595,34 @@
     failures: 0
     at: '2026-08-30T15:22:46.816'
     commit: 9e43e4e-dirty
+- id: the-delete-tool-stays-armed-after-deleting
+  type: new
+  what: The delete tool stays armed after a successful delete, so deleting a resistor and then clicking
+    near another part deletes that one too. Nothing on screen distinguishes 'about to delete' from 'just
+    deleted'.
+  spec: docs/specs/delete-disarms.md
+  files:
+  - src/render/keys.js
+  - src/render/colours.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_keys.mjs
+    criterion: '17/17 checks: a delete that removed something returns to select, one that removed nothing
+      leaves the tool alone, and both which-tool-comes-next rules live in keys.js naming real tools'
+    runs: 1
+  trial:
+    file: .proofs/the-delete-tool-stays-armed-after-deleting.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:30:00.842'
+    commit: d9f836e-dirty
+  fix:
+    file: .proofs/the-delete-tool-stays-armed-after-deleting.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T15:31:39.469'
+    commit: d9f836e-dirty

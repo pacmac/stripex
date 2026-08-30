@@ -16,10 +16,8 @@ export const COLOUR_CODE = [
   { name: 'white', hex: '#f1f3f5' },
 ];
 
-// The tool Escape returns to. Escape means "stop what I am doing", and the armed
-// tool is part of what you are doing: cancelling a half-drawn wire should not
-// leave the next click starting another one.
-export const TOOL_AFTER_ESCAPE = 'select';
+// TOOL_AFTER_ESCAPE moved to render/keys.js, where the other "which tool comes
+// next" rule lives. It was never a colour.
 
 // Sixteen swatches: the ten code colours plus six for parts. The native colour
 // input opens an operating-system dialog with a spectrum, an eyedropper and a

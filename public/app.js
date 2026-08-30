@@ -14,7 +14,9 @@ import {
   TABS, DEFAULT_TAB, focusTabFor, bodyId, inspectorKey, shouldSetStatus,
   CARDS, cardForTool, paramsFor, groupParts, filterParts, highlightFor,
 } from '/src/render/panels.js';
-import { toolForKey, historyActionForKey, ownsUndo } from '/src/render/keys.js';
+import {
+  toolForKey, historyActionForKey, ownsUndo, toolAfterDelete, TOOL_AFTER_ESCAPE,
+} from '/src/render/keys.js';
 import { loadProject } from '/src/model/repair.js';
 import { pushSnapshot, readHistory, describe } from '/src/model/history.js';
 import { makeUndo } from '/src/model/undo.js';
@@ -34,7 +36,7 @@ function banner(text, kind = 'warn') {
 import { applyPlacementEdit, applyWireEdit, editableFields } from '/src/model/edit.js';
 import { movePlacementByPin, pinLocation } from '/src/model/move.js';
 import {
-  TOOL_AFTER_ESCAPE, wireColour, silkOf, linkColour, wireLengthHoles,
+  wireColour, silkOf, linkColour, wireLengthHoles,
   COLOUR_CODE, PALETTE_16,
 } from '/src/render/colours.js';
 import { deviceList, getDevice, placementFor } from '/src/parts/devices.js';
@@ -940,6 +942,14 @@ function onBoardClick(evt) {
     }
 
     case 'delete': {
+      // Delete fires once: having removed something, the tool disarms, so the
+      // next click cannot take a second thing with it. A MISS does not disarm —
+      // you are still aiming at what you meant to hit.
+      const removed = (label) => {
+        commit(label);
+        const next = toolAfterDelete(true);
+        if (next) setTool(next);
+      };
       const partEl = evt.target.closest('[data-kind="part"]');
       // wire-pad first: with no line drawn, the pads ARE the wire on the board.
       const wireEl = evt.target.closest(
@@ -953,13 +963,13 @@ function onBoardClick(evt) {
         const ref = partEl.getAttribute('data-ref');
         p.placements = p.placements.filter((x) => x.ref !== ref);
         state.selection = null;
-        return commit(`deleted ${ref}`);
+        return removed(`deleted ${ref}`);
       }
       if (wireEl) {
         const ref = wireEl.getAttribute('data-ref');
         p.wires = p.wires.filter((x) => x.ref !== ref);
         state.selection = null;
-        return commit(`deleted ${ref}`);
+        return removed(`deleted ${ref}`);
       }
       if (breakEl) {
         const [row, x] = breakEl.getAttribute('data-break').split(',').map(Number);
@@ -968,7 +978,7 @@ function onBoardClick(evt) {
           return say(`that cut belongs to ${owner} — move or delete ${owner} instead`);
         }
         p.breaks = p.breaks.filter((bk) => !(bk.row === row && bk.x === x));
-        return commit(`restored the copper at row ${row}`);
+        return removed(`restored the copper at row ${row}`);
       }
       return say('nothing there to delete');
     }

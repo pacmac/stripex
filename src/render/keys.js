@@ -23,6 +23,33 @@ export function toolForKey(key) {
   return TOOL_KEYS[key] ?? TOOL_KEYS[String(key).toLowerCase()] ?? null;
 }
 
+// ------------------------------------------------- which tool comes next
+//
+// Both rules of this kind live here. TOOL_AFTER_ESCAPE used to sit in
+// colours.js, a file about colours; two "which tool comes next" constants in two
+// different files is the shape this project has already paid for twice.
+
+// Escape means "stop what I am doing", and the armed tool is part of what you
+// are doing.
+export const TOOL_AFTER_ESCAPE = 'select';
+
+// Delete fires once. It stayed armed, so deleting a resistor and then clicking
+// near another part to look at it deleted that one too — and nothing on screen
+// distinguishes "about to delete" from "just deleted". Every other destructive
+// action here takes two decisions; this one took one and then kept taking one.
+export const TOOL_AFTER_DELETE = 'select';
+
+// The tool to switch to after a delete, or null to leave it armed.
+//
+// ONLY WHEN SOMETHING WAS ACTUALLY REMOVED. Clicking slightly off a pad, or on a
+// cut that belongs to a component and is refused, leaves you still aiming at
+// what you meant to hit; disarming there costs a click every time you miss, and
+// teaches you to re-arm without looking — which is how the tool ends up armed
+// when you think it is not.
+export function toolAfterDelete(removed) {
+  return removed ? TOOL_AFTER_DELETE : null;
+}
+
 // ------------------------------------------------------------ undo and redo
 
 // Ctrl+Z, and Ctrl+Shift+Z for redo. Cmd is accepted alongside Ctrl because it

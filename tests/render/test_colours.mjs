@@ -191,8 +191,12 @@ s.check('a highlighted net is not shaded, so highlight stays unambiguous', () =>
 
 // -------------------------------------------------------------- escape
 
-s.check('ESCAPE ARMS THE SELECT TOOL', () => {
-  eq(C.TOOL_AFTER_ESCAPE, 'select', 'the tool Escape returns to');
+s.check('THE TOOL ESCAPE RETURNS TO IS NOT A COLOUR', () => {
+  // TOOL_AFTER_ESCAPE lived here and has moved to render/keys.js, beside
+  // TOOL_AFTER_DELETE — see docs/specs/delete-disarms.md. The assertion about
+  // its VALUE moved with it; what stays here is that it left, so this file
+  // cannot quietly grow a second copy.
+  eq(C.TOOL_AFTER_ESCAPE, undefined, 'it is not exported from colours.js');
 });
 
 s.check('silk is an editable field on a part', () => {
