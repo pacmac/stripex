@@ -1944,3 +1944,33 @@
     failures: 0
     at: '2026-08-30T16:41:04.749'
     commit: 18e9f11-dirty
+- id: the-spot-face-mark-is-wider-than-the-hole-pitch
+  type: bug
+  what: "The spot-face marker is drawn at 0.56 of the pitch \u2014 2.84 mm across on a 2.54 mm pitch \u2014\
+    \ so it laps over its neighbours and two on adjacent holes overlap by 0.30 mm, merging a row of them\
+    \ into a bar."
+  spec: docs/specs/spot-drill-circle-size.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/net/test_hole_breaks.mjs
+    criterion: '18/18 checks: the spot-face mark is narrower than the pitch, two adjacent ones do not
+      touch, it is still far wider than the hole it kills, and the hit target still covers the hole and
+      is centred on it'
+    runs: 1
+  trial:
+    file: .proofs/the-spot-face-mark-is-wider-than-the-hole-pitch.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:47:09.647'
+    commit: a37299d-dirty
+  fix:
+    file: .proofs/the-spot-face-mark-is-wider-than-the-hole-pitch.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:48:07.016'
+    commit: a37299d-dirty

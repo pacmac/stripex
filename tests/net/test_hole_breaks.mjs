@@ -103,4 +103,65 @@ s.check('validateProject accepts both cut types and rejects a bad one', () => {
     'an unknown cut type is rejected');
 });
 
+// ----------------------------------------------- how big the mark is drawn
+// Governed by docs/specs/spot-drill-circle-size.md
+
+const R = await softImport('../../src/render/svg.js', here);
+const geom = await softImport('../../src/model/geometry.js', here);
+
+const drawn = (breaks) => String(R.renderBoard({
+  schema: 'stripex/1', board: { cols: 10, rows: 4, pattern: 'strip' },
+  breaks, placements: [], wires: [],
+}, {}));
+const tagOf = (svg, re) => (re.exec(svg) ?? [''])[0];
+const attrOf = (tag, name) => Number((new RegExp(`${name}="(-?[\\d.]+)"`).exec(tag) ?? [])[1]);
+
+s.check('A SPOT-FACE MARK IS NARROWER THAN THE HOLE PITCH', () => {
+  // It was 0.56 of the pitch — 2.84 mm across on a 2.54 mm pitch — so it lapped
+  // over its neighbours and a row of them merged into a bar. The comment
+  // defended it as the size of the CUTTER, which is true and is not what the
+  // mark is: it says "this hole is dead", it is not a picture of the tool.
+  const svg = drawn([{ row: 1, x: 4, at: 'hole' }]);
+  const r = attrOf(tagOf(svg, /<circle data-kind="break"[^>]*data-at="hole"[^>]*>/), 'r');
+  ok(r > 0, 'a mark is drawn');
+  ok(r * 2 < geom.PITCH_MM,
+    `${(r * 2).toFixed(2)} mm across on a ${geom.PITCH_MM} mm pitch`);
+});
+
+s.check('and still far wider than the hole it kills', () => {
+  // Or it would read as a pad rather than as absent copper.
+  const svg = drawn([{ row: 1, x: 4, at: 'hole' }]);
+  const r = attrOf(tagOf(svg, /<circle data-kind="break"[^>]*data-at="hole"[^>]*>/), 'r');
+  ok(r * 2 >= geom.HOLE_DIA_MM * 2,
+    `${(r * 2).toFixed(2)} mm against a ${geom.HOLE_DIA_MM} mm hole`);
+});
+
+s.check('two on adjacent holes do not touch', () => {
+  const svg = drawn([{ row: 1, x: 4, at: 'hole' }, { row: 1, x: 5, at: 'hole' }]);
+  const marks = [...svg.matchAll(/<circle data-kind="break"[^>]*data-at="hole"[^>]*>/g)]
+    .map((m) => ({ cx: attrOf(m[0], 'cx'), r: attrOf(m[0], 'r') }));
+  eq(marks.length, 2, 'two marks');
+  const gap = Math.abs(marks[0].cx - marks[1].cx) - (marks[0].r + marks[1].r);
+  ok(gap > 0, `${gap.toFixed(2)} mm of daylight between them`);
+});
+
+s.check('the hit target still covers the hole itself', () => {
+  // NOT "as big as the mark". The target is deliberately pad-sized — see
+  // break-hit-targets.md — because full-size targets made 44% of a DIL body
+  // select a cut instead of the chip. So the outer ring of a spot-face is not
+  // clickable, and that is a trade made on purpose.
+  //
+  // What must hold is that the HOLE is: the middle of the mark is where anyone
+  // aims, and it is the only part of it that is unambiguously this cut.
+  const svg = drawn([{ row: 1, x: 4, at: 'hole' }]);
+  const mark = tagOf(svg, /<circle data-kind="break"[^>]*data-at="hole"[^>]*>/);
+  const hit = tagOf(svg, /<[^>]*data-kind="break-hit"[^>]*>/);
+  ok(hit, 'a hit target is drawn');
+  const hr = attrOf(hit, 'r') || attrOf(hit, 'width') / 2;
+  ok(hr * 2 >= geom.HOLE_DIA_MM, `${(hr * 2).toFixed(2)} mm covers a ${geom.HOLE_DIA_MM} mm hole`);
+  // And it is on the same spot, which is the part that would silently rot.
+  const hx = attrOf(hit, 'cx') || attrOf(hit, 'x') + hr;
+  ok(Math.abs(hx - attrOf(mark, 'cx')) < 0.01, 'and is centred on the mark');
+});
+
 process.exit((await s.run()) ? 0 : 1);

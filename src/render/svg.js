@@ -631,11 +631,18 @@ export function renderBoard(project, opts = {}) {
 
       const marks = isSel('break', ref) ? ' data-selected="true"' : '';
       if (at === 'hole') {
-        // The cutter takes out a disc of copper about 3 mm across, wider than
-        // the pitch — which is exactly why the hole ends up connected to nothing.
+        // 0.448 of the pitch: 2.28 mm across, under the 2.54 mm pitch, so two
+        // spot-faces on adjacent holes show daylight between them.
+        //
+        // It was 0.56 — 2.84 mm — defended as the size of the CUTTER, which
+        // really does clear about 3 mm. True, and not what this is: the mark
+        // says "this hole is dead", it is not a picture of the tool. At 2.84 it
+        // lapped over its neighbours by 0.30 mm and a row of them merged into a
+        // bar. Still more than twice the 1.0 mm hole it kills, which is what
+        // makes it read as absent copper rather than as a pad.
         out.push(`<circle data-kind="break" data-break="${ref}" data-at="hole"`
           + ` data-x="${n(bx)}"${marks} cx="${n(mx(bx))}" cy="${n(y)}"`
-          + ` r="${n(PITCH_MM * 0.56)}" fill="${c.substrate}" stroke="${c.cut}"`
+          + ` r="${n(PITCH_MM * 0.448)}" fill="${c.substrate}" stroke="${c.cut}"`
           + ` stroke-width="0.12"/>`);
       } else {
         out.push(`<rect data-kind="break" data-break="${ref}" data-at="gap"`
