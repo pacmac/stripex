@@ -8,10 +8,15 @@
     "start": "node src/server/index.js",
     "dev": "node --watch src/server/index.js",
     "check": "node scripts/check_all.mjs",
-    "test": "npm run check"
+    "test": "pnpm run check",
+    "browsers": "playwright install chromium"
   },
+  "packageManager": "pnpm@9.15.9",
   "license": "ISC",
   "dependencies": {
     "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
   }
 }

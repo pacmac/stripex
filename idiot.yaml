@@ -1267,15 +1267,30 @@
     \ card at 52vh \u2014 and neither could have been caught by the harness."
   spec: docs/specs/library-card-room.md
   files:
-  - scripts/check_all.mjs
+  - tests/browser/test_layout.mjs
   - package.json
   test:
-    command: null
-    criterion: a check reports the library card's clientHeight and scrollHeight from a real browser and
-      fails when content is clipped with no visible scrollbar
+    command:
+    - node
+    - tests/browser/test_layout.mjs
+    criterion: the suite boots the real server, drives a real browser at three sizes, and reports that
+      nothing overflows, nothing is clipped without a way to reach it, every toolbar button is reachable,
+      and all 500 holes are drawn
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/nothing-measures-the-rendered-layout.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:48:04.398'
+    commit: 6437536-dirty
+  fix:
+    file: .proofs/nothing-measures-the-rendered-layout.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T15:49:15.218'
+    commit: 6437536-dirty
 - id: the-net-name-layer-is-drawn-under-the-parts
   type: new
   what: "The net name pass sits between the holes and the wires, so a component body or a link covers\
