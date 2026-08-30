@@ -1503,3 +1503,35 @@
     failures: 0
     at: '2026-08-30T14:46:10.929'
     commit: d148a80-dirty
+- id: undo-restores-the-state-you-are-already-in
+  type: bug
+  what: "commit() snapshots state.project AFTER the tools have mutated it in place, so the undo stack\
+    \ holds post-states: the first press of Undo does nothing, every later press is one step behind, and\
+    \ the first change of a session can never be undone. Measured in Chromium: place R1, place R2, Undo\
+    \ \u2014 both parts still there and the status line says 'undone'."
+  spec: docs/specs/undo-off-by-one.md
+  files:
+  - public/app.js
+  - src/model/undo.js
+  test:
+    command:
+    - node
+    - tests/model/test_undo.mjs
+    criterion: '11/11 checks: commit does not snapshot a project it has already changed, the first change
+      of a session is undoable, one undo returns the state before the change rather than after it, redo
+      restores in order, a new change clears the redo stack, and the bound drops the oldest'
+    runs: 1
+  trial:
+    file: .proofs/undo-restores-the-state-you-are-already-in.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:13:41.647'
+    commit: d3fb7d1-dirty
+  fix:
+    file: .proofs/undo-restores-the-state-you-are-already-in.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T15:15:12.714'
+    commit: d3fb7d1-dirty

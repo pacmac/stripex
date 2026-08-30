@@ -17,6 +17,7 @@ import {
 import { toolForKey } from '/src/render/keys.js';
 import { loadProject } from '/src/model/repair.js';
 import { pushSnapshot, readHistory, describe } from '/src/model/history.js';
+import { makeUndo } from '/src/model/undo.js';
 import {
   netLabelsByNet, netLabelsAllByNet, netLabelProblems, setNetLabel,
 } from '/src/model/nets.js';
@@ -124,8 +125,9 @@ const state = {
   openCard: 'library',
   search: '',
   layers: loadLayers(),
-  undo: [],
-  redo: [],
+  // The stacks live in src/model/undo.js — see `history` below. They were two
+  // arrays here, and the bug they held was unreachable by any check because
+  // app.js exports nothing and the node harness has no DOM.
 };
 
 // Layer visibility is a view preference, not part of the design, so it lives
@@ -185,27 +187,36 @@ function persist() {
 // so a snapshot stack is correct by construction; an inverse-command stack would
 // need every tool to get its own undo right, and one of them eventually would not.
 
+// THE SNAPSHOT IS OF THE STATE BEFORE THE CHANGE. Every tool here mutates
+// state.project in place and then calls commit, so pushing state.project at this
+// point stored the state AFTER the change and undo reinstalled the state you
+// were already in: the first press did nothing, every later press was a step
+// behind, and the board you started a session with was unreachable.
+//
+// src/model/undo.js keeps the baseline — the project as it stood after the last
+// commit — so no call site has to remember its own "before". Fifteen of them do,
+// and one would eventually forget.
+const history = makeUndo(state.project);
+
 function commit(label) {
-  state.undo.push(JSON.stringify(state.project));
-  if (state.undo.length > 200) state.undo.shift();
-  state.redo.length = 0;
+  history.commit(state.project);
   persist();
   draw(label);
 }
 
 function undo() {
-  if (!state.undo.length) return say('nothing to undo');
-  state.redo.push(JSON.stringify(state.project));
-  state.project = JSON.parse(state.undo.pop());
+  const prev = history.undo(state.project);
+  if (!prev) return say('nothing to undo');
+  state.project = prev;
   state.selection = null;
   persist();
   draw('undone');
 }
 
 function redo() {
-  if (!state.redo.length) return say('nothing to redo');
-  state.undo.push(JSON.stringify(state.project));
-  state.project = JSON.parse(state.redo.pop());
+  const next = history.redo(state.project);
+  if (!next) return say('nothing to redo');
+  state.project = next;
   state.selection = null;
   persist();
   draw('redone');
@@ -1334,8 +1345,11 @@ function boot() {
         const loaded = JSON.parse(await file.text());
         const problems = validateProject(loaded);
         if (problems.length) return say(`rejected: ${problems[0].message}`);
-        state.undo.push(JSON.stringify(state.project));
+        // Loading stays UNDOABLE, as it was: commit pushes the board that was
+        // on screen. Opening the wrong file must not be the one action with no
+        // way back.
         state.project = loaded;
+        history.commit(state.project);
         state.selection = null;
         persist();
         draw(`loaded ${file.name}`);
@@ -1364,8 +1378,8 @@ function boot() {
     // Snapshot what is on screen BEFORE replacing it, or restoring would be the
     // one action with no way back.
     pushSnapshot(localStorage, state.project);
-    state.undo.push(JSON.stringify(state.project));
     state.project = hist[n - 1].project;
+    history.commit(state.project);
     state.selection = null;
     inspectorShape = null;
     persist();
