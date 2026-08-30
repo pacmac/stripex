@@ -1,0 +1,2 @@
+$ node tests/model/test_offboard_cuts.mjs
+offboard-cuts: 9/9 checks passed

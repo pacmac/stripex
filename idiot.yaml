@@ -937,3 +937,78 @@
     failures: 0
     at: '2026-08-30T10:58:06.519'
     commit: 0f923e1-dirty
+- id: a-highlighted-net-is-washed-out-to-the-same-opacity-as-unlit-copper
+  type: bug
+  what: A highlighted segment inherits the 0.55 wash that unlit copper gets, so the highlight arrives
+    as pale peach on a tan board and distant lit strips do not register
+  spec: docs/specs/net-highlight-and-naming.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_net_labels.mjs
+    criterion: 'tests/render/test_net_labels.mjs passes: a lit segment is full opacity and far from the
+      unlit colour, while unlit copper keeps its wash'
+    runs: 1
+  trial:
+    file: .proofs/a-highlighted-net-is-washed-out-to-the-same-opacity-as-unlit-copper.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T11:00:31.296'
+    commit: f8a1614-dirty
+  fix: null
+- id: nets-cannot-be-named-or-coloured
+  type: new
+  what: A net has no name and no colour, so GND and +5V are invisible until you click each strip in turn
+  spec: docs/specs/net-highlight-and-naming.md
+  files:
+  - src/model/nets.js
+  - src/model/board.js
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_net_labels.mjs
+    criterion: 'tests/render/test_net_labels.mjs passes: a label anchored to a hole names and colours
+      its whole net and survives renumbering'
+    runs: 1
+  trial:
+    file: .proofs/nets-cannot-be-named-or-coloured.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T11:00:31.459'
+    commit: f8a1614-dirty
+  fix: null
+- id: a-part-near-the-board-edge-derives-cuts-off-the-board-and-kills-the-render
+  type: bug
+  what: A DIP near the top derives cuts at a negative row, segments() throws, and renderBoard, draw and
+    boot all die so the whole board goes blank
+  spec: docs/specs/never-lose-a-board.md
+  files:
+  - src/model/breaks.js
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/model/test_offboard_cuts.mjs
+    criterion: 'tests/model/test_offboard_cuts.mjs passes: a part hanging off the edge derives only on-board
+      cuts and the board still renders'
+    runs: 1
+  trial:
+    file: .proofs/a-part-near-the-board-edge-derives-cuts-off-the-board-and-kills-the-render.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T11:10:43.023'
+    commit: f8a1614-dirty
+  fix:
+    file: .proofs/a-part-near-the-board-edge-derives-cuts-off-the-board-and-kills-the-render.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T11:11:39.300'
+    commit: f8a1614-dirty

@@ -121,10 +121,33 @@ export function derivedBreaks(project) {
 // Every cut on the board: the user's, plus the ones the parts imply. A user cut
 // in the same place WINS, so it stays deletable — otherwise cutting a track by
 // hand where a chip also needs one would silently make your own cut permanent.
+//
+// EVERYTHING IS FILTERED TO THE BOARD, and that is not tidiness.
+//
+// A DIL's second pin row sits at dy = -width, so one placed near the top derives
+// cuts at a NEGATIVE row. segments() rejects those — correctly, it is strict on
+// purpose — and the rejection came out as a throw from renderBoard, then draw,
+// then boot. The result was not a board with a mistake on it: it was a blank
+// page, with the user's whole design apparently gone.
+//
+// A part hanging over an edge is a normal thing to have while you are working.
+// It must be reported by the DRC, which it is, and it must never be able to
+// stop the board being drawn. This is the one choke point every project-shaped
+// caller goes through, so it is the place to guarantee that.
+//
+// A user cut stranded by shrinking the board is dropped here for the same reason.
 export function effectiveBreaks(project) {
-  const user = project.breaks ?? [];
+  const { cols, rows } = project.board ?? {};
+  const fits = (b) => Number.isInteger(b?.row) && Number.isInteger(b?.x)
+    && b.row >= 0 && b.row < rows
+    && b.x >= 0 && b.x <= (b.at === 'hole' ? cols - 1 : cols - 2);
+
+  const user = (project.breaks ?? []).filter(fits);
   const taken = new Set(user.map((b) => `${b.row}:${b.x}`));
-  return [...user, ...derivedBreaks(project).filter((b) => !taken.has(`${b.row}:${b.x}`))];
+  return [
+    ...user,
+    ...derivedBreaks(project).filter((b) => fits(b) && !taken.has(`${b.row}:${b.x}`)),
+  ];
 }
 
 // Which part, if any, is responsible for the cut at this place. Returns null for
