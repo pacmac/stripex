@@ -1,0 +1,6 @@
+$ node tests/server/test_boards_dir.mjs
+FAIL  THE BOARDS DIRECTORY CAN BE POINTED SOMEWHERE ELSE
+      the board was created: expected 201, got 409
+FAIL  and it defaults to the repo boards directory when unset
+      the resolution is a function, not a constant: expected truthy, got falsy
+boards-dir: 0/2 checks passed

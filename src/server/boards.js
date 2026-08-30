@@ -55,6 +55,20 @@ export class BoardError extends Error {
   }
 }
 
+// Where the boards live. `<repo>/boards` normally; STRIPEX_BOARDS_DIR overrides.
+//
+// THE OVERRIDE EXISTS FOR THE TESTS, and it is a data-safety fix rather than a
+// convenience. The browser suite drives the real server, so with this hardcoded
+// `pnpm run check` opened Peter's live board, autosaved into it and created
+// boards beside it — measured as 35 changed lines in his board file after one
+// run. A suite that edits the user's data is worse than no suite.
+//
+// Read at call time, not captured at import: a test that sets the variable after
+// this module loads must still be obeyed.
+export function boardsDirFor(root) {
+  return process.env.STRIPEX_BOARDS_DIR || path.join(root, 'boards');
+}
+
 export function ensureDir(dir) {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   return dir;

@@ -60,7 +60,9 @@ app.post('/api/check', (req, res) => {
 // write presenting a version that is not the one on disk is refused with 409 and
 // the current board, and the editor asks rather than choosing.
 
-const boardsDir = path.join(root, 'boards');
+// Resolved per request, not captured once: the tests point STRIPEX_BOARDS_DIR at
+// a temporary directory so a check run cannot touch a board somebody is using.
+const boardsDir = () => boards.boardsDirFor(root);
 
 // One place that turns a store error into a status, so a new error code cannot
 // quietly become a 500.
@@ -81,7 +83,7 @@ function boardError(res, e) {
   return res.status(status).json(body);
 }
 
-app.get('/api/boards', (_req, res) => res.json({ boards: boards.list(boardsDir) }));
+app.get('/api/boards', (_req, res) => res.json({ boards: boards.list(boardsDir()) }));
 
 app.post('/api/boards', (req, res) => {
   const name = String(req.body?.name ?? '').trim();
@@ -97,12 +99,12 @@ app.post('/api/boards', (req, res) => {
   const problems = validateProject(project);
   if (problems.length) return res.status(400).json({ error: problems[0].message, problems });
   try {
-    return res.status(201).json({ ...boards.write(boardsDir, slug, project, null), name, project });
+    return res.status(201).json({ ...boards.write(boardsDir(), slug, project, null), name, project });
   } catch (e) { return boardError(res, e); }
 });
 
 app.get('/api/boards/:slug', (req, res) => {
-  try { return res.json(boards.read(boardsDir, req.params.slug)); }
+  try { return res.json(boards.read(boardsDir(), req.params.slug)); }
   catch (e) { return boardError(res, e); }
 });
 
@@ -113,17 +115,17 @@ app.put('/api/boards/:slug', (req, res) => {
   const problems = validateProject(project);
   if (problems.length) return res.status(400).json({ error: problems[0].message, problems });
   try {
-    return res.json(boards.write(boardsDir, req.params.slug, project, req.body?.version ?? null));
+    return res.json(boards.write(boardsDir(), req.params.slug, project, req.body?.version ?? null));
   } catch (e) { return boardError(res, e); }
 });
 
 app.post('/api/boards/:slug/rename', (req, res) => {
-  try { return res.json(boards.rename(boardsDir, req.params.slug, String(req.body?.name ?? ''))); }
+  try { return res.json(boards.rename(boardsDir(), req.params.slug, String(req.body?.name ?? ''))); }
   catch (e) { return boardError(res, e); }
 });
 
 app.delete('/api/boards/:slug', (req, res) => {
-  try { return res.json(boards.remove(boardsDir, req.params.slug)); }
+  try { return res.json(boards.remove(boardsDir(), req.params.slug)); }
   catch (e) { return boardError(res, e); }
 });
 

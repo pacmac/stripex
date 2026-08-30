@@ -117,6 +117,9 @@ const state = {
   boards: [],
   conflict: null,
   serverError: null,
+  // False until connectBoards has decided which board is open and whether this
+  // browser holds work the server has not. Nothing may save before then.
+  ready: false,
   span: 4,
   width: 3,
   cut: 'gap',
@@ -219,9 +222,33 @@ async function refreshBoards() {
 let saveTimer = null;
 let saving = false;
 function scheduleSave() {
-  if (!state.slug) return;                    // nothing to save to yet
+  // NOTHING SAVES UNTIL THE DRAFT QUESTION IS SETTLED. Boot draws, then asks the
+  // server what it has and whether this browser holds something different. A
+  // save firing inside that window pushed the draft up before the comparison
+  // read it, so the two matched, so the draft was treated as "same as the
+  // server" and replaced — the same data loss by a different route, and
+  // intermittent, which is worse. Measured as 1 of 3 runs passing.
+  if (!state.ready || !state.slug) return;
+  showSaveState('saving');
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveToServer, 400);
+}
+
+// SAY THAT IT SAVED. Peter read the Save button — which downloads a file — as
+// the only way work reached the server, and concluded nothing did. Continuous
+// saving that shows no sign of itself is indistinguishable from no saving.
+const SAVE_WORDS = {
+  saving: ['· saving', 'saving to the server'],
+  saved: ['✓ saved', 'saved on the server'],
+  failed: ['! not saved', 'NOT saved on the server — see the banner'],
+};
+function showSaveState(kind) {
+  const el = $('#saveState');
+  if (!el) return;
+  const [text, title] = SAVE_WORDS[kind] ?? ['', ''];
+  el.textContent = text;
+  el.title = title;
+  el.dataset.state = kind;
 }
 
 async function saveToServer() {
@@ -235,6 +262,7 @@ async function saveToServer() {
     if (ok) {
       state.version = body.version;
       state.serverError = null;
+      showSaveState('saved');
       return;
     }
     if (status === 409) {
@@ -246,6 +274,7 @@ async function saveToServer() {
       'error');
       return;
     }
+    showSaveState('failed');
     state.serverError = body?.error ?? `save failed (${status})`;
     banner(`NOT SAVED to the server — ${state.serverError}. Your work is still in this `
       + 'browser; use Save to download it.', 'error');
@@ -258,9 +287,37 @@ async function saveToServer() {
   }
 }
 
-async function openBoard(slug) {
+// `keepDraft` is how the reload path says "there is work in this browser that
+// the server has not got". See connectBoards.
+async function openBoard(slug, { keepDraft = null } = {}) {
   const { ok, body } = await api(`/api/boards/${slug}`);
   if (!ok) return say(body?.error ?? 'could not open that board');
+
+  // WORK IN THIS BROWSER IS NEVER SILENTLY REPLACED.
+  //
+  // This installed the server's copy and persisted it, so a draft that the
+  // server had not got was destroyed on reload — which is what happened to
+  // Peter: his saves had been refused as stale after the file changed under
+  // him, his work was only in localStorage, and reloading threw it away.
+  //
+  // A difference is a QUESTION. The copy the user can see wins by default,
+  // because it is the one they remember making, and the server's is offered.
+  if (keepDraft) {
+    state.slug = slug;
+    state.version = body.version;
+    state.conflict = body.project;
+    state.selection = null;
+    history.reset(state.project);
+    localStorage.setItem(OPEN_KEY, slug);
+    paintCards();
+    draw('kept the work in this browser');
+    banner('The copy of this board in your browser is NOT the one on the server, and '
+      + 'yours is what you are looking at. Nothing has been overwritten. Make any edit '
+      + 'to save yours over the server’s, or open the board again from the Board card '
+      + 'to take the server’s and lose yours.', 'error');
+    return;
+  }
+
   const { project, repairs } = loadProject(JSON.stringify(body.project));
   if (!project) return say('that board could not be read');
   loadRepairs = repairs;
@@ -419,6 +476,28 @@ function focusOnSelectionChange() {
   lastSelectionKey = key;
   const target = focusTabFor(sel);
   if (target) showTab(target);
+  scrollSelectionIntoPanel();
+}
+
+// Bring the marked row to the TOP of the panel.
+//
+// Marking it was not enough: on Peter's board the Nets tab is 27 rows and the
+// panel shows about eight, so the row it marked measured 2076px below the top of
+// the panel — the feature worked and looked like it did not.
+//
+// The top rather than merely into view. `block: 'nearest'` leaves a row that is
+// already visible where it is; a fixed landing place means the eye knows where
+// to look without hunting, and the rows below it are that net's neighbours.
+//
+// Only on a CHANGE of selection — the caller is the one place that knows that.
+// Scrolling the list under the pointer while somebody is clicking down it would
+// be its own defect.
+function scrollSelectionIntoPanel() {
+  const row = document.querySelector('.tab-body .row.is-net-on, .tab-body .row[data-selected="true"]');
+  if (!row) return;
+  const panel = row.closest('.panel');
+  if (!panel) return;
+  panel.scrollTop += row.getBoundingClientRect().top - panel.getBoundingClientRect().top;
 }
 
 function paintLayers() {
@@ -1201,8 +1280,16 @@ function paintCards() {
     state.cut === 'hole' ? 'spot-face' : 'knife';
   const off = LAYER_ROWS.filter(([k]) => !state.layers[k]).length;
   $('[data-cardsub="layers"]').textContent = off ? `${off} hidden` : '';
-  $('[data-cardsub="board"]').textContent =
-    `${state.project.board.cols} × ${state.project.board.rows}`;
+  // WHICH BOARD, not how big. The card is collapsed by default, so this line was
+  // the only place the open board could be named and it was showing "25 × 20" —
+  // the size is set by two inputs a few pixels below, inside the card.
+  const boardName = state.project.name && state.project.name !== 'untitled'
+    ? state.project.name
+    : `${state.project.board.cols} × ${state.project.board.rows}`;
+  $('[data-cardsub="board"]').textContent = boardName;
+  // And in the toolbar, where the eye goes for "which document is this".
+  const label = $('#boardLabel');
+  if (label) label.textContent = boardName;
 
   if (state.openCard === 'library') paintLibrary();
   if (state.openCard === 'cutting') paintCutting();
@@ -1491,6 +1578,16 @@ function boot() {
     draw(state.view === 'underside' ? 'underside — mirrored, this is what you solder' : 'top');
   });
 
+  // The way IN to the board list. It lived only inside a card that is collapsed
+  // by default, under a header that said "25 × 20", so there was no way to pick
+  // a board or start one without knowing where to look — which Peter reported as
+  // "I cannot pick an existing board or create a new one".
+  $('#boards').addEventListener('click', () => {
+    state.openCard = state.openCard === 'board' ? null : 'board';
+    paintCards();
+    if (state.openCard === 'board') $('[data-cardbody="board"]')?.scrollIntoView({ block: 'nearest' });
+  });
+
   $('#theme').addEventListener('click', () => {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
     document.documentElement.dataset.theme = state.theme;
@@ -1628,6 +1725,17 @@ function boot() {
 // twelve net names on it. "Storage moved to the server" must not mean "your
 // board is gone", which is the failure this project has already had once.
 async function connectBoards() {
+  try {
+    await decideWhichBoard();
+  } finally {
+    // Whatever happened — opened, migrated, or the server never answered —
+    // saving is allowed from here and not before.
+    state.ready = true;
+    scheduleSave();
+  }
+}
+
+async function decideWhichBoard() {
   let boardList;
   try {
     boardList = await refreshBoards();
@@ -1638,7 +1746,12 @@ async function connectBoards() {
 
   const wanted = localStorage.getItem(OPEN_KEY);
   if (wanted && boardList.some((b) => b.slug === wanted)) {
-    await openBoard(wanted);
+    // Is the draft in this browser the same board the server has? Compared by
+    // CONTENT, because that is the question — not by version, which the browser
+    // may never have seen, and not by timestamp, which neither side keeps.
+    const { ok: readOk, body } = await api(`/api/boards/${wanted}`);
+    const differs = readOk && JSON.stringify(body.project) !== JSON.stringify(state.project);
+    await openBoard(wanted, { keepDraft: differs ? state.project : null });
     return;
   }
 

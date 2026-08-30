@@ -1703,3 +1703,98 @@
     failures: 0
     at: '2026-08-30T15:39:23.462'
     commit: 53b878c-dirty
+- id: the-selected-net-row-is-marked-off-screen
+  type: new
+  what: 'Selecting a strip marks its net''s row in the Nets tab but never brings it into view: on Peter''s
+    own board the marked row measured 2076px below the top of the panel. The Board card also shows only
+    ''25 x 20'' while collapsed, so the open board''s name is invisible, and the board list runs a name
+    into its part count.'
+  spec: docs/specs/nets-panel-follows-selection.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_layout.mjs
+    criterion: '10/10 browser checks: selecting a strip low down the board leaves its net row at the top
+      of the panel, the collapsed Board card names the open board rather than its size, and the board
+      list separates a name from its part count'
+    runs: 1
+  trial:
+    file: .proofs/the-selected-net-row-is-marked-off-screen.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:55:16.294'
+    commit: da41265-dirty
+  fix:
+    file: .proofs/the-selected-net-row-is-marked-off-screen.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:03:51.391'
+    commit: da41265-dirty
+- id: the-test-suite-writes-to-peters-real-board
+  type: bug
+  what: 'The browser suite drives the real server, whose boards directory is hardcoded to the repo''s
+    boards/. Running pnpm run check therefore opens Peter''s live board, autosaves edits into it, and
+    can create boards beside it. Measured: boards/recovered-2026-08-30.json came back 35 lines changed
+    after one test run.'
+  spec: docs/specs/boards-on-the-server.md
+  files:
+  - src/server/index.js
+  - tests/browser/test_layout.mjs
+  test:
+    command:
+    - node
+    - tests/server/test_boards_dir.mjs
+    criterion: '2/2: creating a board with STRIPEX_BOARDS_DIR set writes into that directory and leaves
+      the repo''s boards/ untouched, and boardsDirFor falls back to <repo>/boards when the variable is
+      unset'
+    runs: 1
+  trial:
+    file: .proofs/the-test-suite-writes-to-peters-real-board.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:59:39.746'
+    commit: da41265-dirty
+  fix:
+    file: .proofs/the-test-suite-writes-to-peters-real-board.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:03:51.737'
+    commit: da41265-dirty
+- id: opening-a-board-discards-newer-local-work
+  type: bug
+  what: "openBoard installs the server's copy over whatever is on screen and calls persist(), overwriting\
+    \ the localStorage draft. If the server copy is older \u2014 because a save was refused as stale,\
+    \ or the file was changed underneath \u2014 the newer local work is destroyed on reload with no warning.\
+    \ This happened to Peter: he made changes, reloaded, and they were gone."
+  spec: docs/specs/boards-on-the-server.md
+  files:
+  - public/app.js
+  - src/model/undo.js
+  test:
+    command:
+    - node
+    - tests/browser/test_draft_survives.mjs
+    criterion: '2/2: a browser holding three parts against a server copy of one keeps all three after
+      a reload and says the two differ, while an identical draft opens quietly'
+    runs: 1
+  trial:
+    file: .proofs/opening-a-board-discards-newer-local-work.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:02:38.782'
+    commit: da41265-dirty
+  fix:
+    file: .proofs/opening-a-board-discards-newer-local-work.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:07:21.628'
+    commit: da41265-dirty

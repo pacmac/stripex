@@ -8,6 +8,31 @@ source_hash:
   public/app.js:         f6e06a2af4dda962dd96a2502b8a33bcd754563c845b5126a330053b9e9c75c0
   public/style.css:      982d68013e05c0b627e772cf3252ba5c3a756688111cbd7cfc8271aeb08a5dbd
 
+## A board was lost, and here is exactly how
+
+Peter, 2026-08-30: *"i just made several changes to the board, reloaded the page and the
+changes were gone"*. Three faults in a row, all mine, all now closed:
+
+1. **The browser suite drove the real server**, whose boards directory was hardcoded to
+   `<repo>/boards`. Running `pnpm run check` opened his live board, autosaved into it, and
+   created boards beside it — measured as 35 changed lines in his file after one run.
+   `STRIPEX_BOARDS_DIR` now overrides it and the browser suites point it at a temporary
+   directory. `tests/server/test_boards_dir.mjs` proves a create lands there and leaves
+   `boards/` untouched.
+2. **I then "tidied up" with `git checkout boards/`**, twice. That rolled his file back AND
+   changed its version hash, so his running editor's saves were refused as stale from that
+   moment — its work stayed in localStorage and never reached the file.
+3. **Reloading threw the localStorage draft away.** `openBoard` installed the server's copy
+   over whatever was on screen and persisted it. Reproduced: a browser holding three parts
+   against a server copy of one came back with **one**. It now keeps the draft, says so, and
+   lets him choose — `tests/browser/test_draft_survives.mjs`.
+
+And a fourth, found while fixing the third: **nothing may save before the draft question is
+settled.** A save firing inside the boot window pushed the draft up before the comparison read
+it, so the two matched and the draft was treated as "same as the server" — the same loss by a
+different route, intermittently, which is worse. `state.ready` gates every save until
+`connectBoards` has decided.
+
 ## The order was wrong, and the register says so
 
 `boards-live-in-one-browser-and-have-no-name` is **guilty and not closed**. I wrote

@@ -47,9 +47,20 @@
   <div class="spacer"></div>
 
   <div class="group">
+    <!-- The board this is. Saving is automatic and continuous, so there is no
+         Save here for it: this button is how you pick another board or start
+         one, which had no way in at all while the board list lived only inside
+         a collapsed card. -->
+    <button id="boards" title="Pick a board, or start a new one">▤ <span id="boardLabel">Boards</span></button>
+    <span id="saveState" class="save-state" title="Saved automatically to the server"></span>
+  </div>
+
+  <div class="group">
     <button id="theme" title="Light / dark">◐</button>
-    <button id="save">Save</button>
-    <button id="load">Load</button>
+    <!-- Download / upload a COPY. The board itself lives on the server and
+         saves itself; these are for handing someone a file. -->
+    <button id="save" title="Download a copy of this board as a file">Download</button>
+    <button id="load" title="Open a board from a file on this machine">Upload</button>
     <button id="restore" title="Go back to an earlier snapshot">Restore</button>
     <button id="export">Export SVG</button>
   </div>

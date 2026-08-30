@@ -377,6 +377,17 @@ main {
   border-color: var(--accent);
 }
 
+/* Continuous saving that shows no sign of itself is indistinguishable from no
+   saving — which is exactly how it was read. */
+.save-state {
+  font-size: 11px;
+  color: var(--ink-dim);
+  min-width: 62px;
+  white-space: nowrap;
+}
+.save-state[data-state="saved"] { color: var(--ok); }
+.save-state[data-state="failed"] { color: var(--error); font-weight: 600; }
+
 .banner-error {
   background: color-mix(in srgb, var(--error) 22%, var(--panel));
   font-weight: 600;
@@ -408,6 +419,9 @@ main {
   letter-spacing: 0.06em;
   opacity: 0.6;
   white-space: nowrap;
+  /* Without this a row reads "recovered 2026-08-3014 parts". `.palette .kind`
+     has had the margin all along; this copy of the rule did not. */
+  margin-left: 8px;
 }
 .board-list button.is-on { border-color: var(--accent); color: var(--accent); }
 .palette .kind {

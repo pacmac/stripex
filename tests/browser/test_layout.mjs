@@ -34,6 +34,18 @@ let server = null;
 let base = '';
 let launchError = null;
 
+// A TEMPORARY BOARDS DIRECTORY, set before the server module is imported.
+//
+// This suite drives the REAL server and the editor autosaves. Without this it
+// opened Peter's live board, wrote into it, and created boards beside it — and
+// then a `git checkout` to tidy up rolled his work back and invalidated his
+// running editor's version, so its later saves were refused as stale. He lost
+// changes to it. A suite that edits the user's data is worse than no suite.
+const { mkdtempSync } = await import('node:fs');
+const { tmpdir } = await import('node:os');
+const { join } = await import('node:path');
+process.env.STRIPEX_BOARDS_DIR = mkdtempSync(join(tmpdir(), 'stripex-test-boards-'));
+
 if (chromium) {
   try {
     const { app } = await import('../../src/server/index.js');
@@ -170,6 +182,145 @@ s.check('THE BOARD IS DRAWN, AND FILLS ITS SPACE', async () => {
     ok(r.w > 200 && r.h > 100, `${size.name}: the board has a size (${r.w}x${r.h})`);
     ok(r.w <= r.wrapW + 1, `${size.name}: and does not overflow its stage`);
   }
+});
+
+// ------------------------------------- the panel follows the selection
+// Governed by docs/specs/nets-panel-follows-selection.md
+
+// A board with more nets than the panel can show: 20 rows of copper is 20+ nets.
+const MANY_NETS = {
+  schema: 'stripex/1',
+  name: 'many nets',
+  board: { cols: 25, rows: 20, pattern: 'strip' },
+  breaks: [],
+  placements: [],
+  wires: [],
+};
+
+s.check('SELECTING A STRIP BRINGS ITS NET ROW TO THE TOP', async () => {
+  // The Nets tab already opens and marks the row. On Peter's own board that list
+  // is 27 rows and the panel shows about eight, so the row it marks is usually
+  // somewhere you cannot see: the feature works and looks like it does not.
+  needBrowser();
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  try {
+    await page.goto(base);
+    await page.evaluate((p) => {
+      localStorage.clear();
+      localStorage.setItem('stripex.project', JSON.stringify(p));
+    }, MANY_NETS);
+    await page.reload();
+    await page.waitForSelector('#boardWrap svg');
+
+    // A strip near the BOTTOM of the board, so its row is far down the list —
+    // and the LAST segment of that row, because the first one is under a
+    // component on the board the server opens, and clicking there selects the
+    // part instead. Chosen from what is actually drawn rather than assumed.
+    // A point that actually HITS the copper. Holes and components are drawn over
+    // the strips, so a point picked by fraction-of-width lands on a hole about
+    // as often as not — which is how the first draft of this check "failed"
+    // while the feature was untested.
+    const hit = await page.evaluate(() => {
+      const strips = [...document.querySelectorAll('[data-kind="copper"]')]
+        .filter((e) => Number(e.getAttribute('data-seg').split(':')[1]) >= 14);
+      for (const el of strips.reverse()) {
+        const r = el.getBoundingClientRect();
+        const y = r.top + r.height / 2;
+        for (let x = r.right - 3; x > r.left + 3; x -= 2) {
+          if (document.elementFromPoint(x, y) === el) {
+            return { x, y, seg: el.getAttribute('data-seg') };
+          }
+        }
+      }
+      return null;
+    });
+    ok(hit, 'a strip low down the board has a clickable point');
+    await page.mouse.click(hit.x, hit.y);
+
+    const r = await page.evaluate(() => {
+      const row = document.querySelector('#tab-nets .row.is-net-on');
+      if (!row) return { marked: false };
+      const panel = row.closest('.panel') ?? document.querySelector('.panel.right');
+      return {
+        marked: true,
+        ref: row.querySelector('.ref')?.textContent.trim(),
+        offsetFromTop: Math.round(row.getBoundingClientRect().top
+          - panel.getBoundingClientRect().top),
+        panelScrolls: panel.scrollHeight > panel.clientHeight + 1,
+        atBottom: panel.scrollTop >= panel.scrollHeight - panel.clientHeight - 1,
+        visible: row.getBoundingClientRect().bottom <= panel.getBoundingClientRect().bottom + 1,
+      };
+    });
+    ok(r.marked, 'the row is marked');
+    ok(r.panelScrolls, 'the list is longer than the panel, which is the case that matters');
+    // At the top — OR as near it as the list allows. The LAST net cannot reach
+    // the top because there is nothing below it to push it up, and asserting a
+    // fixed offset there would be asserting the impossible. Measured before the
+    // fix: 2076px from the top, off screen entirely.
+    ok(r.offsetFromTop < 90 || r.atBottom,
+      `${r.ref} sits ${r.offsetFromTop}px from the top, and the panel `
+      + `${r.atBottom ? 'is' : 'is NOT'} scrolled as far as it goes`);
+    ok(r.visible, `${r.ref} is on screen`);
+  } finally { await page.close(); }
+});
+
+// The temporary boards directory starts empty, so anything asserting about a
+// board on the server has to put one there first. Seeded through the API, which
+// is the same path the editor uses.
+async function seedBoard(name = 'Bench Board') {
+  const res = await fetch(`${base}/api/boards`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  return res.ok ? (await res.json()).slug : null;
+}
+
+s.check('THE BOARD CARD SAYS WHICH BOARD, WHILE COLLAPSED', async () => {
+  // Measured: it said "25 × 20". The card is collapsed by default, so the name —
+  // the whole point of the board work — was invisible until you expanded a card.
+  needBrowser();
+  ok(await seedBoard('Card Header Board'), 'a board exists to be named');
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  try {
+    await page.goto(base);
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.waitForSelector('#boardWrap svg');
+    await page.waitForTimeout(800);            // the board server answers
+    const sub = (await page.locator('[data-cardsub="board"]').textContent()).trim();
+    const name = await page.evaluate(() => {
+      const raw = localStorage.getItem('stripex.project');
+      return raw ? JSON.parse(raw).name : null;
+    });
+    ok(sub, 'the collapsed card says something');
+    ok(!/^\d+\s*×\s*\d+$/.test(sub), `it is not just the size: ${JSON.stringify(sub)}`);
+    if (name) ok(sub.includes(name.slice(0, 12)), `it names the board: ${sub} vs ${name}`);
+  } finally { await page.close(); }
+});
+
+s.check('and the board list separates a name from its part count', async () => {
+  // Measured: "recovered 2026-08-3014 parts".
+  needBrowser();
+  ok(await seedBoard('List Spacing Board'), 'a board exists to be listed');
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  try {
+    await page.goto(base);
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.waitForTimeout(800);
+    await page.locator('[data-cardtoggle="board"]').click();
+    const gap = await page.evaluate(() => {
+      const kind = document.querySelector('.board-list .kind');
+      if (!kind) return null;
+      return parseFloat(getComputedStyle(kind).marginLeft) || 0;
+    });
+    // NOT an early return when there is nothing to measure. A board is created
+    // by the migration on first run, so an empty list here means something
+    // upstream is broken and the check must say so rather than pass.
+    ok(gap !== null, 'there is a board in the list to measure');
+    ok(gap >= 4, `the count is held off the name: margin-left ${gap}px`);
+  } finally { await page.close(); }
 });
 
 s.check('and the editor reaches that point without a script error', async () => {
