@@ -34,7 +34,12 @@ function banner(text, kind = 'warn') {
   document.body.insertBefore(el, document.body.firstChild);
 }
 import { applyPlacementEdit, applyWireEdit, editableFields } from '/src/model/edit.js';
-import { movePlacementByPin, pinLocation } from '/src/model/move.js';
+import { pinLocation } from '/src/model/move.js';
+// EVERY EDIT GOES THROUGH HERE. The editor used to push into state.project
+// directly, so a wire the API refused was accepted by clicking — one board with
+// two sets of rules, and the looser one was the one a person used.
+import * as ops from '/src/model/ops.js';
+import { checkRules } from '/src/model/rules.js';
 import {
   wireColour, silkOf, linkColour, wireLengthHoles,
   COLOUR_CODE, PALETTE_16,
@@ -463,7 +468,11 @@ let lastFindings = [];
 
 function draw(message) {
   const p = state.project;
-  lastFindings = findingsFor(p);
+  // THE DESIGN RULES REPORT ALONGSIDE THE DRC. checkRules produces findings in
+  // the DRC's own shape, so the Checks tab and the board markers show them
+  // without learning a second format. This is where a pen wire on power — which
+  // the editor allows and the API refuses — becomes visible instead of silent.
+  lastFindings = [...findingsFor(p), ...checkRules(p)];
 
   $('#boardWrap').innerHTML = renderBoard(p, {
     view: state.view,
@@ -1083,25 +1092,22 @@ function onBoardClick(evt) {
     case 'place': {
       if (!hole) return;
       const part = getPart(state.part);
-      // A DEVICE BUILDS ITS OWN PLACEMENT, because its span, width, silk and pin
-      // names are the device's and not the panel's. placementFor copies them on,
-      // so the board that results owes the catalogue nothing.
-      let pl;
-      if (state.device) {
-        pl = placementFor(state.device, { col: hole.col, row: hole.row }, state.rot,
-          nextPartRef(p, getDevice(state.device).base));
-        if (!pl) return say('that device is not in the catalogue');
-      } else {
-        pl = {
-          ref: nextPartRef(p, state.part),
+      // THROUGH ops.addPart, like every other edit now. A device resolves to its
+      // real span, width, silk and pin names there — the same code the API uses,
+      // so a XIAO placed by clicking and a XIAO placed over HTTP are the same
+      // XIAO.
+      const placed = ops.addPart(p, state.device
+        ? { device: state.device, at: hole, rot: state.rot }
+        : {
           part: state.part,
-          at: { col: hole.col, row: hole.row },
+          at: hole,
           rot: state.rot,
-        };
-        if (part.parametric) pl.span = state.span;
-        if (part.defaultWidth != null) pl.width = state.width;
-      }
-      p.placements.push(pl);
+          span: part.parametric ? state.span : undefined,
+          width: part.defaultWidth != null ? state.width : undefined,
+        });
+      if (placed.error) return say(placed.error);
+      state.project = placed.project;
+      const pl = state.project.placements.find((x) => x.ref === placed.ref);
       state.selection = { kind: 'part', ref: pl.ref };
 
       // The cuts this part needs are DERIVED from the placement, not inserted
@@ -1136,13 +1142,16 @@ function onBoardClick(evt) {
       const found = p.breaks.findIndex((bk) => bk.row === row && bk.x === x
         && (bk.at ?? 'gap') === state.cut);
       if (found >= 0) {
-        p.breaks.splice(found, 1);
+        const cleared = ops.clearBreak(p, { row, x });
+        if (cleared.error) return say(cleared.error);
+        state.project = cleared.project;
         return commit(state.cut === 'hole'
           ? `restored the copper at hole (${x},${row})`
           : `restored row ${row} between holes ${x} and ${x + 1}`);
       }
-      p.breaks = p.breaks.filter((bk) => !(bk.row === row && bk.x === x));
-      p.breaks.push({ row, x, at: state.cut });
+      const cut = ops.setBreak(p, { row, x, at: state.cut });
+      if (cut.error) return say(cut.error);
+      state.project = cut.project;
       return commit(state.cut === 'hole'
         ? `spot-faced hole (${x},${row}) — it now connects to nothing`
         : `cut row ${row} between holes ${x} and ${x + 1}`);
@@ -1160,11 +1169,24 @@ function onBoardClick(evt) {
         state.wireStart = null;
         return draw('cancelled — a wire needs two different holes');
       }
-      const wire = { ref: nextWireRef(p), from: state.wireStart, to: hole };
-      p.wires.push(wire);
+      // THE SAME RULES THE API APPLIES. A pen wire into an occupied hole is
+      // refused here exactly as it is refused over HTTP — one board, one set of
+      // rules. It was two, and the looser one was the one a person used.
+      //
+      // penWiresSignalsOnly WARNS rather than refuses at the mouse: Peter's own
+      // board carries pen wires drawn before that rule existed, and a rule that
+      // makes an existing board unusable is a rule nobody keeps. It shows in
+      // Checks, where he can see it and decide.
+      const from = state.wireStart;
+      const made = ops.addWire(p, from, hole, { warnOnly: ['penWiresSignalsOnly'] });
+      if (made.error) {
+        state.wireStart = null;
+        return draw(made.error);
+      }
+      state.project = made.project;
       state.wireStart = null;
-      state.selection = { kind: 'wire', ref: wire.ref };
-      commit(`${wire.ref}: (${wire.from.col},${wire.from.row}) → (${wire.to.col},${wire.to.row})`);
+      state.selection = { kind: 'wire', ref: made.ref };
+      commit(`${made.ref}: (${from.col},${from.row}) → (${hole.col},${hole.row})`);
       return;
     }
 
@@ -1188,11 +1210,11 @@ function onBoardClick(evt) {
       if (!state.moveAnchor) return say('click a pin of the device you want to move');
       if (!hole) return say('click a hole');
 
-      const i = p.placements.findIndex((x) => x.ref === state.moveAnchor.ref);
-      if (i < 0) { state.moveAnchor = null; return draw('that device is gone'); }
       const from = state.moveAnchor;
-      p.placements[i] = movePlacementByPin(p.placements[i], getPart, from.pin, hole);
+      const moved = ops.movePart(p, from.ref, from.pin, hole);
       state.moveAnchor = null;
+      if (moved.error) return draw(moved.error);
+      state.project = moved.project;
       return commit(`${from.ref} pin ${from.pin} moved to (${hole.col},${hole.row})`);
     }
 
@@ -1223,13 +1245,17 @@ function onBoardClick(evt) {
       const breakEl = evt.target.closest('[data-kind="break"], [data-kind="break-hit"]');
       if (partEl) {
         const ref = partEl.getAttribute('data-ref');
-        p.placements = p.placements.filter((x) => x.ref !== ref);
+        const gone = ops.removePart(p, ref);
+        if (gone.error) return say(gone.error);
+        state.project = gone.project;
         state.selection = null;
         return removed(`deleted ${ref}`);
       }
       if (wireEl) {
         const ref = wireEl.getAttribute('data-ref');
-        p.wires = p.wires.filter((x) => x.ref !== ref);
+        const gone = ops.removeWire(p, ref);
+        if (gone.error) return say(gone.error);
+        state.project = gone.project;
         state.selection = null;
         return removed(`deleted ${ref}`);
       }
@@ -1239,7 +1265,9 @@ function onBoardClick(evt) {
         if (owner) {
           return say(`that cut belongs to ${owner} — move or delete ${owner} instead`);
         }
-        p.breaks = p.breaks.filter((bk) => !(bk.row === row && bk.x === x));
+        const cleared = ops.clearBreak(p, { row, x });
+        if (cleared.error) return say(cleared.error);
+        state.project = cleared.project;
         return removed(`restored the copper at row ${row}`);
       }
       return say('nothing there to delete');
@@ -1522,10 +1550,9 @@ function actOnSelection(tool) {
   const p = state.project;
 
   if (tool === 'delete') {
-    const before = (p.placements?.length ?? 0) + (p.wires?.length ?? 0);
-    if (sel.kind === 'part') p.placements = p.placements.filter((x) => x.ref !== sel.ref);
-    else p.wires = p.wires.filter((x) => x.ref !== sel.ref);
-    if ((p.placements.length + p.wires.length) === before) return false;   // nothing matched
+    const gone = sel.kind === 'part' ? ops.removePart(p, sel.ref) : ops.removeWire(p, sel.ref);
+    if (gone.error) return false;                          // nothing matched
+    state.project = gone.project;
     state.selection = null;
     // DISARM FIRST, COMMIT SECOND. setTool says the new tool's help text, so
     // committing first left "deleted R1" on screen for an instant and then

@@ -161,7 +161,14 @@ export function movePart(project, ref, pin, to) {
 
 // ------------------------------------------------------------------ wires
 
-export function addWire(project, from, to) {
+// `warnOnly` names the rules that should REPORT rather than refuse.
+//
+// The editor passes `['penWiresSignalsOnly']`: Peter's own board carries pen
+// wires drawn before that rule existed, and a rule that makes an existing board
+// unusable is a rule nobody keeps. The API passes nothing and refuses
+// everything, because a planner building a board unattended must be held to it.
+// The person at the bench outranks a design preference; a script does not.
+export function addWire(project, from, to, { warnOnly = [] } = {}) {
   for (const [what, h] of [['from', from], ['to', to]]) {
     if (!onBoard(project, h)) return fail('off-board', `the ${what} hole is not on this board`);
   }
@@ -184,7 +191,7 @@ export function addWire(project, from, to) {
   }
 
   // SIGNALS ONLY. Peter: "power lines must be wire links."
-  if (rules.penWiresSignalsOnly) {
+  if (rules.penWiresSignalsOnly && !warnOnly.includes('penWiresSignalsOnly')) {
     for (const h of [from, to]) {
       const power = namesAt(project, h).find((nm) => netClassOf(nm, rules) === 'power');
       if (power) {

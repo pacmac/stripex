@@ -2257,3 +2257,36 @@
     failures: 0
     at: '2026-08-30T18:51:52.306'
     commit: 0094992-dirty
+- id: the-rules-bind-the-api-but-not-the-mouse
+  type: bug
+  what: "ops.js refuses a pen wire into an occupied hole, naming the rule, but the editor pushes straight\
+    \ into project.wires and never asks. The same wire is refused over HTTP and accepted by clicking \u2014\
+    \ one board, two sets of rules, and the looser one is the one a person uses. It is how nine wire ends\
+    \ came to sit on pins on Peter's board. The editor also shows only DRC findings, so checkRules reports\
+    \ nothing on screen."
+  spec: docs/specs/editor-on-ops.md
+  files:
+  - public/app.js
+  - src/model/ops.js
+  test:
+    command:
+    - node
+    - tests/browser/test_editor_rules.mjs
+    criterion: '4/4 browser checks: a pen wire drawn onto a pin is refused and the status names the pin
+      and the rule, a wire between free holes works, a wire onto power is allowed and reported in Checks,
+      and place/cut/delete still work'
+    runs: 1
+  trial:
+    file: .proofs/the-rules-bind-the-api-but-not-the-mouse.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T18:55:27.139'
+    commit: 73f903d-dirty
+  fix:
+    file: .proofs/the-rules-bind-the-api-but-not-the-mouse.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:02:42.800'
+    commit: 73f903d-dirty
