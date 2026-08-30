@@ -2550,8 +2550,8 @@
     exit: 0
     runs: 1
     failures: 0
-    at: '2026-08-30T20:25:18.542'
-    commit: ca0de04-dirty
+    at: '2026-08-30T20:25:35.873'
+    commit: b2780f2
 - id: the-inspector-still-cuts-copper-by-hand
   type: bug
   what: The break branch of the Focus panel does state.project.breaks = state.project.breaks.filter(...)

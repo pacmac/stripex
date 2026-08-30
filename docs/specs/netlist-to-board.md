@@ -1,8 +1,13 @@
 # SPEC — build and check a design against a netlist
 
-status: draft
+status: implemented, entry CLOSED
 area: board-model
-source_hash: (set in Phase 4)
+source_hash:
+  src/model/netlist.js:   9241525a23571863f95fccf45daddf47a91ac3bed0ae5e942d6dcfb7848befb4
+  src/model/ops.js:       3c4a62fbf93bb53456dedee4958ec196fe1a625b48438d91cd97271b4cab23b1
+  src/server/index.js:    cf09596b4123a719f2390019e9e8c300f5402f2a722355c9c4258c0304d79fa5
+  src/render/panels.js:   e251d7c479654b78627ee6213dd2807bf93b034590932093366bf933907122bf
+  public/app.js:          a5a8a0bb1100148a17185c38646d2e293afae48eac50331292f563931161cd9b
 
 Peter, 2026-08-30: *"a BIG one, creating of a new design from a netlist. I dont think that can
 be done by a script and would effectively be a claude interractive script that will allow you
@@ -113,5 +118,29 @@ would corrupt a board rather than describe it.
   netlist's own plan, which is the loop closing;
 - `adoptDevice` turns a bare 16-pin DIP into a TMC2209 with sixteen names, and is refused on a
   footprint of the wrong size;
-- **and Peter's own board, adopted and compared against v5's rotator netlist, reports zero
-  shorts** — the check I ran by hand, now run by the program.
+- and **a plan applied through `/ops` satisfies every net it planned**, end to end over HTTP,
+  which is the loop v5 would actually drive.
+
+## The promise this spec made and did NOT keep, and why that is the right outcome
+
+The draft said: *"Peter's own board, adopted and compared against v5's rotator netlist, reports
+zero shorts."* It does not. **And it must not be made to.**
+
+`adoptDevice` works on his board — both bare DIPs accept their devices, pin counts matching.
+But comparing the catalogue's pin numbering against his own net labels shows the two disagree:
+
+| his pins 1–8 | 0V | 3V3 | **M1A** | **M1B** | M2A | M2B | 0V | VMOT |
+|---|---|---|---|---|---|---|---|---|
+| catalogue 9–16 | GND | VIO | **M1B** | **M1A** | M2A | M2B | GNDM | VM |
+
+Six of eight agree exactly. **M1A and M1B appear swapped**, and on the logic side STEP and DIR
+do too. So "zero shorts" was never a property of his copper — it is a property of a pin map
+nobody has verified, and forcing the check green would have meant adopting one reading of the
+part as fact.
+
+That the comparison surfaces the disagreement rather than hiding it is the tool working. It is
+registered as `the-catalogue-pinout-and-peters-board-disagree`, and it is the same question as
+`verified-pin-names.md`: only the silkscreen settles it.
+
+**The swapped pair is a coil pair**, which is the one class of error v5 described as silent —
+driver enables, draws current, shaft locks under a degree, no fault bit anywhere.
