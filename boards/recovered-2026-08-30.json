@@ -311,13 +311,15 @@
   ],
   "netLabels": {
     "0,0": {
-      "name": "0V"
+      "name": "0V",
+      "colour": "#1971c2"
     },
     "0,1": {
       "name": "VUSB"
     },
     "0,2": {
-      "name": "VMOT"
+      "name": "VMOT",
+      "colour": "#e8590c"
     },
     "0,7": {
       "name": "SDA"
@@ -347,7 +349,8 @@
       "name": "DIR"
     },
     "8,13": {
-      "name": "CLK"
+      "name": "CLK",
+      "colour": "#1971c2"
     },
     "8,14": {
       "name": "URT"
@@ -362,10 +365,15 @@
       "name": "MS1"
     },
     "0,12": {
-      "name": "3V3"
+      "name": "3V3",
+      "colour": "#c92a2a"
     },
     "8,5": {
-      "name": "3V3"
+      "name": "3V3",
+      "colour": "#c92a2a"
+    },
+    "0,3": {
+      "colour": "#e8590c"
     }
   }
 }
