@@ -434,3 +434,32 @@
     failures: 0
     at: '2026-08-30T08:41:13.728'
     commit: db4a480-dirty
+- id: editing-a-field-destroys-the-field-you-are-editing
+  type: bug
+  what: Every edit rebuilds the Focus panel's HTML, so the input being typed into is replaced and focus
+    is lost; one change works and the field is then dead
+  spec: docs/specs/inspector-rebuild.md
+  files:
+  - src/render/panels.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_inspector_key.mjs
+    criterion: 'tests/render/test_inspector_key.mjs passes: the key is stable across value changes and
+      changes only when the panel''s shape must change'
+    runs: 1
+  trial:
+    file: .proofs/editing-a-field-destroys-the-field-you-are-editing.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:46:42.541'
+    commit: 194a12b-dirty
+  fix:
+    file: .proofs/editing-a-field-destroys-the-field-you-are-editing.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:48:47.040'
+    commit: 194a12b-dirty

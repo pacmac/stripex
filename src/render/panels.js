@@ -31,3 +31,34 @@ export function focusTabFor(selection) {
 }
 
 export const bodyId = (tabId) => `tab-${tabId}`;
+
+// Identifies the SHAPE of the Focus panel: which object it is describing and
+// which fields that object offers. It deliberately ignores the values in those
+// fields.
+//
+// This exists because rebuilding the panel on every edit replaced the input the
+// user was typing into. The value committed correctly; the field vanished,
+// taking focus and caret with it, so one change worked and the field was then
+// dead — indistinguishable from "cannot be edited". Rebuild only when this key
+// changes, and sync values in place otherwise.
+export function inspectorKey(selection, target, part) {
+  if (!selection) return null;
+  if (!target) return `${selection.kind}:${selection.ref}:gone`;
+  if (selection.kind === 'part') {
+    // The field list is part of the shape: a resistor has no width row, an LED
+    // has no span row.
+    const fields = part ? editableFieldNames(part).join(',') : '';
+    return `part:${selection.ref}:${target.part}:${fields}`;
+  }
+  return `${selection.kind}:${selection.ref}`;
+}
+
+// Kept here rather than imported from model/edit.js so that panels.js stays a
+// pure view module with no model dependency; the two lists are asserted equal by
+// tests/render/test_inspector_key.mjs through the behaviour they produce.
+function editableFieldNames(part) {
+  const fields = ['ref', 'value', 'rot', 'col', 'row'];
+  if (part.parametric) fields.push('span');
+  if (part.defaultWidth != null) fields.push('width');
+  return fields.sort();
+}

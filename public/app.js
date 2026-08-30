@@ -10,7 +10,7 @@ import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/mod
 import { rotatePlacement } from '/src/model/rotate.js';
 import { requiredBreaks, ownerOf, effectiveBreaks } from '/src/model/breaks.js';
 import { cursorFor } from '/src/render/cursors.js';
-import { TABS, DEFAULT_TAB, focusTabFor, bodyId } from '/src/render/panels.js';
+import { TABS, DEFAULT_TAB, focusTabFor, bodyId, inspectorKey } from '/src/render/panels.js';
 import { applyPlacementEdit, applyWireEdit, editableFields } from '/src/model/edit.js';
 import { partList, getPart } from '/src/parts/library.js';
 
@@ -297,7 +297,66 @@ function paintRunList() {
     : '<p class="empty">No wires yet. Pick the Wire tool and click two holes.</p>';
 }
 
-function paintInspector() {
+// The panel is rebuilt only when its SHAPE changes. Rebuilding on every edit
+// replaced the input being typed into: the value committed, the field vanished
+// with the focus and caret, and one change worked before the field went dead.
+let inspectorShape = null;
+
+function syncInspectorValues(includeFocused = false) {
+  const sel = state.selection;
+  if (!sel) return;
+  const focused = includeFocused ? null : document.activeElement;
+  const put = (el, v) => {
+    // Never write into the field being typed in — that would fight the caret
+    // even without a rebuild. It catches up the moment focus leaves. A REFUSED
+    // edit is the exception: there the whole point is to put the rejected value
+    // back, so it passes includeFocused.
+    if (el && el !== focused) el.value = v;
+  };
+  if (sel.kind === 'part') {
+    const pl = state.project.placements.find((x) => x.ref === sel.ref);
+    if (!pl) return;
+    const part = getPart(pl.part);
+    put($('[data-edit="ref"]'), pl.ref);
+    put($('[data-edit="value"]'), pl.value ?? '');
+    put($('[data-edit="span"]'), pl.span ?? part.defaultSpan ?? '');
+    put($('[data-edit="width"]'), pl.width ?? part.defaultWidth ?? '');
+    put($('[data-edit="rot"]'), String(pl.rot ?? 0));
+    put($('[data-edit="col"]'), pl.at.col);
+    put($('[data-edit="row"]'), pl.at.row);
+  } else if (sel.kind === 'wire') {
+    const w = state.project.wires.find((x) => x.ref === sel.ref);
+    if (!w) return;
+    put($('[data-wedit="ref"]'), w.ref);
+    put($('[data-wedit="from.col"]'), w.from.col);
+    put($('[data-wedit="from.row"]'), w.from.row);
+    put($('[data-wedit="to.col"]'), w.to.col);
+    put($('[data-wedit="to.row"]'), w.to.row);
+  }
+}
+
+function paintInspector(force = false) {
+  const sel = state.selection;
+  const target = sel?.kind === 'part'
+    ? state.project.placements.find((x) => x.ref === sel.ref)
+    : sel?.kind === 'wire'
+      ? state.project.wires.find((x) => x.ref === sel.ref)
+      : null;
+  let part = null;
+  if (sel?.kind === 'part' && target) {
+    try { part = getPart(target.part); } catch { /* unknown */ }
+  }
+  const shape = inspectorKey(sel, target, part);
+
+  if (!force && shape !== null && shape === inspectorShape) {
+    syncInspectorValues();
+    return;
+  }
+  inspectorShape = shape;
+  paintInspectorFrom();
+}
+
+function paintInspectorFrom() {
   const el = $('#tab-inspect');
   const sel = state.selection;
   if (!sel) { el.innerHTML = '<p class="empty">Nothing selected.</p>'; return; }
@@ -361,9 +420,12 @@ function paintInspector() {
     for (const input of el.querySelectorAll('[data-wedit]')) {
       input.addEventListener('change', (e) => {
         const field = e.target.dataset.wedit;
-        const { wire, error } = applyWireEdit(w, field, e.target.value);
-        if (error) { paintInspector(); $('#editError').textContent = error; return; }
-        state.project.wires[wi] = wire;
+        // Same as for placements: read the current wire, not a captured copy.
+        const j = state.project.wires.findIndex((x) => x.ref === state.selection?.ref);
+        if (j < 0) return;
+        const { wire, error } = applyWireEdit(state.project.wires[j], field, e.target.value);
+        if (error) { syncInspectorValues(true); $('#editError').textContent = error; return; }
+        state.project.wires[j] = wire;
         if (field === 'ref') state.selection = { kind: 'wire', ref: wire.ref };
         commit(`${wire.ref} ${field} = ${e.target.value}`);
       });
@@ -401,17 +463,24 @@ function paintInspector() {
   for (const input of el.querySelectorAll('[data-edit]')) {
     input.addEventListener('change', (e) => {
       const field = e.target.dataset.edit;
-      const { placement, error } = applyPlacementEdit(pl, getPart, field, e.target.value);
+      // Look the placement up NOW rather than using the one captured when this
+      // panel was built. The panel no longer rebuilds after every edit, so a
+      // captured copy goes stale: editing span would write back a placement
+      // still carrying the width from before the last two edits, silently
+      // undoing them.
+      const i2 = state.project.placements.findIndex((x) => x.ref === state.selection?.ref);
+      if (i2 < 0) return;
+      const current = state.project.placements[i2];
+      const { placement, error } = applyPlacementEdit(current, getPart, field, e.target.value);
       if (error) {
-        // Refused edits put the input back rather than leaving a value on screen
-        // that is not the value in the project. Repaint FIRST, then write the
-        // message: repainting rebuilds this panel, so a message written before
-        // it is wiped out and the user is refused with no reason given.
-        paintInspector();
+        // Put the rejected value back — including into the focused field, which
+        // is the one that holds it — and leave the field itself alone so the
+        // user can correct it without clicking back in.
+        syncInspectorValues(true);
         $('#editError').textContent = error;
         return;
       }
-      state.project.placements[idx] = placement;
+      state.project.placements[i2] = placement;
       if (field === 'ref') state.selection = { kind: 'part', ref: placement.ref };
       commit(`${placement.ref} ${field} = ${e.target.value}`);
     });
