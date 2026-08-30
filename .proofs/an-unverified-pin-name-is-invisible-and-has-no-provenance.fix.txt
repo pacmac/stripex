@@ -1,0 +1,2 @@
+$ node tests/parts/test_pin_provenance.mjs
+pin-provenance: 8/8 checks passed

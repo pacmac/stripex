@@ -2497,12 +2497,27 @@
   - src/model/ops.js
   - src/render/svg.js
   test:
-    command: null
-    criterion: every device with unverifiedPins carries a pinSource and names only real pins, an unverified
-      name renders differently, and setPinNames puts a corrected name on a placement
+    command:
+    - node
+    - tests/parts/test_pin_provenance.mjs
+    criterion: every device with pin names carries a pinSource and flags only real pins, a placement carries
+      the flag, an unverified name is drawn as unverified, and setPinNames corrects a placement without
+      touching the catalogue
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/an-unverified-pin-name-is-invisible-and-has-no-provenance.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T20:12:15.668'
+    commit: b6353ac-dirty
+  fix:
+    file: .proofs/an-unverified-pin-name-is-invisible-and-has-no-provenance.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T20:14:34.809'
+    commit: b6353ac-dirty
 - id: there-is-no-way-to-build-or-check-a-board-against-a-netlist
   type: new
   what: Nothing in src reads a netlist. Comparing a board to one was done by hand in throwaway scripts
@@ -2519,6 +2534,33 @@
     command: null
     criterion: a netlist parses, a short is reported first, a split net names the pins on each side, adoptDevice
       turns a bare DIP into a device, and Peter's own board compares clean against the rotator netlist
+    runs: 1
+  trial: null
+  fix: null
+- id: the-inspector-still-cuts-copper-by-hand
+  type: bug
+  what: The break branch of the Focus panel does state.project.breaks = state.project.breaks.filter(...)
+    directly, bypassing ops.clearBreak. The headless-build check greps for 'p.breaks =' and this writes
+    state.project.breaks, so it slipped past a check written to catch exactly it.
+  spec: docs/specs/editor-on-ops.md
+  files:
+  - public/app.js
+  test:
+    command: null
+    criterion: no editor path mutates the project except through ops, however the project is spelled
+    runs: 1
+  trial: null
+  fix: null
+- id: the-focus-panel-does-not-say-where-a-pin-name-came-from
+  type: new
+  what: "A placement now carries pinSource and unverifiedPins and the board draws the doubt, but the Focus\
+    \ panel \u2014 where a person reads a selected part \u2014 says neither."
+  spec: docs/specs/verified-pin-names.md
+  files:
+  - public/app.js
+  test:
+    command: null
+    criterion: selecting a device shows its pin source and names the unverified pins
     runs: 1
   trial: null
   fix: null

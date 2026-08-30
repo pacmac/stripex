@@ -838,13 +838,25 @@ export function renderBoard(project, opts = {}) {
       // has no left or right, so its names go above.
       if (L.pinNames && pinName) {
         const place = pinNamePlacement(p, pts);
+        // A NAME NOBODY HAS CHECKED IS DRAWN AS SUCH. It used to be drawn
+        // exactly like a sourced one, so the doubt existed only in a catalogue
+        // field nobody opens — and the board is what a person solders from.
+        // Dotted underline and the warning ink, because it is a caveat and not
+        // an error: the pin is really there, its name is what is unknown.
+        const unsure = (pl.unverifiedPins ?? []).includes(pinName);
         out.push(`<text data-kind="pin-name" data-ref="${esc(pl.ref)}"`
           + ` data-pin="${esc(pinName)}"`
+          + (unsure ? ' data-unverified="true"' : '')
           + ` x="${n(place.x)}" y="${n(place.y)}"`
-          + ` font-size="${n(PIN_NAME_MM)}" fill="${padInk}"`
+          + ` font-size="${n(PIN_NAME_MM)}" fill="${unsure ? c.warning : padInk}"`
           + ` text-anchor="${place.anchor}"`
-          + ` font-family="sans-serif" pointer-events="none"`
-          + `>${esc(pinName)}</text>`);
+          + (unsure ? ' text-decoration="underline" style="text-decoration-style:dotted"' : '')
+          + ` font-family="sans-serif" pointer-events="none">`
+          + (unsure
+            ? `<title>${esc(pinName)} is not verified — `
+              + `${esc(pl.pinSource ?? 'no source recorded')}</title>`
+            : '')
+          + `${esc(pinName)}</text>`);
       }
     }
     out.push('</g>');

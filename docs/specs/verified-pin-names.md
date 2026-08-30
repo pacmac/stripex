@@ -1,8 +1,11 @@
 # SPEC — a pin name is either verified or it says it is not
 
-status: draft
+status: implemented, entry CLOSED — the QUESTION remains open with Peter
 area: component-library
-source_hash: (set in Phase 4)
+source_hash:
+  src/parts/devices.js:  74c58560f36213c28a12e575c1b8d41c56ebb49fdc3d2538727d3e266a174976
+  src/model/ops.js:      1edaa2b05e0d509f16b430922c313deaabc549151b74fdc7a5f494a006a53105
+  src/render/svg.js:     a8d248534512d682b6cbeb602331dd958c27fb48c41efde895d790842bef64b9
 
 ## What is wrong
 
@@ -64,7 +67,7 @@ This is filed as an `ask-` item so it survives this session, per `/idiot mine`.
 | `src/parts/devices.js` | `pinSource` on `xiao` and `tmc2209`; the comment corrected to say the sources disagree |
 | `src/model/ops.js` | `setPinNames` |
 | `src/render/svg.js` | an unverified pin name is drawn as unverified |
-| `public/app.js` | Focus shows the provenance |
+| ~~`public/app.js`~~ | **NOT DONE HERE** — registered as `the-focus-panel-does-not-say-where-a-pin-name-came-from`. It is a different file from the three this entry was tried against, and amending the file list would have voided the trial that convicted it. Reported rather than smuggled in. |
 
 ## Explicitly NOT changed
 
@@ -86,3 +89,17 @@ This is filed as an `ask-` item so it survives this session, per `/idiot mine`.
   catalogue untouched;
 - and a placement whose names were set by hand keeps them across a rotate and a move, because a
   name that survives being flagged and then vanishes on the next edit is worse than no name.
+
+## One decision made while implementing
+
+`setPinNames` keeps `unverifiedPins` as an **empty list** rather than deleting the field once
+every flag is cleared. *"These names were flagged and someone settled them"* is a different fact
+from *"nobody ever wondered"*, and the second must not be able to masquerade as the first.
+
+## Found in passing, registered, not fixed
+
+`public/app.js` still cuts copper by hand: the Focus panel's break branch assigns
+`state.project.breaks` directly, bypassing `ops.clearBreak`. The headless-build check greps for
+`p.breaks =` and this spells it `state.project.breaks`, so **a check written to catch exactly
+this missed it.** Registered as `the-inspector-still-cuts-copper-by-hand`, with the regex being
+the thing at fault as much as the code.

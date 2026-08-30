@@ -283,6 +283,55 @@ export function setLabel(project, hole, { name, colour } = {}) {
   return { project: setNetLabel(clone(project), hole, name || colour ? { name, colour } : null) };
 }
 
+// --------------------------------------------------------------- pin names
+
+// The names on ONE placement, replaced.
+//
+// A placement copies the catalogue and owes it nothing, which is exactly what
+// makes this safe: a board may know better than the library. It is the mechanism
+// by which reading a silkscreen becomes part of a board rather than a remark in
+// a chat log — the TMC2209's NC3 and NC4 are unverified because two web sources
+// describe different modules, and only the part in someone's hand settles it.
+//
+// SETTING A NAME CLEARS ITS DOUBT. A name typed by a person looking at the part
+// is better sourced than anything in the catalogue, so the flag comes off; a
+// name they did not touch keeps whatever it had.
+export function setPinNames(project, ref, names) {
+  const pl = (project.placements ?? []).find((x) => x.ref === ref);
+  if (!pl) return fail('no-such-part', `there is no ${ref} on this board`);
+  if (!Array.isArray(names)) return fail('bad-names', 'pin names come as a list');
+  const want = pl.pinNames?.length ?? countPins(pl);
+  if (names.length !== want) {
+    return fail('wrong-pin-count',
+      `${ref} has ${want} pins and ${names.length} ${names.length === 1 ? 'name was' : 'names were'} given`);
+  }
+  const blank = names.findIndex((x) => !String(x ?? '').trim());
+  if (blank >= 0) return fail('blank-name', `pin ${blank + 1} was given no name`);
+
+  const next = clone(project);
+  const target = next.placements.find((x) => x.ref === ref);
+  const before = target.pinNames ?? [];
+  target.pinNames = names.map((x) => String(x).trim());
+  // Recomputed only where doubt was recorded in the first place, and kept as an
+  // empty list rather than deleted: "these names were flagged and someone
+  // settled them" is a different fact from "nobody ever wondered", and the
+  // second must not be able to masquerade as the first.
+  if (target.unverifiedPins) {
+    target.unverifiedPins = target.unverifiedPins.filter((name) => {
+      const i = before.indexOf(name);
+      return i >= 0 && target.pinNames[i] === name;      // untouched, so still doubtful
+    });
+  }
+  const bad = validateProject(next);
+  if (bad.length) return fail('invalid', bad[0].message);
+  return { project: next, ref };
+}
+
+// How many pins a placement has, for a footprint with no names on it yet.
+function countPins(pl) {
+  try { return resolvePins([pl], getPart).length; } catch { return 0; }
+}
+
 // ------------------------------------------------------------------ rules
 
 // Change the rules this BOARD is built under.
@@ -312,6 +361,7 @@ export function setRules(project, patch = {}) {
 
 const OPS = {
   setRules: (p, a) => setRules(p, a.rules ?? a.patch ?? {}),
+  setPinNames: (p, a) => setPinNames(p, a.ref, a.names),
   addPart: (p, a) => addPart(p, a),
   removePart: (p, a) => removePart(p, a.ref),
   movePart: (p, a) => movePart(p, a.ref, a.pin, a.to),
