@@ -77,16 +77,19 @@ const LAYER_KEY = 'stripex.layers';
 // Order and wording of the layer list. The swatch is the colour that layer
 // actually paints, so the list reads as the drawing rather than as a glossary.
 const LAYER_ROWS = [
+  // First, because it is drawn last. The list reads top-of-stack downwards, and
+  // a list that disagrees with the drawing order is a second description of the
+  // same fact — the shape this project has already paid for twice.
+  ['netNames', 'Net names', '#9c6428'],
   ['components', 'Components', '#3d4450'],
   ['links', 'Wire links', '#8e9099'],
   ['wires', 'Pen wires', '#1f6feb'],
   ['breaks', 'Track breaks', '#8a7a5c'],
   ['copper', 'Copper strips', '#b87333'],
   ['holes', 'Holes', '#3a3226'],
-  // Its own row, and not part of "Refs and values": that layer names the parts
-  // you placed, this one names copper you did not. Turning off R1 and 10k is
-  // not asking for GND to go with them.
-  ['netNames', 'Net names', '#9c6428'],
+  // "Refs and values" is a separate switch from Net names above: that one names
+  // the parts you placed, this one names copper you did not. Turning off R1 and
+  // 10k is not asking for GND to go with them.
   ['labels', 'Refs and values', '#241f18'],
   ['drc', 'Check markers', '#d1242f'],
 ];

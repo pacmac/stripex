@@ -415,7 +415,7 @@ export function renderBoard(project, opts = {}) {
   // src/model/nets.js for why a net cannot own its own name.
   const netSegNet = (highlightNet || project.netLabels) ? netsFor(project).segmentNet : {};
   const labels = project.netLabels ? netLabelsByNet(project, netSegNet) : new Map();
-  // Filled by the copper pass, drawn after the holes — see pass 4b.
+  // Filled by the copper pass, drawn on top of everything — see pass 7b.
   const netNames = [];
 
   if (L.copper) {
@@ -449,9 +449,9 @@ export function renderBoard(project, opts = {}) {
 
       // The name on every segment it covers, so GND reads across the board
       // without selecting anything — but NOT drawn here. It is collected and
-      // emitted after the holes: this pass is step 2 and the holes are step 4,
-      // so a name written here came back punched through by every hole it lay
-      // over.
+      // emitted as pass 7b, on top of everything: this pass is step 2, so a
+      // name written here came back punched through by every hole it lay over
+      // and hidden under every part that crossed it.
       if (label?.name && L.netNames) {
         netNames.push({ id: g.id, name: label.name, ground: fill, x, y, w: right - left });
       }
@@ -504,42 +504,6 @@ export function renderBoard(project, opts = {}) {
           + ` fill="${c.hole}" stroke="${c.holeRing}" stroke-width="0.08"/>`);
       }
     }
-  }
-
-  // 4b. net names, on an opaque plate.
-  //
-  // AFTER the holes, because that is the whole bug: 1.0 mm of dark hole painted
-  // over a 1.4 mm typeface takes most of the letter with it, and a name over
-  // three holes came back as fragments.
-  //
-  // The plate is the segment's own colour at FULL opacity — not a badge in some
-  // new colour, so it reads as a solid patch of that strip. That also makes the
-  // ink honest: on the top view the copper is drawn at 0.55 and blends with the
-  // substrate, so `readableOn(fill)` was choosing ink for a colour that was not
-  // on screen. Now it is.
-  //
-  // BEFORE the wires and components, which are objects ON the board; a name is
-  // annotation OF the board, and a link crossing a labelled strip has to be
-  // visible where it lands.
-  for (const nn of netNames) {
-    const plate = namePlate(nn.name, nn.w, PITCH_MM * 0.55);
-    if (!plate.show) continue;
-    const cx = nn.x + nn.w / 2;
-    const cy = nn.y + TRACK_W_MM / 2;
-    const ink = readableOn(nn.ground, c);
-    out.push(`<rect data-kind="net-name-plate" data-seg="${nn.id}"`
-      + ` x="${n(cx - plate.w / 2)}" y="${n(cy - plate.h / 2)}"`
-      + ` width="${n(plate.w)}" height="${n(plate.h)}" rx="${n(plate.h / 2)}"`
-      // The hairline the holes already use. On the underside the strip is
-      // already opaque, so without an edge the plate has no shape at all and
-      // the name floats.
-      + ` fill="${nn.ground}" stroke="${ink}" stroke-width="0.08"`
-      + ` stroke-opacity="0.22" pointer-events="none"/>`);
-    out.push(`<text data-kind="net-name" data-name="${esc(nn.name)}"`
-      + ` data-seg="${nn.id}" x="${n(cx)}"`
-      + ` y="${n(cy + plate.fontSize * 0.35)}" font-size="${n(plate.fontSize)}"`
-      + ` fill="${ink}" text-anchor="middle" font-family="sans-serif"`
-      + ` pointer-events="none" font-weight="600">${esc(nn.name)}</text>`);
   }
 
   // 5. pen wires — insulated, so they may cross each other freely.
@@ -733,6 +697,51 @@ export function renderBoard(project, opts = {}) {
           + ` stroke-width="${n(PITCH_MM * 0.11)}"/>`);
       }
     }
+  }
+
+  // 7b. net names, on an opaque plate. THE TOP LAYER.
+  //
+  // After the holes, which is the defect it was written for: 1.0 mm of dark
+  // hole painted over a 1.4 mm typeface takes most of the letter with it, and a
+  // name over three holes came back as fragments.
+  //
+  // And after the wires, the bodies and the check markers, which reverses what
+  // this pass first did. The old reasoning — a name is annotation OF the board,
+  // so objects ON the board belong above it — suits a photograph of a finished
+  // board. In a layout editor the names are what you read the board BY, and the
+  // very case it argued for, a DIP across a labelled strip, is where the name
+  // matters most and is exactly where it disappeared. A crossing wire stays
+  // legible under a 1.8 mm pill; a name under a component body does not.
+  //
+  // Only the hit targets and the armed move handle stay above, and neither is a
+  // picture of the board: the targets are invisible and the name is
+  // pointer-events="none", and covering the pin being dragged would be this
+  // same defect in a new place.
+  //
+  // The plate is the segment's own colour at FULL opacity — not a badge in some
+  // new colour, so it reads as a solid patch of that strip. That also makes the
+  // ink honest: on the top view the copper is drawn at 0.55 and blends with the
+  // substrate, so `readableOn(fill)` was choosing ink for a colour that was not
+  // on screen. Now it is.
+  for (const nn of netNames) {
+    const plate = namePlate(nn.name, nn.w, PITCH_MM * 0.55);
+    if (!plate.show) continue;
+    const cx = nn.x + nn.w / 2;
+    const cy = nn.y + TRACK_W_MM / 2;
+    const ink = readableOn(nn.ground, c);
+    out.push(`<rect data-kind="net-name-plate" data-seg="${nn.id}"`
+      + ` x="${n(cx - plate.w / 2)}" y="${n(cy - plate.h / 2)}"`
+      + ` width="${n(plate.w)}" height="${n(plate.h)}" rx="${n(plate.h / 2)}"`
+      // The hairline the holes already use. On the underside the strip is
+      // already opaque, so without an edge the plate has no shape at all and
+      // the name floats.
+      + ` fill="${nn.ground}" stroke="${ink}" stroke-width="0.08"`
+      + ` stroke-opacity="0.22" pointer-events="none"/>`);
+    out.push(`<text data-kind="net-name" data-name="${esc(nn.name)}"`
+      + ` data-seg="${nn.id}" x="${n(cx)}"`
+      + ` y="${n(cy + plate.fontSize * 0.35)}" font-size="${n(plate.fontSize)}"`
+      + ` fill="${ink}" text-anchor="middle" font-family="sans-serif"`
+      + ` pointer-events="none" font-weight="600">${esc(nn.name)}</text>`);
   }
 
   // 8. hit targets for the cuts.

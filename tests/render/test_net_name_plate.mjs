@@ -62,13 +62,54 @@ s.check('the plate is immediately before its text', () => {
   ok(!between.includes('data-kind='), `nothing is drawn between them: ${between.slice(0, 80)}`);
 });
 
-s.check('a wire still lands on top of the name', () => {
-  // The name is annotation of the board; a link crossing it is an object on the
-  // board and has to be visible where it lands.
+s.check('THE NAME IS THE TOP LAYER — A WIRE DOES NOT COVER IT', () => {
+  // This reverses what net-name-plate.md first argued. That reasoning suits a
+  // photograph of a finished board; in a layout editor the names are what you
+  // read the board BY, and a caption you have to move something to see has
+  // stopped working.
   const out = svg(board('GND', { wires: [{ ref: 'A', kind: 'link', from: { col: 2, row: 3 }, to: { col: 2, row: 8 } }] }));
   const wire = out.lastIndexOf('data-kind="wire');
   ok(wire > -1, 'the wire is drawn');
-  ok(wire > plateAt(out), 'after the plate');
+  ok(plateAt(out) > wire, `the plate (${plateAt(out)}) is above the wire (${wire})`);
+});
+
+s.check('NOR DOES A COMPONENT SITTING ACROSS THE STRIP', () => {
+  // The case that argued for parts on top is the case where the name matters
+  // most: a DIP across a labelled strip is exactly where it vanished.
+  const out = svg(board('GND', {
+    placements: [{ ref: 'U1', part: 'dip', at: { col: 2, row: 2 }, rot: 0, span: 7, width: 3 }],
+  }));
+  const body = out.lastIndexOf('data-kind="part');
+  ok(body > -1, 'the DIP is drawn');
+  ok(plateAt(out) > body, `the plate (${plateAt(out)}) is above the part (${body})`);
+});
+
+s.check('and a check marker does not either', () => {
+  const out = svg(board('GND', {
+    placements: [{ ref: 'U1', part: 'dip', at: { col: 2, row: 2 }, rot: 0, span: 7, width: 3 }],
+  }), { findings: [{ code: 'x', severity: 'error', holes: [{ col: 4, row: 3 }] }] });
+  const drc = out.lastIndexOf('data-kind="drc"');
+  ok(drc > -1, 'the marker is drawn');
+  ok(plateAt(out) > drc, `the plate (${plateAt(out)}) is above the marker (${drc})`);
+});
+
+s.check('BUT NOT OVER THE PIN YOU ARE MOVING', () => {
+  // The move handle is drawn last on purpose, so nothing covers the pin being
+  // dragged. A pill over it would be the same defect in a new place.
+  const out = svg(board(), { moveAnchor: { col: 4, row: 3, ref: 'U1', pin: '1' } });
+  const handle = out.indexOf('data-kind="move-anchor"');
+  ok(handle > -1, 'the handle is drawn');
+  ok(handle > plateAt(out), `the handle (${handle}) is above the plate (${plateAt(out)})`);
+});
+
+s.check('and hit targets stay clickable above it', () => {
+  // Invisible rectangles that exist to be clicked; the name is
+  // pointer-events="none", so this costs nothing you can see.
+  const p = board('GND', { breaks: [{ row: 3, x: 8, at: 'gap' }] });
+  const out = svg(p);
+  const hit = out.lastIndexOf('data-kind="break-hit"');
+  ok(hit > -1, 'a hit target is drawn');
+  ok(hit > plateAt(out), 'after the plate');
 });
 
 // ------------------------------------------------------------ it is opaque

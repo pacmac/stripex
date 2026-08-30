@@ -1276,3 +1276,33 @@
     runs: 1
   trial: null
   fix: null
+- id: the-net-name-layer-is-drawn-under-the-parts
+  type: new
+  what: "The net name pass sits between the holes and the wires, so a component body or a link covers\
+    \ the caption \u2014 and a DIP across a labelled strip is exactly where the name matters most. It\
+    \ should be the top layer."
+  spec: docs/specs/net-names-on-top.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_net_name_plate.mjs
+    criterion: '25/25 checks: the plate is drawn after the wires, the part bodies and the check markers,
+      while the move handle and hit targets stay above it'
+    runs: 1
+  trial:
+    file: .proofs/the-net-name-layer-is-drawn-under-the-parts.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T14:06:18.241'
+    commit: ce6edf7-dirty
+  fix:
+    file: .proofs/the-net-name-layer-is-drawn-under-the-parts.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T14:07:33.521'
+    commit: ce6edf7-dirty
