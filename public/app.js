@@ -14,6 +14,17 @@ import {
   TABS, DEFAULT_TAB, focusTabFor, bodyId, inspectorKey, shouldSetStatus,
 } from '/src/render/panels.js';
 import { toolForKey } from '/src/render/keys.js';
+import { loadProject } from '/src/model/repair.js';
+import { pushSnapshot, readHistory, describe } from '/src/model/history.js';
+
+// A banner is how the user is told something happened to their board. A console
+// warning is not telling anyone.
+function banner(text, kind = 'warn') {
+  const el = document.createElement('p');
+  el.className = `banner banner-${kind}`;
+  el.textContent = text;
+  document.body.insertBefore(el, document.body.firstChild);
+}
 import { applyPlacementEdit, applyWireEdit, editableFields } from '/src/model/edit.js';
 import { movePlacementByPin, pinLocation } from '/src/model/move.js';
 import {
@@ -45,6 +56,17 @@ import { partList, getPart, defaultRotOf, placesWith } from '/src/parts/library.
 
 const $ = (sel) => document.querySelector(sel);
 const STORE_KEY = 'stripex.project';
+
+// Repairs found on the last load, shown as a banner. Not a console warning:
+// load() used to return null on any problem, hand the user an empty board, and
+// whisper about it to a console nobody had open.
+//
+// DECLARED HERE, above `state`. `state` calls load() during its own
+// initialisation, so a `let` further down the file is in its temporal dead zone
+// and the whole editor dies with "Cannot access 'loadRepairs' before
+// initialization" — a blank page, which is the exact failure this work exists
+// to stop.
+let loadRepairs = [];
 const LAYER_KEY = 'stripex.layers';
 
 // Order and wording of the layer list. The swatch is the colour that layer
@@ -95,24 +117,40 @@ function loadLayers() {
 // ------------------------------------------------------------------ persistence
 
 function load() {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return null;
-    const p = JSON.parse(raw);
-    const problems = validateProject(p);
-    if (problems.length) {
-      console.warn('stored project rejected:', problems);
-      return null;
-    }
-    return p;
-  } catch (e) {
-    console.warn('stored project unreadable:', e);
-    return null;
+  const { project, repairs } = loadProject(localStorage.getItem(STORE_KEY));
+  loadRepairs = repairs;
+  if (project) return project;
+
+  // Nothing readable. Fall back to the newest snapshot BEFORE giving up — that
+  // is what the history is for.
+  const [snapshot] = readHistory(localStorage);
+  if (snapshot?.project) {
+    loadRepairs = [...repairs, {
+      code: 'from-history',
+      message: `the stored board could not be read, so the snapshot from `
+        + `${new Date(snapshot.at).toLocaleString()} was opened instead`,
+    }];
+    return snapshot.project;
   }
+  return null;
 }
 
+// Returns whether it actually wrote. The old version swallowed a quota error in
+// an empty catch, so once storage filled every later edit was silently not
+// saved and you found out on reload.
 function persist() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(state.project)); } catch { /* full */ }
+  let ok = true;
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state.project));
+  } catch (e) {
+    ok = false;
+    banner(`NOT SAVED — browser storage is full (${e.name}). Use Save to `
+      + 'download this board before doing anything else.', 'error');
+  }
+  // History second, and never at the board's expense: pushSnapshot drops its own
+  // oldest entries until it fits rather than touching the board.
+  try { pushSnapshot(localStorage, state.project); } catch { /* history is expendable */ }
+  return ok;
 }
 
 // ------------------------------------------------------------------------ undo
@@ -809,6 +847,19 @@ function buildPalette() {
       ${p.name}${p.kind === 'link' ? '<span class="kind">link</span>' : ''}
     </button>`).join('');
   syncSpan();
+  markPaletteArmed();
+}
+
+// A part shows as ARMED only while the tool that uses it is armed.
+//
+// The palette marked an item from state.part while setTool only touched the
+// toolbar, so they were independent: Escape armed Select and left a part lit,
+// the board looked ready to place, and clicking did nothing. Nothing on screen
+// said why.
+function markPaletteArmed() {
+  const armed = state.tool === 'place' || state.tool === 'wire';
+  const list = $('#palette');
+  if (list) list.classList.toggle('is-armed', armed);
 }
 
 function syncSpan() {
@@ -859,6 +910,7 @@ function setTool(tool) {
   // out of step with the button the toolbar shows as lit. Board only — a
   // crosshair over the parts list would be nonsense.
   $('#boardWrap').style.cursor = cursorFor(tool);
+  markPaletteArmed();
   const help = {
     select: 'Click a part or wire to select it; click a strip to highlight its net.',
     place: 'Click a hole to drop the palette part. R rotates.',
@@ -1030,6 +1082,32 @@ function boot() {
     input.click();
   });
 
+  $('#restore').addEventListener('click', () => {
+    const hist = readHistory(localStorage);
+    if (!hist.length) return say('no snapshots yet — one is kept on every edit');
+    // Listed by time and by how many parts each held, so "the one before it went
+    // wrong" is findable by looking rather than by counting clicks.
+    const lines = hist.map((h, i) => {
+      const d = describe(h);
+      return `${i + 1}. ${new Date(d.when).toLocaleTimeString()} — ${d.parts} parts, `
+        + `${d.wires} wires, ${d.cuts} cuts`;
+    });
+    const pick = window.prompt(
+      `Restore which snapshot? The current board is snapshotted first, so this `
+      + `can be undone.\n\n${lines.join('\n')}`, '1');
+    const n = Number(pick);
+    if (!Number.isInteger(n) || n < 1 || n > hist.length) return say('nothing restored');
+    // Snapshot what is on screen BEFORE replacing it, or restoring would be the
+    // one action with no way back.
+    pushSnapshot(localStorage, state.project);
+    state.undo.push(JSON.stringify(state.project));
+    state.project = hist[n - 1].project;
+    state.selection = null;
+    inspectorShape = null;
+    persist();
+    draw(`restored the snapshot from ${new Date(hist[n - 1].at).toLocaleTimeString()}`);
+  });
+
   $('#export').addEventListener('click', () => {
     const svg = renderBoard(state.project, { view: state.view, theme: state.theme });
     const blob = new Blob([svg], { type: 'image/svg+xml' });
@@ -1074,6 +1152,15 @@ function boot() {
   }
 
   draw('');
+
+  // Say what was repaired, in words, at the top of the window. Every one of
+  // these was previously a reason to throw the whole board away.
+  if (loadRepairs.length) {
+    banner(`${loadRepairs.length} thing${loadRepairs.length === 1 ? '' : 's'} in the `
+      + 'stored board could not be opened and were left out. The rest is intact. '
+      + loadRepairs.map((r) => r.message).join(' · '), 'error');
+  }
+
   document.body.insertAdjacentHTML('afterbegin',
     '<p class="banner">Project storage is not built yet — this board lives in '
     + 'this browser only. Use Save to download a copy.</p>');

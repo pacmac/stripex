@@ -1,0 +1,2 @@
+$ node tests/model/test_repair.mjs
+repair: 12/12 checks passed

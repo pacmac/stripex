@@ -177,10 +177,22 @@ main {
   border-color: transparent;
 }
 .palette button:hover { background: var(--panel-2); }
+/* A part reads as ARMED only while the tool that uses it is armed. Otherwise it
+   is merely the last one chosen: outlined, not filled, so the board never looks
+   ready to place when it is not. */
 .palette button.is-on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.palette.is-armed button.is-on {
   background: var(--accent);
   color: var(--accent-ink);
   border-color: var(--accent);
+}
+
+.banner-error {
+  background: color-mix(in srgb, var(--error) 22%, var(--panel));
+  font-weight: 600;
 }
 .palette .kind {
   font-size: 10px;

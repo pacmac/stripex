@@ -1,0 +1,20 @@
+$ node tests/model/test_history.mjs
+FAIL  a snapshot goes in and comes back out
+      module ../../src/model/history.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/history.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  NEWEST FIRST, so "the one before it went wrong" is at the top
+      module ../../src/model/history.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/history.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  THE CAP IS THIRTY, AND THE OLDEST GO
+      module ../../src/model/history.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/history.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  an identical board is not snapshotted twice
+      module ../../src/model/history.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/history.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A FULL DISK DROPS HISTORY, NEVER THE CURRENT BOARD
+      module ../../src/model/history.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/history.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a snapshot survives a round trip exactly
+      module ../../src/model/history.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/history.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  unreadable history is treated as no history, not as a crash
+      module ../../src/model/history.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/history.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  history is a separate key from the board
+      module ../../src/model/history.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/history.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a snapshot carries enough to choose between them by eye
+      module ../../src/model/history.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/history.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+history: 0/9 checks passed

@@ -1012,3 +1012,101 @@
     failures: 0
     at: '2026-08-30T11:11:39.300'
     commit: f8a1614-dirty
+- id: saving-fails-silently-when-storage-is-full
+  type: bug
+  what: persist() swallows a quota error with an empty catch, so once storage is full every later edit
+    is silently not saved and the user finds out on reload
+  spec: docs/specs/never-lose-a-board.md
+  files:
+  - public/app.js
+  test:
+    command: null
+    criterion: a failed write is reported to the user rather than swallowed
+    runs: 1
+  trial: null
+  fix: null
+- id: escape-leaves-a-part-lit-in-the-palette-while-arming-select
+  type: bug
+  what: Escape switches the tool to Select but the palette still shows a part highlighted, so the board
+    looks armed for placing and clicking does nothing
+  spec: docs/specs/never-lose-a-board.md
+  files:
+  - public/app.js
+  - src/render/panels.js
+  test:
+    command: null
+    criterion: 'tests/render/test_palette_state.mjs passes: the palette shows a part as armed only when
+      the place tool is armed'
+    runs: 1
+  trial: null
+  fix: null
+- id: the-editor-throws-away-a-board-it-cannot-read
+  type: bug
+  what: load() discards the whole stored project when any check fails and substitutes an empty board,
+    with only a console warning
+  spec: docs/specs/never-lose-a-board.md
+  files:
+  - src/model/repair.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_repair.mjs
+    criterion: 'tests/model/test_repair.mjs passes: Peter''s saved board loads with all thirteen real
+      parts and the five it could not keep are named'
+    runs: 1
+  trial:
+    file: .proofs/the-editor-throws-away-a-board-it-cannot-read.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T11:14:58.326'
+    commit: dc8329f-dirty
+  fix:
+    file: .proofs/the-editor-throws-away-a-board-it-cannot-read.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T11:19:05.943'
+    commit: dc8329f-dirty
+- id: there-is-no-history-to-go-back-to
+  type: new
+  what: Nothing on disk but the current board, so one bad load or one wrong edit is unrecoverable
+  spec: docs/specs/never-lose-a-board.md
+  files:
+  - src/model/history.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_history.mjs
+    criterion: 'tests/model/test_history.mjs passes: thirty snapshots newest first, and a full disk drops
+      history rather than the board'
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-history-to-go-back-to.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T11:14:58.497'
+    commit: dc8329f-dirty
+  fix:
+    file: .proofs/there-is-no-history-to-go-back-to.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T11:19:06.139'
+    commit: dc8329f-dirty
+- id: nothing-checks-that-the-editor-boots
+  type: new
+  what: Every suite tests modules in node, so a syntax or initialisation-order fault in app.js ships as
+    a blank page with all checks green
+  spec: docs/specs/never-lose-a-board.md
+  files:
+  - scripts/check_all.mjs
+  test:
+    command: null
+    criterion: a check loads the editor in a browser and fails on any page error
+    runs: 1
+  trial: null
+  fix: null

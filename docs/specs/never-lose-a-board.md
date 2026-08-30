@@ -1,8 +1,54 @@
 # SPEC — never lose a board
 
-status: draft
+status: implemented, both entries CLOSED
 area: storage-api, editor-ui
-source_hash: (set in Phase 5)
+source_hash:
+  src/model/repair.js:   a4556be436bec1b0492c40ad39139c79dfaa8029d9e5f8cd54dd2ed171165e5e
+  src/model/history.js:  08d758f7ad8f4539fcaff623f178e4ac0666b879d755e9a283ee7ee374d8c6c4
+  public/app.js:         bbbbf1c7c702c743588c7e6651ad7396a1d07b7c1be60bc1ea9f1fdcea95f286
+  public/index.html:     4201e673bc55905a1445d5c103d0355b4875f95068cfda1743e3b07f73a98b46
+  public/style.css:      dfa703ecba4639890a0ddd3acc7ab42b04b5884e621ae1adfa301df8516551df
+
+## What the browser actually did
+
+Red 0/12 and 0/9 → green 12/12 and 9/9, both entries closed. 31 suites green; the 32nd is
+the net-label feature, still unbuilt.
+
+**Peter's actual lost board, fed to the real editor with all five illegal placements still
+in it:**
+
+| | |
+|---|---|
+| parts drawn | **13** — TMC2209, J1, J2, J3, L1–L8, R1 |
+| cuts drawn | 13 |
+| banner | *"5 things in the stored board could not be opened and were left out. The rest is intact. A1 was a Point to point (pen) placed as a component, which it cannot be. It was at hole 8,9 — draw it with the wire tool…"* |
+| page errors | 0 |
+
+The five are **named with their positions**, so nothing disappears without saying so.
+
+**History**: one edit produced one snapshot holding 14 parts.
+
+**Escape**: palette armed `true` → press Escape → tool `select`, palette armed `false`.
+
+`tests/model/test_repair.mjs` loads `recovered/original-as-saved.json` directly, so the
+board this failed on is now a permanent check. It cannot regress without that file failing.
+
+## A blank page, shipped and caught, in the middle of fixing blank pages
+
+The first cut of this put `let loadRepairs = []` **below** the `state` declaration. `state`
+calls `load()` during its own initialisation, so the `let` was in its temporal dead zone:
+
+```
+ReferenceError: Cannot access 'loadRepairs' before initialization
+    at load (app.js:115) at app.js:75
+```
+
+A blank page — the exact failure this work exists to stop — introduced while stopping it.
+Every node suite passed, because they test the modules and **nothing checks that app.js
+boots**. Phase 4 caught it, which is the only reason it is a paragraph here rather than
+another thing Peter found.
+
+That gap is real and is filed: `nothing-checks-that-the-editor-boots`.
 
 Peter, 2026-08-30: *"if I spend time designing a board I dont expect it to disappear."*
 
@@ -64,6 +110,24 @@ dropped until the write succeeds, and the current board is always written first.
 
 A **Restore** control lists the snapshots by time and how many parts each held, so "the one
 before it went blank" is findable by looking rather than by counting clicks.
+
+## Two more, found while reading the code for this
+
+**`persist()` swallows a full disk.**
+
+```js
+try { localStorage.setItem(STORE_KEY, JSON.stringify(state.project)); } catch { /* full */ }
+```
+
+An empty catch with a comment where the handling should be. Once the quota is hit, every
+later edit is silently not saved; you keep working and find out on reload. `persist()`
+returns whether it wrote, and a failure raises a banner — *"not saved: storage is full"* —
+rather than a comment nobody reads.
+
+**Escape leaves the palette lit.** `buildPalette` marks an item `is-on` from `state.part`;
+`setTool` only touches `.tool` buttons. They are independent, so `Escape` arms Select while
+the palette still shows a part chosen, and nothing on screen says the next click will not
+place. The palette shows a part as armed **only while the place tool is armed**.
 
 ## Files
 
