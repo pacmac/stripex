@@ -730,3 +730,32 @@
     failures: 0
     at: '2026-08-30T10:20:40.591'
     commit: 341e803-dirty
+- id: a-cut-under-a-component-cannot-be-clicked
+  type: bug
+  what: Parts are painted after breaks, so a component body takes every click over a cut beneath it and
+    the cuts under a DIL are unreachable
+  spec: docs/specs/break-hit-targets.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_break_hit.mjs
+    criterion: 'tests/render/test_break_hit.mjs passes: every drawn break has an invisible hit target
+      painted after the parts'
+    runs: 1
+  trial:
+    file: .proofs/a-cut-under-a-component-cannot-be-clicked.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:26:19.211'
+    commit: f979aa9-dirty
+  fix:
+    file: .proofs/a-cut-under-a-component-cannot-be-clicked.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:29:40.326'
+    commit: f979aa9-dirty

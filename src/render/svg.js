@@ -577,7 +577,42 @@ export function renderBoard(project, opts = {}) {
     }
   }
 
-  // 8. the armed move handle, drawn last so nothing covers the pin you are
+  // 8. hit targets for the cuts.
+  //
+  // A part is painted after the breaks, so its body — translucent, but painted —
+  // was the topmost element over any cut beneath it and took the click. Every
+  // cut under a DIL was unreachable, which is exactly the set a DIL creates.
+  //
+  // These are invisible, so the drawing is unchanged and the cuts still show
+  // THROUGH the body where they physically are. They exist only to be clicked,
+  // and precision decides who wins: a cut's target is at most 2.8 mm across
+  // against a body tens of millimetres wide, so clicking exactly on the cut
+  // gets the cut and clicking anywhere else on the part gets the part.
+  //
+  // Emitted only when the breaks layer is visible: a hidden layer that still
+  // swallowed clicks is the fault the layer feature exists to avoid.
+  if (L.breaks) {
+    for (const br of cuts) {
+      const at = br.at ?? 'gap';
+      const bx = at === 'hole' ? holeToMm(br.x, br.row).x : (br.x + 1) * PITCH_MM;
+      const y = holeToMm(0, br.row).y;
+      // Deliberately SMALLER than the drawn marker, and no bigger than a pad.
+      // A generous target measured 44% of a DIL's body: seven of them down the
+      // middle of a 12.7 mm-wide package, so selecting the chip was close to a
+      // coin flip. Sized like a pad it is comfortably clickable — pads are
+      // clicked all the time by the move tool — while leaving the body the
+      // obvious thing to hit.
+      const common = `data-kind="break-hit" data-break="${br.row},${br.x}"`
+        + ` data-at="${at}" fill="none" pointer-events="all"`;
+      out.push(at === 'hole'
+        ? `<circle ${common} cx="${n(mx(bx))}" cy="${n(y)}" r="${n(PAD_R_MM)}"/>`
+        : `<rect ${common} x="${n(mx(bx) - PAD_R_MM * 0.6)}"`
+          + ` y="${n(y - TRACK_W_MM / 2)}" width="${n(PAD_R_MM * 1.2)}"`
+          + ` height="${n(TRACK_W_MM)}"/>`);
+    }
+  }
+
+  // 9. the armed move handle, drawn last so nothing covers the pin you are
   //    about to move the part by. Not the selection halo: a part can be selected
   //    and not armed, and armed without being selected.
   if (moveAnchor && Number.isInteger(moveAnchor.col)) {

@@ -1,0 +1,2 @@
+$ node tests/render/test_break_hit.mjs
+break-hit: 11/11 checks passed

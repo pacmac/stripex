@@ -721,7 +721,10 @@ function onBoardClick(evt) {
     case 'delete': {
       const partEl = evt.target.closest('[data-kind="part"]');
       const wireEl = evt.target.closest('[data-kind="wire"], [data-kind="wire-label"]');
-      const breakEl = evt.target.closest('[data-kind="break"]');
+      // break-hit is the invisible target painted above the parts, so a cut
+      // under a component is reachable. It carries the same data-break, so it
+      // is treated as the cut it stands for.
+      const breakEl = evt.target.closest('[data-kind="break"], [data-kind="break-hit"]');
       if (partEl) {
         const ref = partEl.getAttribute('data-ref');
         p.placements = p.placements.filter((x) => x.ref !== ref);
@@ -749,7 +752,10 @@ function onBoardClick(evt) {
     default: {
       const partEl = evt.target.closest('[data-kind="part"]');
       const wireEl = evt.target.closest('[data-kind="wire"], [data-kind="wire-label"]');
-      const breakEl = evt.target.closest('[data-kind="break"]');
+      // break-hit is the invisible target painted above the parts, so a cut
+      // under a component is reachable. It carries the same data-break, so it
+      // is treated as the cut it stands for.
+      const breakEl = evt.target.closest('[data-kind="break"], [data-kind="break-hit"]');
       if (partEl) state.selection = { kind: 'part', ref: partEl.getAttribute('data-ref') };
       else if (wireEl) state.selection = { kind: 'wire', ref: wireEl.getAttribute('data-ref') };
       else if (breakEl) {
