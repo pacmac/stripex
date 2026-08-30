@@ -39,6 +39,8 @@ export const THEMES = {
     error: '#d1242f',
     warning: '#bf8700',
     select: '#0a7ea4',
+    silk: '#26303d',
+    silkFill: '#1d2836',
   },
   dark: {
     substrate: '#2a2418',
@@ -58,6 +60,8 @@ export const THEMES = {
     error: '#ff7b72',
     warning: '#e3b341',
     select: '#3fc9f0',
+    silk: '#e6ded0',
+    silkFill: '#f2ece2',
   },
 };
 
@@ -101,6 +105,23 @@ export function cutList(project) {
 // Body dimensions in the library are in HOLE UNITS, so a part keeps its
 // proportions if the pitch constant is ever corrected.
 
+// Silkscreen: an outline that says where the part sits and which way round it
+// goes, over a wash you can see the board through.
+//
+// SILK_STROKE_MM is not a taste. Real silkscreen prints at roughly 0.15-0.25 mm,
+// and the viewBox is in millimetres, so at this scale a thinner line disappears
+// and a thicker one starts reading as a filled shape again.
+//
+// The wash is not dropped to a pure outline. Over a busy board you need to tell
+// which holes are UNDER a part — a hole under a DIP body is one you must not put
+// a wire in — and 0.16 says "something is over this" while leaving the strip and
+// the hole plainly visible.
+const SILK_STROKE_MM = 0.22;
+const SILK_FILL_OPACITY = 0.16;
+
+const silk = (c) => `fill="${c.silkFill}" fill-opacity="${SILK_FILL_OPACITY}"`
+  + ` stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"`;
+
 function bodyFor(part, pts, c) {
   const shape = part.body?.shape ?? 'blob';
   const a = pts[0];
@@ -116,37 +137,42 @@ function bodyFor(part, pts, c) {
     case 'axial': {
       const bw = (part.body.bodyWidth ?? 0.42) * PITCH_MM * 2;
       const bl = Math.max(len - 1.2 * PITCH_MM, PITCH_MM * 0.8);
+      // The cathode band, in the outline colour. On a translucent body a
+      // light-on-dark mark would be invisible.
       const bar = part.body.polarised
-        ? `<rect x="${n(bl / 2 - bl * 0.14)}" y="${n(-bw / 2)}" width="${n(bl * 0.09)}"`
-          + ` height="${n(bw)}" fill="${c.bodyInk}"/>`
+        ? `<rect x="${n(bl / 2 - bl * 0.16)}" y="${n(-bw / 2)}" width="${n(bl * 0.1)}"`
+          + ` height="${n(bw)}" fill="${c.silk}"/>`
         : '';
       return `<g transform="translate(${n(mx)} ${n(my)}) rotate(${n(angle)})">`
         + `<rect data-kind="part-body" x="${n(-bl / 2)}" y="${n(-bw / 2)}"`
-        + ` width="${n(bl)}" height="${n(bw)}" rx="${n(bw * 0.22)}" fill="${c.body}"/>`
+        + ` width="${n(bl)}" height="${n(bw)}" rx="${n(bw * 0.22)}" ${silk(c)}/>`
         + `${bar}</g>`;
     }
     case 'can':
     case 'blob': {
       const r = (part.body.radius ?? 1.0) * PITCH_MM * 0.5 + len / 2;
       const mark = part.body.polarised
-        ? `<text x="${n(mx - r * 0.55)}" y="${n(my + r * 0.28)}" font-size="${n(r * 0.8)}"`
-          + ` fill="${c.bodyInk}" text-anchor="middle" font-family="sans-serif">+</text>`
+        ? `<text x="${n(mx - r * 0.5)}" y="${n(my + r * 0.28)}" font-size="${n(r * 0.8)}"`
+          + ` fill="${c.silk}" text-anchor="middle" font-family="sans-serif">+</text>`
         : '';
       return `<circle data-kind="part-body" cx="${n(mx)}" cy="${n(my)}" r="${n(r)}"`
-        + ` fill="${c.body}" opacity="0.92"/>${mark}`;
+        + ` ${silk(c)}/>${mark}`;
     }
     case 'd-package': {
       const r = (part.body.radius ?? 1.1) * PITCH_MM;
       return `<g transform="translate(${n(mx)} ${n(my)}) rotate(${n(angle)})">`
         + `<path data-kind="part-body" d="M ${n(-r)} ${n(-r * 0.55)} A ${n(r)} ${n(r)} 0 1 0`
-        + ` ${n(-r)} ${n(r * 0.55)} Z" fill="${c.body}"/></g>`;
+        + ` ${n(-r)} ${n(r * 0.55)} Z" ${silk(c)}/></g>`;
     }
     case 'tab': {
       const w = (part.body.width ?? 3.2) * PITCH_MM * 0.5;
       const d = (part.body.depth ?? 1.6) * PITCH_MM * 0.5;
       return `<g transform="translate(${n(mx)} ${n(my)}) rotate(${n(angle)})">`
         + `<rect data-kind="part-body" x="${n(-w / 2)}" y="${n(-d)}" width="${n(w)}"`
-        + ` height="${n(d * 1.1)}" rx="${n(PITCH_MM * 0.15)}" fill="${c.body}"/></g>`;
+        + ` height="${n(d * 1.1)}" rx="${n(PITCH_MM * 0.15)}" ${silk(c)}/>`
+        // the mounting-tab line, which is how you tell a TO-220's orientation
+        + `<line x1="${n(-w / 2)}" y1="${n(-d * 0.66)}" x2="${n(w / 2)}"`
+        + ` y2="${n(-d * 0.66)}" stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"/></g>`;
     }
     case 'dip': {
       const xs = pts.map((p) => p.x);
@@ -156,20 +182,31 @@ function bodyFor(part, pts, c) {
       const y0 = Math.min(...ys) - pad;
       const w = Math.max(...xs) - Math.min(...xs) + pad * 2;
       const h = Math.max(...ys) - Math.min(...ys) + pad * 2;
+      // The notch at the pin-1 end and a ring on pin 1 itself: the two marks a
+      // real DIL silkscreen carries.
+      const horiz = w >= h;
+      const notchR = PITCH_MM * 0.34;
+      const notch = horiz
+        ? `<path d="M ${n(x0)} ${n(y0 + h / 2 - notchR)} A ${n(notchR)} ${n(notchR)} 0 0 0`
+          + ` ${n(x0)} ${n(y0 + h / 2 + notchR)}" fill="none" stroke="${c.silk}"`
+          + ` stroke-width="${SILK_STROKE_MM}"/>`
+        : `<path d="M ${n(x0 + w / 2 - notchR)} ${n(y0)} A ${n(notchR)} ${n(notchR)} 0 0 1`
+          + ` ${n(x0 + w / 2 + notchR)} ${n(y0)}" fill="none" stroke="${c.silk}"`
+          + ` stroke-width="${SILK_STROKE_MM}"/>`;
       return `<rect data-kind="part-body" x="${n(x0)}" y="${n(y0)}" width="${n(w)}"`
-        + ` height="${n(h)}" rx="${n(PITCH_MM * 0.2)}" fill="${c.body}" opacity="0.95"/>`
-        + `<circle cx="${n(pts[0].x)}" cy="${n(pts[0].y)}" r="${n(PITCH_MM * 0.16)}"`
-        + ` fill="${c.bodyInk}"/>`;
+        + ` height="${n(h)}" rx="${n(PITCH_MM * 0.2)}" ${silk(c)}/>${notch}`
+        + `<circle cx="${n(pts[0].x)}" cy="${n(pts[0].y)}" r="${n(PITCH_MM * 0.34)}"`
+        + ` fill="none" stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"/>`;
     }
     case 'header': {
       return pts.map((p) => `<rect data-kind="part-body" x="${n(p.x - PITCH_MM * 0.4)}"`
         + ` y="${n(p.y - PITCH_MM * 0.4)}" width="${n(PITCH_MM * 0.8)}"`
-        + ` height="${n(PITCH_MM * 0.8)}" fill="${c.body}"/>`).join('');
+        + ` height="${n(PITCH_MM * 0.8)}" ${silk(c)}/>`).join('');
     }
     case 'hole': {
       return `<circle data-kind="part-body" cx="${n(a.x)}" cy="${n(a.y)}"`
         + ` r="${n((part.body.radius ?? 1.4) * PITCH_MM * 0.5)}" fill="none"`
-        + ` stroke="${c.ink}" stroke-width="${n(PITCH_MM * 0.09)}" stroke-dasharray="1 1"/>`;
+        + ` stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}" stroke-dasharray="1 1"/>`;
     }
     case 'chip': {
       // Drawn at its real size in millimetres, not at a hole pitch: a 0603 is
@@ -180,16 +217,16 @@ function bodyFor(part, pts, c) {
       const cap = bl * 0.22;
       return `<g transform="translate(${n(mx)} ${n(my)}) rotate(${n(angle)})">`
         + `<rect data-kind="part-body" x="${n(-bl / 2)}" y="${n(-bw / 2)}"`
-        + ` width="${n(bl)}" height="${n(bw)}" fill="${c.body}"/>`
+        + ` width="${n(bl)}" height="${n(bw)}" ${silk(c)}/>`
         + `<rect x="${n(-bl / 2)}" y="${n(-bw / 2)}" width="${n(cap)}" height="${n(bw)}"`
-        + ` fill="${c.lead}"/>`
+        + ` fill="${c.silk}" fill-opacity="0.5"/>`
         + `<rect x="${n(bl / 2 - cap)}" y="${n(-bw / 2)}" width="${n(cap)}" height="${n(bw)}"`
-        + ` fill="${c.lead}"/></g>`;
+        + ` fill="${c.silk}" fill-opacity="0.5"/></g>`;
     }
     case 'line':
     default:
       return `<line data-kind="part-body" x1="${n(a.x)}" y1="${n(a.y)}" x2="${n(b.x)}"`
-        + ` y2="${n(b.y)}" stroke="${c.lead}" stroke-width="${n(PITCH_MM * 0.22)}"`
+        + ` y2="${n(b.y)}" stroke="${c.silk}" stroke-width="${n(PITCH_MM * 0.18)}"`
         + ' stroke-linecap="round"/>';
   }
 }

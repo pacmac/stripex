@@ -362,3 +362,46 @@
     failures: 0
     at: '2026-08-30T08:34:35.179'
     commit: 455ed5a-dirty
+- id: components-are-opaque-blobs-that-hide-the-board-under-them
+  type: bug
+  what: Part bodies are opaque grey fills with no outline, so you cannot see the copper or holes underneath
+    and the board reads as slabs rather than a circuit
+  spec: docs/specs/silkscreen-components.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_silkscreen.mjs
+    criterion: 'tests/render/test_silkscreen.mjs passes: every part body has an outline and a fill you
+      can see through'
+    runs: 1
+  trial:
+    file: .proofs/components-are-opaque-blobs-that-hide-the-board-under-them.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:35:56.440'
+    commit: 20764f7-dirty
+  fix:
+    file: .proofs/components-are-opaque-blobs-that-hide-the-board-under-them.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:37:59.768'
+    commit: 20764f7-dirty
+- id: component-outlines-are-drawn-far-larger-than-the-real-parts
+  type: bug
+  what: 'Body outlines are oversized: a 2-hole electrolytic draws an 8mm circle for a part that is about
+    5mm, and TO-92 and LED are similarly inflated'
+  spec: docs/specs/silkscreen-components.md
+  files:
+  - src/parts/library.js
+  - src/render/svg.js
+  test:
+    command: null
+    criterion: a part's drawn body matches its real package size in mm, checked against datasheet dimensions
+      the way the 0603 already is
+    runs: 1
+  trial: null
+  fix: null
