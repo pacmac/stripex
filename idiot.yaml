@@ -1367,3 +1367,34 @@
     failures: 0
     at: '2026-08-30T14:18:10.208'
     commit: f82c635-dirty
+- id: a-second-name-on-one-net-has-no-field-and-cannot-be-renamed
+  type: bug
+  what: netLabelsByNet keeps only the first label on a net, so a second name on the same net has no row,
+    no field and no way to be renamed or cleared. On Peter's board 11 of 12 stored names have a field;
+    3V3 at hole 6,5 shares a net with 0V and is unreachable.
+  spec: docs/specs/every-net-name-is-editable.md
+  files:
+  - src/model/nets.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_net_labels.mjs
+    criterion: '22/22 checks: every label on a net is reachable with the hole it is anchored to, a killed
+      hole is still dropped, netLabelsByNet is unchanged, and all twelve names on Peter''s board have
+      a field'
+    runs: 1
+  trial:
+    file: .proofs/a-second-name-on-one-net-has-no-field-and-cannot-be-renamed.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T14:27:01.671'
+    commit: 7359442-dirty
+  fix:
+    file: .proofs/a-second-name-on-one-net-has-no-field-and-cannot-be-renamed.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T14:28:36.534'
+    commit: 7359442-dirty

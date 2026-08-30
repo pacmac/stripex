@@ -1,0 +1,52 @@
+{
+  "schema": "stripex/1",
+  "name": "untitled",
+  "board": { "cols": 25, "rows": 20, "pattern": "strip" },
+  "breaks": [
+    { "row": 7, "x": 5, "at": "hole" },
+    { "row": 8, "x": 5, "at": "hole" },
+    { "row": 3, "x": 7, "at": "hole" },
+    { "row": 11, "x": 8, "at": "hole" },
+    { "row": 12, "x": 7, "at": "hole" },
+    { "row": 13, "x": 7, "at": "hole" },
+    { "row": 14, "x": 7, "at": "hole" },
+    { "row": 15, "x": 7, "at": "hole" },
+    { "row": 16, "x": 7, "at": "hole" },
+    { "row": 17, "x": 7, "at": "hole" },
+    { "row": 18, "x": 7, "at": "hole" },
+    { "row": 4, "x": 6, "at": "hole" },
+    { "row": 5, "x": 7, "at": "hole" },
+    { "row": 6, "x": 7, "at": "hole" }
+  ],
+  "placements": [
+    { "ref": "TMC2209", "part": "dip", "at": { "col": 4, "row": 11 }, "rot": 90, "span": 8, "width": 5, "silk": "#2f9e44", "autoBreak": false },
+    { "ref": "J1", "part": "header", "at": { "col": 1, "row": 0 }, "rot": 90, "span": 3 },
+    { "ref": "L1", "part": "wire-link", "at": { "col": 9, "row": 0 }, "rot": 90, "span": 4 },
+    { "ref": "L2", "part": "wire-link", "at": { "col": 8, "row": 1 }, "rot": 90, "span": 2, "silk": "#3c2526" },
+    { "ref": "L3", "part": "wire-link", "at": { "col": 3, "row": 2 }, "rot": 90, "span": 16 },
+    { "ref": "J2", "part": "header", "at": { "col": 1, "row": 5 }, "rot": 90, "span": 4 },
+    { "ref": "J3", "part": "header", "at": { "col": 1, "row": 13 }, "rot": 90, "span": 4 },
+    { "ref": "L4", "part": "wire-link", "at": { "col": 2, "row": 0 }, "rot": 90, "span": 5 },
+    { "ref": "L5", "part": "wire-link", "at": { "col": 2, "row": 6 }, "rot": 90, "span": 4 },
+    { "ref": "L6", "part": "wire-link", "at": { "col": 9, "row": 5 }, "rot": 90, "span": 5 },
+    { "ref": "R1", "part": "smt-0603", "at": { "col": 5, "row": 9 }, "rot": 0 },
+    { "ref": "L7", "part": "wire-link", "at": { "col": 7, "row": 4 }, "rot": 90, "span": 7 },
+    { "ref": "L8", "part": "wire-link", "at": { "col": 6, "row": 11 }, "rot": 90, "span": 6 },
+    { "ref": "U1", "part": "dip", "at": { "col": 4, "row": 3 }, "rot": 90, "span": 7, "width": 6, "autoBreak": false }
+  ],
+  "wires": [],
+  "netLabels": {
+    "0,0": { "name": "0V" },
+    "0,1": { "name": "VUSB" },
+    "0,2": { "name": "VMOT" },
+    "0,7": { "name": "SDA" },
+    "0,8": { "name": "SCL" },
+    "6,5": { "name": "3V3" },
+    "9,11": { "name": "EN" },
+    "0,13": { "name": "M1A" },
+    "0,14": { "name": "M1B" },
+    "0,15": { "name": "M2A" },
+    "0,16": { "name": "M2B" },
+    "0,4": { "name": "DIR" }
+  }
+}

@@ -17,7 +17,9 @@ import {
 import { toolForKey } from '/src/render/keys.js';
 import { loadProject } from '/src/model/repair.js';
 import { pushSnapshot, readHistory, describe } from '/src/model/history.js';
-import { netLabelsByNet, netLabelProblems, setNetLabel } from '/src/model/nets.js';
+import {
+  netLabelsByNet, netLabelsAllByNet, netLabelProblems, setNetLabel,
+} from '/src/model/nets.js';
 import { segments } from '/src/net/segments.js';
 
 // A banner is how the user is told something happened to their board. A console
@@ -382,7 +384,7 @@ function paintFindings(findings) {
 
 function paintNets() {
   const { nets, segmentNet } = netsFor(state.project);
-  const labels = netLabelsByNet(state.project, segmentNet);
+  const allLabels = netLabelsAllByNet(state.project, segmentNet);
 
   // A net has no stable identity — n0 means "the net holding the top-left-most
   // segment" — so a name is anchored to a HOLE. The anchor is the first hole of
@@ -402,26 +404,40 @@ function paintNets() {
     : '';
 
   $('#tab-nets').innerHTML = warn + (nets.map((netObj) => {
-    const label = labels.get(netObj.id);
     const a = anchorOf(netObj);
     const anchor = a ? `${a.col},${a.row}` : '';
+    // ONE FIELD PER STORED LABEL, not one per net. A name belongs to a hole, so
+    // a net can carry several — and when it did, only the first had a field.
+    // The rest could not be renamed or cleared, and nothing on screen said
+    // where they were. An unnamed net gets one empty field at its anchor, which
+    // is how a name is added.
+    const mine = allLabels.get(netObj.id) ?? [];
+    const rows = mine.length ? mine : [{ name: '', colour: undefined, hole: a }];
     const picked = state.selection?.kind === 'net' && state.selection.ref === netObj.id;
+    const heading = mine.length
+      ? mine.map((l) => l.name).filter(Boolean).join(' · ') || netObj.id
+      : netObj.id;
+    const editor = (label) => {
+      // Each field carries its OWN hole, so it edits the label it shows.
+      const at = label.hole ? `${label.hole.col},${label.hole.row}` : anchor;
+      return `
+    <div class="net-edit">
+      <input data-netname="${at}" value="${escapeHtml(label.name ?? '')}"
+        placeholder="name this net" style="width:104px">
+      <span class="sw-now" style="background:${label.colour ?? 'transparent'}"></span>
+      ${PALETTE_16.slice(0, 8).map((cc) => `<button class="sw" data-netcolour="${at}"
+        data-hex="${cc.hex}" style="background:${cc.hex}" title="${cc.name}"></button>`).join('')}
+      <button class="sw sw-clear" data-netcolour="${at}" data-hex=""
+        title="No colour">&times;</button>
+    </div>`;
+    };
     return `
     <div class="row${picked ? ' is-net-on' : ''}" data-net="${netObj.id}"
       ${picked ? 'data-selected="true"' : ''}>
-      <span class="ref mono">${escapeHtml(label?.name ?? netObj.id)}</span>
+      <span class="ref mono">${escapeHtml(heading)}</span>
       <span class="msg">${netObj.segments.length} segment${netObj.segments.length === 1 ? '' : 's'},
         ${netObj.pins.length} connection${netObj.pins.length === 1 ? '' : 's'}</span>
-    </div>
-    <div class="net-edit">
-      <input data-netname="${anchor}" value="${escapeHtml(label?.name ?? '')}"
-        placeholder="name this net" style="width:104px">
-      <span class="sw-now" style="background:${label?.colour ?? 'transparent'}"></span>
-      ${PALETTE_16.slice(0, 8).map((cc) => `<button class="sw" data-netcolour="${anchor}"
-        data-hex="${cc.hex}" style="background:${cc.hex}" title="${cc.name}"></button>`).join('')}
-      <button class="sw sw-clear" data-netcolour="${anchor}" data-hex=""
-        title="No colour">&times;</button>
-    </div>`;
+    </div>${rows.map(editor).join('')}`;
   }).join('') || '<p class="empty">No nets.</p>');
 
   for (const input of $('#tab-nets').querySelectorAll('[data-netname]')) {

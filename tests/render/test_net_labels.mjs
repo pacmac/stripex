@@ -170,6 +170,88 @@ s.check('setNetLabel writes and clears without mutating the project', () => {
   eq(cleared.netLabels['1,0'], undefined, 'and it can be cleared');
 });
 
+// ----------------------------------------- every name on a net has a field
+// Governed by docs/specs/every-net-name-is-editable.md
+
+const { readFileSync } = await import('node:fs');
+
+// Two names on ONE net: the shape Peter hit. A name is anchored to a HOLE, on
+// purpose, so a net may legitimately carry several — and two of them disagreeing
+// is a real finding about the board, not something to resolve by dropping one.
+function twoNames() {
+  const p = chain();
+  p.netLabels = { '1,0': { name: '0V' }, '9,6': { name: '3V3' } };
+  return p;
+}
+
+s.check('A SECOND NAME ON ONE NET IS STILL REACHABLE', () => {
+  // netLabelsByNet keeps the first and discards the rest, so the second name had
+  // no row, no field, and no way to be renamed or cleared. It was permanent.
+  const p = twoNames();
+  const { segmentNet } = R.netsFor(p);
+  const all = N.netLabelsAllByNet(p, segmentNet);
+  const netId = [...all.keys()][0];
+  eq(all.size, 1, 'one net');
+  eq(all.get(netId).map((l) => l.name), ['0V', '3V3'], 'BOTH names, in stored order');
+});
+
+s.check('each one knows the hole it is anchored to', () => {
+  // Which is what makes a field able to edit or clear it on its own.
+  const p = twoNames();
+  const all = N.netLabelsAllByNet(p, R.netsFor(p).segmentNet);
+  const holes = [...all.values()][0].map((l) => `${l.hole.col},${l.hole.row}`);
+  eq(holes, ['1,0', '9,6'], 'the two holes');
+});
+
+s.check('an ordinary net has one, and an unnamed one has none', () => {
+  const p = named();
+  const all = N.netLabelsAllByNet(p, R.netsFor(p).segmentNet);
+  for (const list of all.values()) ok(list.length >= 1, 'no empty lists');
+  const plain = boardm.makeProject({ cols: 12, rows: 8 });
+  eq(N.netLabelsAllByNet(plain, R.netsFor(plain).segmentNet).size, 0, 'nothing on a bare board');
+});
+
+s.check('a label on a killed hole is still dropped', () => {
+  // A spot-faced hole belongs to no segment, so it is on no net. That was right
+  // before and stays right.
+  const p = chain();
+  p.breaks = [{ row: 0, x: 3, at: 'hole' }];
+  p.netLabels = { '3,0': { name: 'NOWHERE' } };
+  const all = N.netLabelsAllByNet(p, R.netsFor(p).segmentNet);
+  ok(![...all.values()].flat().some((l) => l.name === 'NOWHERE'), 'not listed');
+});
+
+s.check('netLabelsByNet still answers with exactly the first', () => {
+  // The board draws one plate per net and the strip takes one colour, so the
+  // single-label question still has to have a single answer.
+  const p = twoNames();
+  const { segmentNet } = R.netsFor(p);
+  const one = N.netLabelsByNet(p, segmentNet);
+  eq([...one.values()].map((l) => l.name), ['0V'], 'the first');
+});
+
+// Every label the Nets tab can put a field on — through whichever map it renders
+// from. The fallback is not politeness: it makes the check below MEASURE the
+// shortfall rather than merely report a missing function, so the red run says
+// "11 of 12" instead of "not a function".
+const reachableLabels = (p, sn) => (N.netLabelsAllByNet
+  ? [...N.netLabelsAllByNet(p, sn).values()].flat()
+  : [...N.netLabelsByNet(p, sn).values()]);
+
+s.check('ON PETER’S BOARD, ALL TWELVE NAMES ARE REACHABLE', () => {
+  // The board he pasted on 2026-08-30: 27 nets, 12 stored labels, and 3V3 at
+  // hole 6,5 sharing a net with 0V at 0,0 because L4, L5 and L7 join them.
+  // Eleven of the twelve had a field and that one did not, so it could not be
+  // renamed, cleared, or even located.
+  const p = JSON.parse(readFileSync(new URL('../fixtures/two-names-on-one-net.json', import.meta.url)));
+  const { segmentNet } = R.netsFor(p);
+  const stored = Object.keys(p.netLabels).length;
+  const names = reachableLabels(p, segmentNet).map((l) => l.name);
+  eq(stored, 12, 'twelve stored');
+  ok(names.length === stored, `${names.length} of ${stored} stored names have a field`);
+  ok(names.includes('3V3'), `3V3 among them: ${names.join(' ')}`);
+});
+
 s.check('validateProject accepts netLabels and rejects a malformed one', () => {
   const p = named();
   eq(boardm.validateProject(p), [], 'a good one is fine');

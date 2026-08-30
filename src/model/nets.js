@@ -27,8 +27,21 @@ const parseHole = (key) => {
   return m ? { col: Number(m[1]), row: Number(m[2]) } : null;
 };
 
-// netId -> label, for every labelled net on this board.
-export function netLabelsByNet(project, segmentNet) {
+// netId -> EVERY label on that net, in stored order, each with the hole it is
+// anchored to.
+//
+// A net can legitimately carry more than one, because a name belongs to a HOLE
+// and not to the net — see the header of this file for why it cannot be
+// otherwise. Two of them disagreeing is a real finding about the board: it says
+// two runs the user thinks are separate are joined.
+//
+// This exists because the single-label map below silently kept the first and
+// dropped the rest, and the Nets tab rendered one field from it. A second name
+// therefore had no field: it could not be renamed, could not be cleared, could
+// not even be located, and every later rename of that net edited the other hole
+// and left it behind. Peter had one — 3V3 on the same net as 0V — and it was
+// permanent.
+export function netLabelsAllByNet(project, segmentNet) {
   const out = new Map();
   const segs = segments(project.board, effectiveBreaks(project));
   const idx = segmentIndex(segs);
@@ -39,7 +52,22 @@ export function netLabelsByNet(project, segmentNet) {
     if (!segId) continue;             // off the board, or a spot-faced hole
     const netId = segmentNet[segId];
     if (!netId) continue;
-    if (!out.has(netId)) out.set(netId, { ...label, hole });
+    if (!out.has(netId)) out.set(netId, []);
+    out.get(netId).push({ ...label, hole });
+  }
+  return out;
+}
+
+// netId -> THE label of a net: the first one on it.
+//
+// Deliberately single. The board draws one plate per net and the strip takes one
+// colour, so the question "what is this net called" has to have one answer. What
+// was wrong was not this map but the Nets tab rendering its only field from it —
+// see netLabelsAllByNet above.
+export function netLabelsByNet(project, segmentNet) {
+  const out = new Map();
+  for (const [netId, list] of netLabelsAllByNet(project, segmentNet)) {
+    if (list.length) out.set(netId, list[0]);
   }
   return out;
 }
