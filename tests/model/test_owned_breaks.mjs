@@ -94,9 +94,15 @@ s.check('a user cut in the same place is not duplicated', () => {
 s.check('the user cut wins, so it stays deletable', () => {
   const p = withDip();
   const derived = brk.effectiveBreaks(p)[0];
+  // Matched on place, not on place-and-kind: a DIL's derived cut is a spot-face
+  // at a hole while the user's is a knife cut in a gap, and one at the same
+  // place still supersedes the other.
   p.breaks.push({ row: derived.row, x: derived.x, at: 'gap' });
-  const same = brk.effectiveBreaks(p).find((b) => key(b) === key(derived));
+  const same = brk.effectiveBreaks(p)
+    .find((b) => b.row === derived.row && b.x === derived.x);
+  ok(same, 'a cut is still there');
   ok(!same.owner, 'the surviving cut has no owner');
+  eq(same.at, 'gap', 'and it is the user’s knife cut');
 });
 
 s.check('user cuts never carry an owner', () => {

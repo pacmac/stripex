@@ -334,3 +334,31 @@
     failures: 0
     at: '2026-08-30T08:31:20.710'
     commit: eb4d0a8-dirty
+- id: a-device-cannot-say-whether-its-cuts-are-knife-or-spot-face
+  type: new
+  what: Every required cut is a knife cut; a DIL should be spot-faced at the hole between its pin rows
+  spec: docs/specs/device-break-type.md
+  files:
+  - src/parts/library.js
+  - src/model/breaks.js
+  test:
+    command:
+    - node
+    - tests/parts/test_break_type.mjs
+    criterion: 'tests/parts/test_break_type.mjs passes: a straddling DIL cuts at holes, the same DIL along
+      the strips falls back to gaps, and an 0603 is always a knife cut'
+    runs: 1
+  trial:
+    file: .proofs/a-device-cannot-say-whether-its-cuts-are-knife-or-spot-face.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:33:07.271'
+    commit: 455ed5a-dirty
+  fix:
+    file: .proofs/a-device-cannot-say-whether-its-cuts-are-knife-or-spot-face.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:34:35.179'
+    commit: 455ed5a-dirty

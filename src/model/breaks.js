@@ -14,13 +14,35 @@
 // row, the strip between them has to be cut.
 
 import { resolvePins } from './rotate.js';
-import { getPart as defaultGetPart } from '../parts/library.js';
+import { getPart as defaultGetPart, breakTypeOf } from '../parts/library.js';
 
 // The gap index that separates two holes in the same row. A gap `x` cuts between
 // hole x and hole x+1, so separating columns a and b (a < b) needs a <= x < b.
 // Midway keeps the cut clear of both leads, which matters when you are holding a
 // craft knife rather than a CNC.
 export const gapBetween = (a, b) => Math.floor((a + b - 1) / 2);
+
+// The hole to drill to separate columns a and b. A spot-face is made AT a hole,
+// so it needs one strictly between the two pins — which only exists when they
+// are at least two apart.
+export const holeBetween = (a, b) => Math.floor((a + b) / 2);
+export const canSpotFace = (a, b) => Math.abs(b - a) >= 2;
+
+// The cut that separates one adjacent pair of same-row pins, honouring what the
+// device asked for.
+//
+// A spot-face device falls back to a knife cut when its pins are adjacent, and
+// that fallback is load-bearing rather than tidy-mindedness: a DIL straddling
+// the strips has its rows 3, 4 or 6 holes apart and can be drilled, but the same
+// DIL turned to lie ALONG the strips has adjacent pins in each row — a real
+// orientation the editor allows — where a spot-face is physically impossible.
+// Emitting nothing would leave the package shorted with no cut shown, and
+// drilling at a pin would take out a hole with a leg in it.
+function cutBetween(row, a, b, breakType) {
+  return breakType === 'spot-face' && canSpotFace(a, b)
+    ? { row, x: holeBetween(a, b), at: 'hole' }
+    : { row, x: gapBetween(a, b), at: 'gap' };
+}
 
 // The cuts a placement needs before it can work. Returns [] for a part that
 // declares no such requirement — a resistor lying along a strip is also shorted,
@@ -38,11 +60,12 @@ export function requiredBreaks(placement, getPart) {
     byRow.get(p.row).push(p.col);
   }
 
+  const breakType = breakTypeOf(part);
   const out = [];
   for (const [row, colsInRow] of [...byRow.entries()].sort((a, b) => a[0] - b[0])) {
     const cols = [...new Set(colsInRow)].sort((a, b) => a - b);
     for (let i = 1; i < cols.length; i += 1) {
-      out.push({ row, x: gapBetween(cols[i - 1], cols[i]), at: 'gap' });
+      out.push(cutBetween(row, cols[i - 1], cols[i], breakType));
     }
   }
   return out;

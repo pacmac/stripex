@@ -77,9 +77,14 @@ s.check('EVERY CUT LIES STRICTLY BETWEEN THE PINS IT SEPARATES', () => {
   }
 });
 
-s.check('every required cut is a knife cut between holes', () => {
+s.check('a straddling DIL is spot-faced, not knifed', () => {
+  // Changed deliberately on 2026-08-30: a DIL declares breakType 'spot-face',
+  // because there are holes between its two pin rows and you drill one out
+  // rather than getting a knife under the chip. See docs/specs/device-break-type.md.
+  // The detail lives in tests/parts/test_break_type.mjs; this only guards the
+  // shape of what requiredBreaks emits.
   for (const b of brk.requiredBreaks(dip(7, 3), lib.getPart)) {
-    eq(b.at, 'gap', 'at');
+    eq(b.at, 'hole', 'at');
   }
 });
 

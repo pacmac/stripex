@@ -1,0 +1,2 @@
+$ node tests/parts/test_break_type.mjs
+break-type: 13/13 checks passed

@@ -1,0 +1,12 @@
+$ node tests/parts/test_break_type.mjs
+FAIL  A DIL DECLARES SPOT-FACE
+      dip breakType: expected "spot-face", got undefined
+FAIL  the 0603s declare knife — their pads are adjacent
+      smt resistor: expected "knife", got undefined
+FAIL  a part that declares nothing counts as knife
+      lib.breakTypeOf is not a function
+FAIL  A STRADDLING DIL IS SPOT-FACED, NOT KNIFED
+      cut in row 4: expected "hole", got "gap"
+FAIL  a DIL in a project ends up with hole cuts on the real board
+      each is a spot-face: expected "hole", got "gap"
+break-type: 8/13 checks passed
