@@ -2617,4 +2617,162 @@
     failures: 1
     at: '2026-08-30T20:28:18.185'
     commit: 5e4cda2-dirty
+  fix:
+    file: .proofs/reopening-a-board-interrogates-the-user-instead-of-saving.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T20:30:37.759'
+    commit: 36ed01c-dirty
+- id: a-can-body-is-drawn-as-wide-as-its-leads-are-spread
+  type: bug
+  what: "A can-shaped body's radius is Math.max(box.w,box.h)/2 \u2014 half the lead span \u2014 and the\
+    \ body.radius declared on every can part in the library is never read. A capacitor placed with a 13-hole\
+    \ lead run is drawn as a 33mm disc covering a third of the board and hiding the copper under it. No\
+    \ real capacitor grows because you spread its leads."
+  spec: docs/specs/silkscreen-components.md
+  files:
+  - src/render/svg.js
+  - src/parts/library.js
+  test:
+    command: null
+    criterion: a can body is drawn at the size the library declares, growing with lead pitch only up to
+      that, and body.radius is actually read
+    runs: 1
+  trial: null
+  fix: null
+- id: refs-and-values-collide-with-each-other
+  type: bug
+  what: 'On a board with parts close together the ref/value text overlaps: ''LED1L4'' and ''R3 330R''
+    printed over the LED, ''C2 10n'' across the chip. Nothing positions a label with regard to any other
+    label.'
+  spec: docs/specs/silkscreen-components.md
+  files:
+  - src/render/svg.js
+  test:
+    command: null
+    criterion: adjacent parts' refs and values do not overlap on a dense board
+    runs: 1
+  trial: null
+  fix: null
+- id: renaming-a-board-someone-has-open-resurrects-it-under-the-old-name
+  type: bug
+  what: rename moves the file, but an editor with that board open keeps its slug and its next save re-creates
+    the board under the OLD name. Peter had 555-blinker open; renaming it to 555-blinker-v1 produced a
+    second board, identical copper, called 555 blinker, 16 seconds later. The live feed tells the editor
+    the board list changed and the editor does not follow the rename.
+  spec: docs/specs/live-board-feed.md
+  files:
+  - public/app.js
+  - src/server/live.js
+  test:
+    command: null
+    criterion: renaming a board an open editor is showing moves that editor to the new slug, and no board
+      reappears under the old name
+    runs: 1
+  trial: null
+  fix: null
+- id: there-is-no-way-to-ask-what-a-stored-board-connects
+  type: new
+  what: "/api/check answers nets, findings and runList but takes a whole project in the body. A caller\
+    \ holding only a slug must GET the board and POST it back to ask what is connected to what \u2014\
+    \ so the one verification step that matters (derive the nets from the copper) has no endpoint. I imported\
+    \ src/model/views.js into node by hand every time I needed it while building two boards."
+  spec: docs/specs/netlist-to-board.md
+  files:
+  - src/server/index.js
+  test:
+    command:
+    - node
+    - tests/server/test_board_queries.mjs
+    criterion: GET /api/boards/:slug/check returns nets with their pins, rule findings as well as DRC,
+      and 404s for a missing board
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-way-to-ask-what-a-stored-board-connects.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T22:08:19.067'
+    commit: 36ed01c-dirty
+  fix: null
+- id: a-board-cannot-be-resized-through-the-api
+  type: new
+  what: "There is no op or endpoint to change board.cols/rows. Making a board narrower means DELETE and\
+    \ rebuild \u2014 I did it three times on the 555 (20 to 14 to 12 to 11 columns), re-sending about\
+    \ thirty ops each time and losing the board's identity and history. A resize must refuse, naming them,\
+    \ when placements or wires would fall off the edge."
+  spec: docs/specs/netlist-to-board.md
+  files:
+  - src/model/ops.js
+  test:
+    command:
+    - node
+    - tests/model/test_resize.mjs
+    criterion: setBoardSize resizes in place, keeps the pin-carrying nets identical, is refused naming
+      the pin, wire, cut or label that would fall off, never refuses growth, and is registered as an op
+    runs: 1
+  trial:
+    file: .proofs/a-board-cannot-be-resized-through-the-api.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T22:09:58.405'
+    commit: 36ed01c-dirty
+  fix: null
+- id: nothing-catches-two-part-bodies-in-the-same-column
+  type: bug
+  what: "Two components in one column whose row spans overlap are physically impossible and no check reports\
+    \ it \u2014 a resistor spanning rows 4-9 and a capacitor spanning 6-8 in the same column pass the\
+    \ DRC, the rules and the netlist check. I avoided it by hand on every layout this session; the one\
+    \ time I nearly shipped it the only evidence was reading the coordinates myself."
+  spec: docs/specs/cuts-and-mounting.md
+  files:
+  - src/net/drc.js
+  test:
+    command: null
+    criterion: two placements whose bodies occupy the same board area are reported as an error
+    runs: 1
+  trial: null
+  fix: null
+- id: polarity-is-never-checked-anywhere
+  type: new
+  what: "An LED with its anode on the 0V net and a polarised capacitor with + on 0V both pass every check\
+    \ in the project. The LED on the first 555 board was in backwards and only reading which net each\
+    \ pin landed on caught it \u2014 the DRC, the design rules and the netlist check are all blind to\
+    \ polarity because a netlist states connectivity and says nothing about direction."
+  spec: docs/specs/rules-and-ops.md
+  files:
+  - src/model/rules.js
+  test:
+    command: null
+    criterion: a polarised part whose cathode or minus sits on a higher-potential net than its anode or
+      plus is reported
+    runs: 1
+  trial: null
+  fix: null
+- id: the-tightening-pass-has-no-query-behind-it
+  type: new
+  what: "Finding wasted columns and rows means listing what occupies each one. I wrote that by hand in\
+    \ node three times this session, which is the same shape as freeHolesOn \u2014 'written three times\
+    \ in three scratch scripts and wrong twice'. Peter spotted waste I had missed twice because the answer\
+    \ was not on screen anywhere."
+  spec: docs/specs/netlist-to-board.md
+  files:
+  - src/model/views.js
+  - src/server/index.js
+  test:
+    command:
+    - node
+    - tests/server/test_board_queries.mjs
+    criterion: GET /api/boards/:slug/usage names what occupies each column and row and lists the empty
+      ones and the empty strip segments
+    runs: 1
+  trial:
+    file: .proofs/the-tightening-pass-has-no-query-behind-it.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T22:08:19.564'
+    commit: 36ed01c-dirty
   fix: null

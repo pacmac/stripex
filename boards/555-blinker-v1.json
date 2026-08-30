@@ -1,0 +1,220 @@
+{
+  "schema": "stripex/1",
+  "name": "555 blinker v1",
+  "board": {
+    "cols": 12,
+    "rows": 11,
+    "pattern": "strip"
+  },
+  "breaks": [],
+  "placements": [
+    {
+      "ref": "U1",
+      "part": "dip",
+      "at": {
+        "col": 3,
+        "row": 3
+      },
+      "rot": 90,
+      "span": 4,
+      "width": 3,
+      "pinNames": [
+        "GND",
+        "TRIG",
+        "OUT",
+        "RESET",
+        "CTRL",
+        "THRESH",
+        "DISCH",
+        "VCC"
+      ]
+    },
+    {
+      "ref": "L1",
+      "part": "wire-link",
+      "at": {
+        "col": 0,
+        "row": 0
+      },
+      "rot": 90,
+      "span": 6
+    },
+    {
+      "ref": "L2",
+      "part": "wire-link",
+      "at": {
+        "col": 1,
+        "row": 3
+      },
+      "rot": 90,
+      "span": 7
+    },
+    {
+      "ref": "L3",
+      "part": "wire-link",
+      "at": {
+        "col": 7,
+        "row": 0
+      },
+      "rot": 90,
+      "span": 3
+    },
+    {
+      "ref": "L4",
+      "part": "wire-link",
+      "at": {
+        "col": 4,
+        "row": 1
+      },
+      "rot": 90,
+      "span": 9
+    },
+    {
+      "ref": "L5",
+      "part": "wire-link",
+      "at": {
+        "col": 6,
+        "row": 8
+      },
+      "rot": 90,
+      "span": 2
+    },
+    {
+      "ref": "L6",
+      "part": "wire-link",
+      "at": {
+        "col": 8,
+        "row": 4
+      },
+      "rot": 90,
+      "span": 3
+    },
+    {
+      "ref": "L7",
+      "part": "wire-link",
+      "at": {
+        "col": 9,
+        "row": 5
+      },
+      "rot": 90,
+      "span": 4
+    },
+    {
+      "ref": "R1",
+      "part": "res-axial",
+      "at": {
+        "col": 11,
+        "row": 3
+      },
+      "rot": 90,
+      "span": 4,
+      "value": "10k"
+    },
+    {
+      "ref": "R2",
+      "part": "res-axial",
+      "at": {
+        "col": 10,
+        "row": 7
+      },
+      "rot": 90,
+      "span": 2,
+      "value": "68k"
+    },
+    {
+      "ref": "C1",
+      "part": "cap-electro",
+      "at": {
+        "col": 11,
+        "row": 9
+      },
+      "rot": 90,
+      "span": 1,
+      "value": "10u"
+    },
+    {
+      "ref": "C2",
+      "part": "cap-ceramic",
+      "at": {
+        "col": 7,
+        "row": 6
+      },
+      "rot": 90,
+      "span": 2,
+      "value": "10n"
+    },
+    {
+      "ref": "C3",
+      "part": "cap-electro",
+      "at": {
+        "col": 11,
+        "row": 0
+      },
+      "rot": 90,
+      "span": 1,
+      "value": "100u"
+    },
+    {
+      "ref": "R3",
+      "part": "res-axial",
+      "at": {
+        "col": 2,
+        "row": 2
+      },
+      "rot": 90,
+      "span": 3,
+      "value": "330R"
+    },
+    {
+      "ref": "LED1",
+      "part": "led",
+      "at": {
+        "col": 3,
+        "row": 2
+      },
+      "rot": 270
+    }
+  ],
+  "wires": [
+    {
+      "ref": "A",
+      "from": {
+        "col": 0,
+        "row": 4
+      },
+      "to": {
+        "col": 5,
+        "row": 9
+      }
+    }
+  ],
+  "netLabels": {
+    "5,0": {
+      "name": "VCC"
+    },
+    "5,10": {
+      "name": "0V"
+    },
+    "1,4": {
+      "name": "TRIG-THR"
+    },
+    "0,5": {
+      "name": "OUT"
+    },
+    "1,6": {
+      "name": "RESET"
+    },
+    "0,7": {
+      "name": "DISCH"
+    },
+    "10,6": {
+      "name": "CTRL"
+    },
+    "0,2": {
+      "name": "LED-A"
+    },
+    "0,1": {
+      "name": "LED-K"
+    }
+  }
+}

@@ -372,6 +372,67 @@ function countPins(pl) {
   try { return resolvePins([pl], getPart).length; } catch { return 0; }
 }
 
+// ------------------------------------------------------------------ board
+
+// Change the outline, keeping everything on it.
+//
+// There was no way to do this at all: making a board narrower meant deleting it
+// and rebuilding it from its ops, which I did three times on one board — losing
+// its identity, its history and its name each round.
+//
+// IT REFUSES RATHER THAN TRUNCATES, and names what would be stranded. Silently
+// dropping a part that no longer fits is the one behaviour worse than refusing,
+// because a board with a lead half over the edge still looks plausible. Growing
+// is never refused: nothing can fall off a bigger board.
+export function setBoardSize(project, { cols, rows } = {}) {
+  if (!Number.isInteger(cols) || !Number.isInteger(rows)) {
+    return fail('bad-size', `${JSON.stringify({ cols, rows })} is not a board size`);
+  }
+  if (cols < 2 || rows < 2) {
+    return fail('bad-size', `${cols} x ${rows} is too small to be a board`);
+  }
+
+  const next = clone(project);
+  next.board = { ...next.board, cols, rows };
+
+  const off = [];
+  const outside = (col, row) => col < 0 || row < 0 || col >= cols || row >= rows;
+
+  let pins = [];
+  try { pins = resolvePins(next.placements ?? [], getPart); } catch { /* validate reports it */ }
+  for (const p of pins) {
+    if (outside(p.col, p.row)) off.push(`${p.ref} pin ${p.pin}`);
+  }
+  for (const w of next.wires ?? []) {
+    for (const [end, h] of [['from', w.from], ['to', w.to]]) {
+      if (h && outside(h.col, h.row)) off.push(`wire ${w.ref} (${end})`);
+    }
+  }
+  for (const b of next.breaks ?? []) {
+    // A gap cut lives between hole x and x+1, so the last legal one is cols-2.
+    const maxX = (b.at ?? 'gap') === 'hole' ? cols - 1 : cols - 2;
+    if (b.row >= rows || b.x > maxX) off.push(`the cut at row ${b.row}, x ${b.x}`);
+  }
+  for (const key of Object.keys(next.netLabels ?? {})) {
+    const m = /^(-?\d+),(-?\d+)$/.exec(key);
+    if (!m) continue;
+    if (outside(Number(m[1]), Number(m[2]))) {
+      off.push(`the name ${JSON.stringify(next.netLabels[key]?.name ?? key)} at ${key}`);
+    }
+  }
+
+  if (off.length) {
+    const seen = [...new Set(off)];
+    return fail('would-not-fit',
+      `${cols} x ${rows} would leave ${seen.length === 1 ? 'this' : 'these'} off the board: `
+      + `${seen.slice(0, 6).join(', ')}${seen.length > 6 ? ` and ${seen.length - 6} more` : ''}`);
+  }
+
+  const bad = validateProject(next);
+  if (bad.length) return fail('invalid', bad[0].message);
+  return { project: next };
+}
+
 // ------------------------------------------------------------------ rules
 
 // Change the rules this BOARD is built under.
@@ -400,6 +461,7 @@ export function setRules(project, patch = {}) {
 // --------------------------------------------------------------- the batch
 
 const OPS = {
+  setBoardSize: (p, a) => setBoardSize(p, a),
   setRules: (p, a) => setRules(p, a.rules ?? a.patch ?? {}),
   setPinNames: (p, a) => setPinNames(p, a.ref, a.names),
   adoptDevice: (p, a) => adoptDevice(p, a.ref, a.device),

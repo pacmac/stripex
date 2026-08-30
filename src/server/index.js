@@ -15,7 +15,7 @@ import { deviceList } from '../parts/devices.js';
 import { resolvePins } from '../model/rotate.js';
 import { validateProject, makeProject } from '../model/board.js';
 import { renderBoard } from '../render/svg.js';
-import { findingsFor, netsFor, runList } from '../model/views.js';
+import { findingsFor, netsFor, runList, usageOf } from '../model/views.js';
 import * as boards from './boards.js';
 import * as ops from '../model/ops.js';
 import * as rules from '../model/rules.js';
@@ -225,6 +225,50 @@ app.post('/api/boards/:slug/ops', (req, res) => {
 // twice — once counting the pin's own hole as free, once excluding every column
 // any part used anywhere. Without a route, a caller has to guess, and guessing
 // is how nine wire ends came to sit on top of pins.
+// What does this board connect, and what is wrong with it — BY SLUG.
+//
+// /api/check answers the same questions and takes a whole project in the body,
+// so a caller holding a slug had to GET the board and post it back. That made
+// the one verification step that matters — derive the nets from the copper —
+// the only thing in this API you could not simply ask for, and it is the check
+// that caught a reversed LED on a board which passed everything else.
+//
+// THE FINDINGS ARE THE MERGED SET the editor shows: the DRC, the design rules,
+// any rule switched off, and the netlist when the board carries one. Somebody
+// asking "is this board all right" means all of it. The body-form /api/check is
+// left alone — changing what an existing endpoint returns is a different
+// decision from adding one.
+app.get('/api/boards/:slug/check', (req, res) => {
+  let read;
+  try { read = boards.read(boardsDir(), req.params.slug); }
+  catch (e) { return boardError(res, e); }
+  const project = read.project;
+  return res.json({
+    version: read.version,
+    nets: netsFor(project).nets,
+    findings: [
+      ...findingsFor(project),
+      ...rules.checkRules(project),
+      ...rules.disabledRuleNotes(project),
+      ...(project.netlist ? netlist.netlistFindings(project, project.netlist) : []),
+    ],
+    runList: runList(project),
+  });
+});
+
+// What occupies each column, each row and each strip segment.
+//
+// The tightening pass, which was written by hand in node three times in one
+// session and is how a board goes from 20x14 to 12x11. `emptyColumns`,
+// `emptyRows` and `emptySegments` are the answer to "what is this board carrying
+// that earns nothing".
+app.get('/api/boards/:slug/usage', (req, res) => {
+  try {
+    const read = boards.read(boardsDir(), req.params.slug);
+    return res.json({ version: read.version, ...usageOf(read.project) });
+  } catch (e) { return boardError(res, e); }
+});
+
 app.get('/api/boards/:slug/free-holes', (req, res) => {
   const { ref, pin } = req.query;
   if (!ref || pin == null) {

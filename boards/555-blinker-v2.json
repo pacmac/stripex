@@ -1,0 +1,177 @@
+{
+  "schema": "stripex/1",
+  "name": "555 blinker v2",
+  "board": {
+    "cols": 11,
+    "rows": 6,
+    "pattern": "strip"
+  },
+  "breaks": [
+    {
+      "row": 2,
+      "x": 1,
+      "at": "gap"
+    }
+  ],
+  "placements": [
+    {
+      "ref": "U1",
+      "part": "dip",
+      "at": {
+        "col": 6,
+        "row": 1
+      },
+      "rot": 90,
+      "span": 4,
+      "width": 3,
+      "pinNames": [
+        "GND",
+        "TRIG",
+        "OUT",
+        "RESET",
+        "CTRL",
+        "THRESH",
+        "DISCH",
+        "VCC"
+      ]
+    },
+    {
+      "ref": "L1",
+      "part": "wire-link",
+      "at": {
+        "col": 4,
+        "row": 1
+      },
+      "rot": 90,
+      "span": 4
+    },
+    {
+      "ref": "L2",
+      "part": "wire-link",
+      "at": {
+        "col": 5,
+        "row": 0
+      },
+      "rot": 90,
+      "span": 4
+    },
+    {
+      "ref": "L3",
+      "part": "wire-link",
+      "at": {
+        "col": 10,
+        "row": 0
+      },
+      "rot": 90,
+      "span": 1
+    },
+    {
+      "ref": "R1",
+      "part": "smt-0603",
+      "at": {
+        "col": 8,
+        "row": 1
+      },
+      "rot": 90,
+      "value": "10k"
+    },
+    {
+      "ref": "R2",
+      "part": "smt-0603",
+      "at": {
+        "col": 10,
+        "row": 2
+      },
+      "rot": 90,
+      "value": "68k"
+    },
+    {
+      "ref": "C1",
+      "part": "smt-0603-cap",
+      "at": {
+        "col": 2,
+        "row": 1
+      },
+      "rot": 90,
+      "value": "10u"
+    },
+    {
+      "ref": "C2",
+      "part": "smt-0603-cap",
+      "at": {
+        "col": 8,
+        "row": 4
+      },
+      "rot": 90,
+      "value": "10n"
+    },
+    {
+      "ref": "C3",
+      "part": "smt-0603-cap",
+      "at": {
+        "col": 3,
+        "row": 0
+      },
+      "rot": 90,
+      "value": "100u"
+    },
+    {
+      "ref": "R3",
+      "part": "smt-0603",
+      "at": {
+        "col": 1,
+        "row": 2
+      },
+      "rot": 90,
+      "value": "330R"
+    },
+    {
+      "ref": "LED1",
+      "part": "led",
+      "at": {
+        "col": 0,
+        "row": 2
+      },
+      "rot": 270
+    }
+  ],
+  "wires": [
+    {
+      "ref": "A",
+      "from": {
+        "col": 3,
+        "row": 2
+      },
+      "to": {
+        "col": 8,
+        "row": 3
+      }
+    }
+  ],
+  "netLabels": {
+    "0,0": {
+      "name": "VCC"
+    },
+    "0,5": {
+      "name": "0V"
+    },
+    "0,2": {
+      "name": "LED-A"
+    },
+    "4,2": {
+      "name": "TRIG-THR"
+    },
+    "0,3": {
+      "name": "OUT"
+    },
+    "0,4": {
+      "name": "RESET"
+    },
+    "9,2": {
+      "name": "DISCH"
+    },
+    "9,4": {
+      "name": "CTRL"
+    }
+  }
+}
