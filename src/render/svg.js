@@ -151,6 +151,21 @@ export const SILK_MARGIN_MM = PITCH_MM / 2;
 // pitch, so pads on neighbouring holes can never touch.
 export const PAD_R_MM = PITCH_MM * 0.34;
 
+// The pen-wire pad, which is a DIFFERENT THING and gets its own constant. A
+// component pad is an outline round a hole; a pen pad is the wire end itself,
+// and it has to hold the letter that identifies it — with no line drawn, `A`
+// beside `A` is the only thing saying those two holes are joined.
+//
+// 2.29 mm across on a 2.54 mm pitch: as large as it can be while two pads on
+// adjacent holes still show a quarter-millimetre of daylight. The two radii
+// being equal before was a coincidence, not a relationship, and PAD_R_MM is
+// also the break marker and the DRC ring.
+export const PEN_PAD_R_MM = PITCH_MM * 0.45;
+
+// Two characters at 0.62 em is 1.32 mm, which fits inside 2.29 mm with room
+// each side — and AA is the widest ID the scheme produces before AAA.
+export const PEN_ID_MM = PITCH_MM * 0.42;
+
 // Ink that can be read on a given background. Relative luminance, not a guess:
 // the 0.2126/0.7152/0.0722 weights are the standard ones, because the eye is
 // far more sensitive to green than to blue and a naive average calls a saturated
@@ -546,7 +561,7 @@ export function renderBoard(project, opts = {}) {
       // so a wire pad reads differently from a component pad, which is an
       // outline. In the wire's LENGTH colour, which matters more without a line
       // than with one — it says which pre-cut wire to take from the drawer.
-      const padR = n(PAD_R_MM);
+      const padR = n(PEN_PAD_R_MM);
       for (const [end, hole, pt] of [['from', wire.from, a], ['to', wire.to, z]]) {
         out.push(`<circle data-kind="wire-pad" data-ref="${esc(wire.ref)}"`
           + ` data-end="${end}" data-hole="${hole.col},${hole.row}"`
@@ -555,20 +570,27 @@ export function renderBoard(project, opts = {}) {
           + ` fill="${ink}" stroke="${c.wireCasing}"`
           + ` stroke-width="${n(SILK_STROKE_MM * 0.7)}"/>`);
         if (L.labels) {
-          // The ID takes the wire's silk colour when it has one. Silk is the
-          // LABEL colour: the pads are already coloured by length, and that
-          // colour says which pre-cut wire to take from the drawer.
-          const labelInk = wire.silk ?? c.ink;
+          // INSIDE the pad, centred: the pad and its ID are one mark, not a
+          // marker with a caption. Above it, the ID was larger than the pad it
+          // named and sat in the gap between rows, where it collided with the
+          // row above and with the next wire's ID.
+          //
+          // Which means the ink is now chosen against the LENGTH COLOUR it sits
+          // on. A fixed one vanishes the moment the wire is the black one — and
+          // black is 0 in the colour code, so it is the first wire anyone draws.
+          // An explicit silk still wins: that is a choice, and not this code's
+          // to overrule.
+          const labelInk = wire.silk ?? readableOn(ink, c);
           out.push(`<text data-kind="wire-label" data-ref="${esc(wire.ref)}"`
             + ` data-end="${end}" x="${n(mx(pt.x))}"`
-            + ` y="${n(pt.y - PAD_R_MM - PITCH_MM * 0.18)}"`
-            + ` font-size="${n(PITCH_MM * 0.6)}" fill="${labelInk}" text-anchor="middle"`
+            + ` y="${n(pt.y + PEN_ID_MM * 0.35)}"`
+            + ` font-size="${n(PEN_ID_MM)}" fill="${labelInk}" text-anchor="middle"`
             + ` font-family="sans-serif" pointer-events="none"`
             + ` font-weight="600">${esc(wire.ref)}</text>`);
           if (wire.value) {
             out.push(`<text data-kind="wire-value" data-ref="${esc(wire.ref)}"`
               + ` data-end="${end}" x="${n(mx(pt.x))}"`
-              + ` y="${n(pt.y + PAD_R_MM + PITCH_MM * 0.52)}"`
+              + ` y="${n(pt.y + PEN_PAD_R_MM + PITCH_MM * 0.42)}"`
               + ` font-size="${n(PITCH_MM * 0.5)}" fill="${labelInk}" text-anchor="middle"`
               + ' font-family="sans-serif" pointer-events="none"'
               + `>${esc(wire.value)}</text>`);
@@ -818,7 +840,9 @@ export function renderBoard(project, opts = {}) {
       + ' pointer-events="none"/>');
     out.push(`<circle data-kind="wire-start"`
       + ` data-hole="${pendingWire.col},${pendingWire.row}"`
-      + ` cx="${px}" cy="${py}" r="${n(PAD_R_MM)}" fill="${c.select}" fill-opacity="0.3"`
+      // The pad you are about to place, at the size you will get. A preview of
+      // the wrong size is a lie about what you are doing.
+      + ` cx="${px}" cy="${py}" r="${n(PEN_PAD_R_MM)}" fill="${c.select}" fill-opacity="0.3"`
       + ` stroke="${c.select}" stroke-width="${n(PITCH_MM * 0.14)}"`
       + ' pointer-events="none"/>');
   }

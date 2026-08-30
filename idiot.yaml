@@ -1306,3 +1306,33 @@
     failures: 0
     at: '2026-08-30T14:07:33.521'
     commit: ce6edf7-dirty
+- id: a-pen-pad-is-too-small-to-hold-the-id-it-is-labelled-with
+  type: new
+  what: A pen wire is two pads sharing an ID, but the pad is component-sized (0.864mm) and the ID is drawn
+    LARGER than it (1.52mm) floating above it, where it collides with the row above and with the next
+    wire's ID.
+  spec: docs/specs/pen-pad-carries-its-id.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_point_to_point.mjs
+    criterion: '27/27 checks: the pen pad grows without touching an adjacent pad, the ID shrinks to fit
+      inside the circle, is centred on it and readable against the length colour, the pending marker matches,
+      and the component pad is untouched'
+    runs: 1
+  trial:
+    file: .proofs/a-pen-pad-is-too-small-to-hold-the-id-it-is-labelled-with.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T14:10:06.864'
+    commit: 76a8671-dirty
+  fix:
+    file: .proofs/a-pen-pad-is-too-small-to-hold-the-id-it-is-labelled-with.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T14:11:32.430'
+    commit: 76a8671-dirty

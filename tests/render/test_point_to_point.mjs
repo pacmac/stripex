@@ -167,6 +167,84 @@ s.check('A DIRECT WIRE LINK IS UNAFFECTED — IT STILL DRAWS ITS LINE', () => {
   eq(els(svg, 'wire-pad').length, 0, 'a link is not a pen wire');
 });
 
+// ------------------------------------------- the pad and its ID are one mark
+// Governed by docs/specs/pen-pad-carries-its-id.md
+
+const G = await softImport('../../src/model/geometry.js', here);
+const num = (el, name) => Number(attr(el, name));
+
+s.check('A PEN PAD IS LARGER THAN A COMPONENT PAD', () => {
+  // They are different things. A component pad is an outline round a hole; a
+  // pen pad IS the wire end, and it now has to hold a letter.
+  const r = num(els(R.renderBoard(withWire(), {}), 'wire-pad')[0], 'r');
+  // With a margin, not `>`. The emitted radius is rounded for the SVG, so a pad
+  // of exactly PAD_R_MM comes out as 0.864 against a constant of 0.8636 and
+  // passes a bare greater-than while being the same size.
+  ok(r > R.PAD_R_MM * 1.15, `${r} is meaningfully larger than the component pad's ${R.PAD_R_MM}`);
+});
+
+s.check('and two on adjacent holes still show daylight between them', () => {
+  const r = num(els(R.renderBoard(withWire(), {}), 'wire-pad')[0], 'r');
+  ok(r * 2 < G.PITCH_MM - 0.15,
+    `${(r * 2).toFixed(2)} mm across on a ${G.PITCH_MM} mm pitch`);
+});
+
+s.check('THE ID IS INSIDE THE CIRCLE, NOT ABOVE IT', () => {
+  const svg = R.renderBoard(withWire(), {});
+  const pad = els(svg, 'wire-pad')[0];
+  const label = els(svg, 'wire-label')[0];
+  ok(label, 'there is an ID');
+  eq(num(label, 'x'), num(pad, 'cx'), 'centred horizontally on the pad');
+  const dy = Math.abs(num(label, 'y') - num(pad, 'cy'));
+  ok(dy < num(pad, 'r'),
+    `its baseline is ${dy.toFixed(2)} mm off centre, inside the ${num(pad, 'r')} mm radius`);
+});
+
+s.check('AND IT IS SMALL ENOUGH TO FIT THERE', () => {
+  const svg = R.renderBoard(withWire(), {});
+  const pad = els(svg, 'wire-pad')[0];
+  const f = num(els(svg, 'wire-label')[0], 'font-size');
+  ok(f > 0, 'it has a size');
+  // Two characters at 0.62 em, which is what AA costs.
+  ok(0.62 * f * 2 < num(pad, 'r') * 2, `AA is ${(0.62 * f * 2).toFixed(2)} mm wide inside ${num(pad, 'r') * 2} mm`);
+  ok(f < G.PITCH_MM * 0.6, `smaller than it was: ${f} < ${G.PITCH_MM * 0.6}`);
+});
+
+s.check('THE ID IS READABLE ON THE PAD IT SITS ON', () => {
+  // It is on the length colour now. A fixed ink vanishes the moment the wire is
+  // the black one — and black is 0 in the code, the first wire anyone draws.
+  const p = boardm.makeProject({ cols: 20, rows: 12 });
+  p.wires.push({ ref: 'A', from: { col: 2, row: 2 }, to: { col: 2, row: 2 } });
+  const svg = R.renderBoard(p, {});
+  const pad = els(svg, 'wire-pad')[0];
+  const label = els(svg, 'wire-label')[0];
+  eq(attr(label, 'fill'), R.readableOn(attr(pad, 'fill'), R.THEMES.light), 'readable on it');
+  ok(attr(label, 'fill') !== attr(pad, 'fill'), 'and not the same colour as the pad');
+});
+
+s.check('an explicit silk colour still wins', () => {
+  const svg = R.renderBoard(withWire({ silk: '#ff00ff' }), {});
+  eq(attr(els(svg, 'wire-label')[0], 'fill'), '#ff00ff', 'the choice is not overruled');
+});
+
+s.check('THE PENDING MARKER PREVIEWS THE PAD IT WILL BECOME', () => {
+  const svg = R.renderBoard(withWire(), { pendingWire: { col: 4, row: 4 } });
+  const pending = els(svg, 'wire-start')[0];
+  ok(pending, 'the first click leaves a mark');
+  eq(num(pending, 'r'), num(els(svg, 'wire-pad')[0], 'r'), 'the same size as the pad');
+});
+
+s.check('a component pad is left exactly where it was', () => {
+  // PAD_R_MM is the component pad and is used by the break markers and the DRC
+  // ring as well. The two radii being equal was a coincidence, not a relation.
+  const p = boardm.makeProject({ cols: 20, rows: 12 });
+  p.placements.push({ ref: 'R1', part: 'res-axial', span: 4, at: { col: 2, row: 2 }, rot: 0 });
+  const pad = els(R.renderBoard(p, {}), 'pad')[0];
+  ok(pad, 'a component pad is drawn');
+  const r = num(pad, 'r') || num(pad, 'width') / 2;
+  ok(Math.abs(r - R.PAD_R_MM) < 0.01, `still ${R.PAD_R_MM}: got ${r}`);
+});
+
 s.check('the nets a pen wire joins are unchanged by any of this', () => {
   const p = withWire();
   const { segmentNet } = R.netsFor(p);
