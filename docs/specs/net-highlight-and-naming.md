@@ -1,8 +1,56 @@
 # SPEC — a net you can see, name and colour
 
-status: draft
+status: implemented; naming CLOSED, highlight open with its reason
 area: editor-ui, board-model
-source_hash: (set in Phase 5)
+source_hash:
+  src/render/svg.js:   5ed0d6fd236816d079e90229483bc0b0f24c89c6cb4c0afb4976c52256735874
+  src/model/nets.js:   92277ee7a9726e9fc2965968bfa7bafbe637ad3b068104d60f129168802dc873
+  src/model/board.js:  1b5295e109a3f6d6a3e83eddb6ebb77fdd16aa8f294937333e355a1c5d0f4f6d
+  public/app.js:       16278494d01897cdf57a34d081cd674b2e297b300a1c7608298501dc72ec0d02
+  public/style.css:    325738ec108945f7eb0e0dd646c1c0300aa5843bf747afdd2e04f83496e851f8
+
+## What the browser actually did
+
+Red 3/14 → green 16/16. 33 suites green.
+
+**The highlight.** Clicking one strip of a three-strip net:
+
+| | |
+|---|---|
+| lit | `s:2:0`, `s:5:0`, `s:9:0` — all three — `fill=#ff6a00 opacity=1` |
+| unlit | `fill=#d9a878 opacity=0.55` |
+
+The colour was chosen by measurement, not by eye: the old `#ff9d3c` was **72** apart from
+the unlit copper in RGB; `#ff6a00` is **140**. And the wash is gone, which was the larger
+half of the problem.
+
+**Naming.** Typing `GND` and picking a colour stored
+`netLabels: { "0,0": { name: "GND", colour: "#1c1c1c" } }`, drew the name on the net's
+segment, coloured that segment `#1c1c1c`, and the Nets tab now lists it as **GND** rather
+than `n0`.
+
+## A defect the screenshot showed that the checks did not
+
+Naming a net black made `GND` **dark ink on a dark strip** — the one combination that
+naming a net for legibility must not produce. The label took a fixed `c.ink`.
+
+Now chosen against the net's own colour by relative luminance, with the standard
+0.2126/0.7152/0.0722 weights rather than a channel average: a saturated blue is dark to the
+eye however high its blue channel reads, and an average calls it light. Two checks hold it
+down.
+
+I would not have found this from the test output. It took looking at the picture.
+
+## Why the highlight entry will not close
+
+`prove` runs green and reports `closed=False`. Its `files:` names only `src/render/svg.js`,
+which **did** change — but the register's mtime rung compares against the trial, and the
+trial for this entry was taken before a later edit to the same file for a different entry
+reset the comparison. The fix is real and the check is green at 16/16; the closure evidence
+is muddled by my having run two entries through one file in one sitting.
+
+Recorded rather than amended away, and the lesson is the ordering one again: one entry at a
+time through a shared file.
 
 Peter, 2026-08-30: *"when I select a strip, it's net / strip gets highlighted, but it needs
 to be a bit darker contrast, and I noticed the the net / selected / highlighted only flows

@@ -106,6 +106,19 @@ export function validateProject(project) {
     try { pinsOf(part, pl.span); } catch (e) { bad('bad-part-geometry', `${where}: ${e.message}`); }
   }
 
+  // Net names and colours are anchored to a hole — "the net that hole (4,7) is
+  // on is called GND" — because a net has no stable identity of its own.
+  for (const [key, label] of Object.entries(project.netLabels ?? {})) {
+    if (!/^-?\d+,-?\d+$/.test(key)) {
+      bad('bad-net-label-key',
+        `netLabels key ${JSON.stringify(key)} is not a hole — it must be "col,row"`);
+      continue;
+    }
+    if (label && label.colour != null && !/^#[0-9a-fA-F]{6}$/.test(String(label.colour))) {
+      bad('bad-net-colour', `the colour on net label ${key} is not a #rrggbb value`);
+    }
+  }
+
   for (const [i, w] of (project.wires ?? []).entries()) {
     const where = `wires[${i}]`;
     claim(w?.ref, where);

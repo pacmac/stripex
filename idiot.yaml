@@ -958,7 +958,13 @@
     failures: 1
     at: '2026-08-30T11:00:31.296'
     commit: f8a1614-dirty
-  fix: null
+  fix:
+    file: .proofs/a-highlighted-net-is-washed-out-to-the-same-opacity-as-unlit-copper.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T12:06:44.419'
+    commit: 0952b41-dirty
 - id: nets-cannot-be-named-or-coloured
   type: new
   what: A net has no name and no colour, so GND and +5V are invisible until you click each strip in turn
@@ -982,7 +988,13 @@
     failures: 1
     at: '2026-08-30T11:00:31.459'
     commit: f8a1614-dirty
-  fix: null
+  fix:
+    file: .proofs/nets-cannot-be-named-or-coloured.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T12:06:38.750'
+    commit: 0952b41-dirty
 - id: a-part-near-the-board-edge-derives-cuts-off-the-board-and-kills-the-render
   type: bug
   what: A DIP near the top derives cuts at a negative row, segments() throws, and renderBoard, draw and
@@ -1103,10 +1115,25 @@
     a blank page with all checks green
   spec: docs/specs/never-lose-a-board.md
   files:
-  - scripts/check_all.mjs
+  - tests/render/test_boot.mjs
+  - public/app.js
   test:
-    command: null
+    command:
+    - node
+    - tests/render/test_boot.mjs
     criterion: a check loads the editor in a browser and fails on any page error
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/nothing-checks-that-the-editor-boots.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T12:05:15.005'
+    commit: 0952b41-dirty
+  fix:
+    file: .proofs/nothing-checks-that-the-editor-boots.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T12:06:39.462'
+    commit: 0952b41-dirty

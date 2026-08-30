@@ -16,6 +16,8 @@ import {
 import { toolForKey } from '/src/render/keys.js';
 import { loadProject } from '/src/model/repair.js';
 import { pushSnapshot, readHistory, describe } from '/src/model/history.js';
+import { netLabelsByNet, netLabelProblems, setNetLabel } from '/src/model/nets.js';
+import { segments } from '/src/net/segments.js';
 
 // A banner is how the user is told something happened to their board. A console
 // warning is not telling anyone.
@@ -65,7 +67,7 @@ const STORE_KEY = 'stripex.project';
 // initialisation, so a `let` further down the file is in its temporal dead zone
 // and the whole editor dies with "Cannot access 'loadRepairs' before
 // initialization" — a blank page, which is the exact failure this work exists
-// to stop.
+// to stop. tests/render/test_boot.mjs holds that line down.
 let loadRepairs = [];
 const LAYER_KEY = 'stripex.layers';
 
@@ -346,14 +348,69 @@ function paintFindings(findings) {
 }
 
 function paintNets() {
-  const { nets } = netsFor(state.project);
-  $('#tab-nets').innerHTML = nets.map((netObj) => `
+  const { nets, segmentNet } = netsFor(state.project);
+  const labels = netLabelsByNet(state.project, segmentNet);
+
+  // A net has no stable identity — n0 means "the net holding the top-left-most
+  // segment" — so a name is anchored to a HOLE. The anchor is the first hole of
+  // the net's first segment, which is stable under every edit that does not
+  // destroy it. See src/model/nets.js.
+  const anchorOf = (netObj) => {
+    const [row, idx] = netObj.segments[0].split(':').slice(1).map(Number);
+    void idx;
+    const seg = segments(state.project.board, effectiveBreaks(state.project))
+      .find((g) => g.id === netObj.segments[0]);
+    return seg ? { col: seg.x0, row } : null;
+  };
+
+  const conflicts = netLabelProblems(state.project, segmentNet);
+  const warn = conflicts.length
+    ? `<p class="hint" style="color:var(--error)">${escapeHtml(conflicts[0].message)}</p>`
+    : '';
+
+  $('#tab-nets').innerHTML = warn + (nets.map((netObj) => {
+    const label = labels.get(netObj.id);
+    const a = anchorOf(netObj);
+    const anchor = a ? `${a.col},${a.row}` : '';
+    return `
     <div class="row" data-net="${netObj.id}">
-      <span class="ref mono">${netObj.id}</span>
+      <span class="ref mono">${escapeHtml(label?.name ?? netObj.id)}</span>
       <span class="msg">${netObj.segments.length} segment${netObj.segments.length === 1 ? '' : 's'},
         ${netObj.pins.length} connection${netObj.pins.length === 1 ? '' : 's'}</span>
-    </div>`).join('') || '<p class="empty">No nets.</p>';
+    </div>
+    <div class="net-edit">
+      <input data-netname="${anchor}" value="${escapeHtml(label?.name ?? '')}"
+        placeholder="name this net" style="width:104px">
+      <span class="sw-now" style="background:${label?.colour ?? 'transparent'}"></span>
+      ${PALETTE_16.slice(0, 8).map((cc) => `<button class="sw" data-netcolour="${anchor}"
+        data-hex="${cc.hex}" style="background:${cc.hex}" title="${cc.name}"></button>`).join('')}
+      <button class="sw sw-clear" data-netcolour="${anchor}" data-hex=""
+        title="No colour">&times;</button>
+    </div>`;
+  }).join('') || '<p class="empty">No nets.</p>');
+
+  for (const input of $('#tab-nets').querySelectorAll('[data-netname]')) {
+    input.addEventListener('change', (e) => {
+      const [col, row] = e.target.dataset.netname.split(',').map(Number);
+      const existing = effectiveBreaks(state.project) && labelAt(col, row);
+      state.project = setNetLabel(state.project, { col, row },
+        { ...existing, name: e.target.value.trim() });
+      commit(e.target.value.trim() ? `net named ${e.target.value.trim()}` : 'net name cleared');
+    });
+  }
+  for (const sw of $('#tab-nets').querySelectorAll('[data-netcolour]')) {
+    sw.addEventListener('click', (e) => {
+      const [col, row] = e.currentTarget.dataset.netcolour.split(',').map(Number);
+      const existing = labelAt(col, row);
+      state.project = setNetLabel(state.project, { col, row },
+        { ...existing, colour: e.currentTarget.dataset.hex || undefined });
+      commit('net colour changed');
+    });
+  }
 }
+
+// The label stored against this hole, if any.
+const labelAt = (col, row) => state.project.netLabels?.[`${col},${row}`] ?? {};
 
 function paintRunList() {
   const list = runList(state.project);

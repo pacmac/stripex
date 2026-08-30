@@ -295,6 +295,17 @@ main {
 .row.warning .ref { color: var(--warning); }
 .row.info .ref { color: var(--ink-dim); }
 
+.net-edit {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px 8px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 6px;
+}
+.net-edit .sw { width: 15px; height: 15px; aspect-ratio: auto; }
+.net-edit .sw-now { width: 15px; height: 15px; }
+
 .empty { color: var(--ink-dim); padding: 6px; }
 .tally { display: flex; gap: 10px; padding: 0 6px 8px; font-size: 12px; }
 .tally b.error { color: var(--error); }

@@ -115,6 +115,23 @@ s.check('AND TAKES ITS COLOUR, SO GND IS VISIBLE WITHOUT SELECTING ANYTHING', ()
   for (const e of onNet) eq(attr(e, 'fill'), '#1c1c1c', 'in the net colour');
 });
 
+s.check('A NAME IS READABLE ON THE COLOUR IT SITS ON', () => {
+  // Naming a net black made GND dark-on-dark — the one combination that naming
+  // a net for legibility must not produce.
+  const dark = R.renderBoard(named({ '1,0': { name: 'GND', colour: '#1c1c1c' } }), {});
+  const onDark = els(dark, 'net-name')[0];
+  eq(attr(onDark, 'fill'), '#f6f6f6', 'light ink on a black net');
+
+  const light = R.renderBoard(named({ '1,0': { name: 'VCC', colour: '#f1f3f5' } }), {});
+  eq(attr(els(light, 'net-name')[0], 'fill'), '#141414', 'dark ink on a white net');
+});
+
+s.check('the choice uses luminance, not a channel average', () => {
+  // A saturated blue is dark to the eye however high its blue channel is.
+  eq(R.readableOn('#0000ff', R.THEMES.light), '#f6f6f6', 'blue needs light ink');
+  eq(R.readableOn('#e6c02a', R.THEMES.light), '#141414', 'yellow needs dark ink');
+});
+
 s.check('a name with no colour keeps the copper colour', () => {
   const p = chain();
   p.netLabels = { '1,0': { name: 'SIG' } };

@@ -18,6 +18,7 @@ import { resolvePins } from '../model/rotate.js';
 import { nets as deriveNets, wireRunList } from '../net/derive.js';
 import { drc } from '../net/drc.js';
 import { effectiveBreaks } from '../model/breaks.js';
+import { netLabelsByNet } from '../model/nets.js';
 import {
   wireColour, silkOf, segmentShade, isWireColoured, linkColour,
 } from './colours.js';
@@ -29,7 +30,11 @@ export const THEMES = {
     substrateEdge: '#c9b998',
     copper: '#b87333',
     copperDim: '#d9a878',
-    copperLit: '#ff9d3c',
+    // Measured against the unlit copper it has to be told apart from: the old
+    // #ff9d3c was 72 apart in RGB, which at 0.55 opacity on a tan board read as
+    // pale peach. #ff6a00 is 140 apart, and the highlight is now drawn at full
+    // opacity as well.
+    copperLit: '#ff6a00',
     hole: '#3a3226',
     holeRing: '#f3ecdc',
     cut: '#8a7a5c',
@@ -145,6 +150,19 @@ export const SILK_MARGIN_MM = PITCH_MM / 2;
 // annulus round its hole rather than covering it, and smaller than the half
 // pitch, so pads on neighbouring holes can never touch.
 export const PAD_R_MM = PITCH_MM * 0.34;
+
+// Ink that can be read on a given background. Relative luminance, not a guess:
+// the 0.2126/0.7152/0.0722 weights are the standard ones, because the eye is
+// far more sensitive to green than to blue and a naive average calls a saturated
+// blue "light" when nothing can be read on it.
+export function readableOn(background, theme) {
+  const m = /^#([0-9a-f]{6})$/i.exec(String(background ?? ''));
+  if (!m) return theme.ink;
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255);
+  const lin = (v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  return L > 0.4 ? '#141414' : '#f6f6f6';
+}
 
 // The same box from already-resolved millimetre points, which is what the
 // renderer has to hand — and which is already mirrored for the underside view,
@@ -343,7 +361,6 @@ export function renderBoard(project, opts = {}) {
 
   const cuts = effectiveBreaks(project);
   const segs = segments(b, cuts);
-  const { segmentNet } = highlightNet ? netsFor(project) : { segmentNet: {} };
 
   const out = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}"`
@@ -356,9 +373,16 @@ export function renderBoard(project, opts = {}) {
   // 2. copper — one rect per segment. On the top view the copper is under the
   //    board, so it is drawn faint; on the underside it is what you are looking at.
   const copperFill = under ? c.copper : c.copperDim;
+  // Net names and colours, anchored to a hole rather than to a net id — see
+  // src/model/nets.js for why a net cannot own its own name.
+  const netSegNet = (highlightNet || project.netLabels) ? netsFor(project).segmentNet : {};
+  const labels = project.netLabels ? netLabelsByNet(project, netSegNet) : new Map();
+
   if (L.copper) {
     for (const g of segs) {
-      const lit = highlightNet && segmentNet[g.id] === highlightNet;
+      const netId = netSegNet[g.id];
+      const lit = highlightNet && netId === highlightNet;
+      const label = labels.get(netId) ?? null;
       const left = g.x0 * PITCH_MM + (g.x0 > 0 ? TRACK_GAP_MM / 2 : 0);
       const right = (g.x1 + 1) * PITCH_MM - (g.x1 < b.cols - 1 ? TRACK_GAP_MM / 2 : 0);
       const y = holeToMm(0, g.row).y - TRACK_W_MM / 2;
@@ -366,11 +390,37 @@ export function renderBoard(project, opts = {}) {
       // Adjacent segments of one row alternate shades. A highlighted net is
       // NOT shaded: highlighting has to stay unambiguous.
       const segIndex = Number(g.id.split(':')[2]) || 0;
-      const fill = lit ? c.copperLit : segmentShade(copperFill, segIndex);
+      const fill = lit
+        ? c.copperLit
+        : (label?.colour ?? segmentShade(copperFill, segIndex));
+
+      // A HIGHLIGHTED SEGMENT IS NOT COPPER SEEN THROUGH THE BOARD — it is the
+      // answer to a question. The top view washes copper to 0.55 because it is
+      // underneath; the highlight inherited that wash and arrived as pale peach
+      // on a tan ground, so the strip under the pointer read as lit and ones
+      // further off did not. It looked like the net stopped.
+      const opacity = lit ? 1 : (under ? 1 : 0.55);
+
       out.push(`<rect data-kind="copper" data-seg="${g.id}"`
         + `${lit ? ' data-highlight="true"' : ''}`
+        + `${label?.name ? ` data-net-name="${esc(label.name)}"` : ''}`
         + ` x="${n(x)}" y="${n(y)}" width="${n(right - left)}" height="${TRACK_W_MM}"`
-        + ` fill="${fill}" opacity="${under ? 1 : 0.55}"/>`);
+        + ` fill="${fill}" opacity="${opacity}"/>`);
+
+      // The name on every segment it covers, so GND reads across the board
+      // without selecting anything.
+      if (label?.name && L.labels) {
+        // The text sits ON the net's own colour, so it has to be chosen against
+        // it. Fixed ink made GND unreadable the moment the net was coloured
+        // black — dark on dark, which is the one combination naming a net for
+        // legibility must not produce.
+        out.push(`<text data-kind="net-name" data-name="${esc(label.name)}"`
+          + ` data-seg="${g.id}" x="${n(x + (right - left) / 2)}"`
+          + ` y="${n(y + TRACK_W_MM * 0.78)}" font-size="${n(PITCH_MM * 0.55)}"`
+          + ` fill="${readableOn(label.colour ?? fill, c)}" text-anchor="middle"`
+          + ` font-family="sans-serif"`
+          + ` pointer-events="none" font-weight="600">${esc(label.name)}</text>`);
+      }
     }
   }
 
