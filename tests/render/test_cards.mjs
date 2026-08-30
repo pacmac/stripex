@@ -10,8 +10,12 @@ const lib = await softImport('../../src/parts/library.js', here);
 
 const s = suite('cards');
 
-s.check('THE FOUR CARDS EXIST, IN ORDER', () => {
-  eq(P.CARDS.map((c) => c.id), ['library', 'cutting', 'layers', 'board'], 'card ids');
+s.check('THE CARDS EXIST, IN ORDER', () => {
+  // Cutting has GONE. Peter: "I want 2 buttons and remove the cutting section
+  // from the left panel." A card holding one either/or setting was a panel you
+  // had to open to change a thing you change constantly; two buttons in the
+  // toolbar say which is armed without being opened.
+  eq(P.CARDS.map((c) => c.id), ['library', 'layers', 'board'], 'card ids');
   for (const c of P.CARDS) {
     ok(c.title, `${c.id} has a title`);
     ok(c.icon, `${c.id} has an icon`);
@@ -21,7 +25,7 @@ s.check('THE FOUR CARDS EXIST, IN ORDER', () => {
 s.check('A TOOL OPENS THE CARD THAT HOLDS ITS SETTINGS', () => {
   eq(P.cardForTool('place'), 'library', 'place opens the library');
   eq(P.cardForTool('wire'), 'library', 'so does wire — it picks a part too');
-  eq(P.cardForTool('break'), 'cutting', 'break opens cutting');
+  eq(P.cardForTool('break'), null, 'break has no card to open any more');
 });
 
 s.check('LAYERS AND BOARD NEVER OPEN THEMSELVES', () => {

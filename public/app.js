@@ -1283,8 +1283,6 @@ function paintCards() {
   // The header says what the next click will do even when collapsed.
   const part = getPart(state.part);
   $('[data-cardsub="library"]').textContent = part ? part.name : '';
-  $('[data-cardsub="cutting"]').textContent =
-    state.cut === 'hole' ? 'spot-face' : 'knife';
   const off = LAYER_ROWS.filter(([k]) => !state.layers[k]).length;
   $('[data-cardsub="layers"]').textContent = off ? `${off} hidden` : '';
   // WHICH BOARD, not how big. The card is collapsed by default, so this line was
@@ -1303,7 +1301,6 @@ function paintCards() {
   syncBoardSize();
 
   if (state.openCard === 'library') paintLibrary();
-  if (state.openCard === 'cutting') paintCutting();
   if (state.openCard === 'layers') paintLayers();
   if (state.openCard === 'board') paintBoardCard();
 }
@@ -1386,33 +1383,8 @@ function partHint(part) {
   return bits.join(' ');
 }
 
-function paintCutting() {
-  // TWO BUTTONS, not two radios. Peter: "instead of having a cut style radio
-  // selector in the left panel. create 2 bottons: cut icon = knife and spot:
-  // icon=crosshairs". A radio needs the label read to know which is which; a lit
-  // button says it at a glance, and it is the same idiom as the tools and the
-  // view group rather than a third one.
-  const btn = (value, icon, label, hint) => `
-    <button class="cutbtn iconbtn ${state.cut === value ? 'is-on' : ''}"
-      data-cut="${value}" title="${escapeHtml(hint)}" aria-label="${escapeHtml(label)}">
-      <svg class="ico" viewBox="0 0 24 24"><use href="#i-${icon}"/></svg>${escapeHtml(label)}
-    </button>`;
-  $('[data-cardbody="cutting"]').innerHTML = `
-    <div class="cuts">
-      ${btn('gap', 'knife', 'Knife', 'Cut between two holes, with a knife')}
-      ${btn('hole', 'spot', 'Spot-face', 'Drill the copper away at a hole')}
-    </div>
-    <p class="hint">${state.cut === 'hole'
-    ? 'A spot-face kills the hole as well as the track: nothing soldered there connects to anything.'
-    : 'A knife cut separates the two holes either side of it. The holes stay usable.'}</p>`;
-  for (const b of $('[data-cardbody="cutting"]').querySelectorAll('[data-cut]')) {
-    b.addEventListener('click', () => {
-      state.cut = b.dataset.cut;
-      setTool('break');
-      paintCutting();
-    });
-  }
-}
+// paintCutting is gone with the Cutting card. Its one setting is now the pair of
+// break buttons in the toolbar — see index.html and setTool.
 
 function paintBoardCard() {
   // The card that owns the DOCUMENT: which board this is, what it is called, and
@@ -1560,8 +1532,14 @@ function setTool(tool) {
   state.tool = tool;
   state.wireStart = null;
   state.moveAnchor = null;
+  // A tool button may carry its own cut style — the two break buttons do — so
+  // only the one matching the armed cut lights up. Without the second test both
+  // would light whenever break was armed, and the toolbar would be saying the
+  // knife and the spot-face are the same thing.
   for (const b of document.querySelectorAll('.tool')) {
-    b.classList.toggle('is-on', b.dataset.tool === tool);
+    const mine = b.dataset.tool === tool
+      && (!b.dataset.cut || b.dataset.cut === state.cut);
+    b.classList.toggle('is-on', mine);
   }
   // Set here, the one place the armed tool changes, so the cursor cannot drift
   // out of step with the button the toolbar shows as lit. Board only — a
@@ -1596,7 +1574,12 @@ function boot() {
 
   document.addEventListener('click', (evt) => {
     const tool = evt.target.closest('.tool');
-    if (tool) return setTool(tool.dataset.tool);
+    if (tool) {
+      // A button that carries a cut style arms that style with the tool. Set
+      // BEFORE setTool, which is what decides which of the two lights up.
+      if (tool.dataset.cut) state.cut = tool.dataset.cut;
+      return setTool(tool.dataset.tool);
+    }
 
     // A device arms the same way a part does, and arms its BASE part with it,
     // so everything downstream that asks "what is armed" keeps working. Clearing

@@ -56,7 +56,12 @@ export const bodyId = (tabId) => `tab-${tabId}`;
 
 export const CARDS = [
   { id: 'library', title: 'Library', icon: '▦' },
-  { id: 'cutting', title: 'Cutting', icon: '✂' },
+  // NO CUTTING CARD. It held one either/or setting — knife or spot-face — which
+  // is a thing you change constantly, so it was a panel you had to open to do
+  // something frequent. It is two buttons in the toolbar now, each arming the
+  // break tool with its own cut, and the lit one says which without being
+  // opened. Peter: "I want 2 buttons and remove the cutting section from the
+  // left panel."
   { id: 'layers', title: 'Layers', icon: '◫' },
   { id: 'board', title: 'Board', icon: '▭' },
 ];
@@ -70,7 +75,7 @@ export const CARDS = [
 const TOOL_CARDS = {
   place: 'library',
   wire: 'library',      // it picks a part from the same list
-  break: 'cutting',
+  // `break` opens nothing: its one setting is a pair of toolbar buttons.
 };
 
 export const cardForTool = (tool) => TOOL_CARDS[tool] ?? null;

@@ -141,8 +141,21 @@
       aria-label="Place"><svg class="ico" viewBox="0 0 24 24"><use href="#i-place"/></svg></button>
     <button class="tool iconbtn" data-tool="wire" title="Draw a pen wire (W)"
       aria-label="Wire"><svg class="ico" viewBox="0 0 24 24"><use href="#i-wire"/></svg></button>
-    <button class="tool iconbtn" data-tool="break" title="Cut or restore a strip (B)"
-      aria-label="Break"><svg class="ico" viewBox="0 0 24 24"><use href="#i-break"/></svg></button>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- THE TWO WAYS TO CUT, their own group. Both arm the break tool; each
+       carries its own cut style, and the lit one says which without anything
+       being opened. They are a pair and they are not "adding" anything, so they
+       sit apart from place and wire rather than trailing off the end of them. -->
+  <div class="tools" role="toolbar" aria-label="Cut a strip">
+    <button class="tool iconbtn" data-tool="break" data-cut="gap"
+      title="Knife — cut a strip between two holes (B)" aria-label="Knife cut">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-knife"/></svg></button>
+    <button class="tool iconbtn" data-tool="break" data-cut="hole"
+      title="Spot-face — drill the copper away at a hole" aria-label="Spot-face">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-spot"/></svg></button>
   </div>
 
   <div class="sep"></div>

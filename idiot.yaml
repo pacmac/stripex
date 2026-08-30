@@ -1913,3 +1913,34 @@
     failures: 0
     at: '2026-08-30T16:20:07.616'
     commit: 4728a65-dirty
+- id: the-cut-style-is-a-panel-you-have-to-open
+  type: new
+  what: The break tool is one toolbar button and the choice between a knife cut and a spot-face lives
+    in a Cutting card in the left panel, so changing a thing you change constantly means opening a panel.
+    Peter wants two toolbar buttons and the card gone.
+  spec: docs/specs/toolbar-icons-and-view-group.md
+  files:
+  - src/render/panels.js
+  - public/index.html
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_cards.mjs
+    criterion: "12/12: CARDS is library, layers, board \u2014 no cutting \u2014 and cardForTool('break')\
+      \ is null"
+    runs: 1
+  trial:
+    file: .proofs/the-cut-style-is-a-panel-you-have-to-open.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:38:30.023'
+    commit: 18e9f11-dirty
+  fix:
+    file: .proofs/the-cut-style-is-a-panel-you-have-to-open.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:41:04.749'
+    commit: 18e9f11-dirty
