@@ -9,6 +9,7 @@ const rot = await softImport('../../src/model/rotate.js', here);
 const lib = await softImport('../../src/parts/library.js', here);
 const boardm = await softImport('../../src/model/board.js', here);
 const R = await softImport('../../src/render/svg.js', here);
+const V = await softImport('../../src/model/views.js', here);
 
 const s = suite('owned-breaks');
 
@@ -143,22 +144,22 @@ s.check('THE DRAWN BOARD IS CUT WHERE THE PART NEEDS IT', () => {
 
 s.check('and the strips are actually severed, not just marked', () => {
   const p = withDip();
-  const segCount = (proj) => R.netsFor(proj).nets.length;
+  const segCount = (proj) => V.netsFor(proj).nets.length;
   const withPart = segCount(p);
   p.placements = [];
   ok(withPart > segCount(p), 'the part splits strips into more nets than a bare board');
 });
 
 s.check('a DIL is not reported as shorted, because its cuts are there', () => {
-  const errors = R.findingsFor(withDip()).filter((f) => f.severity === 'error');
+  const errors = V.findingsFor(withDip()).filter((f) => f.severity === 'error');
   eq(errors, [], 'no errors');
 });
 
 s.check('DELETING THE PART UN-SPLITS THE STRIPS IT CUT', () => {
   const p = withDip();
-  const before = R.netsFor(p).nets.length;
+  const before = V.netsFor(p).nets.length;
   p.placements = [];
-  const after = R.netsFor(p).nets.length;
+  const after = V.netsFor(p).nets.length;
   ok(after < before, `nets went ${before} -> ${after}`);
   eq(after, p.board.rows, 'back to one net per strip');
 });

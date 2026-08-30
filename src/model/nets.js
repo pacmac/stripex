@@ -127,7 +127,9 @@ export function setNetLabel(project, hole, label) {
   return next;
 }
 
-// Let the renderer supply the derivation without this module importing it.
-export function provideSegmentNet(fn) {
-  globalThis.__stripexSegmentNet__ = fn;
-}
+// provideSegmentNet USED TO BE HERE. It stashed a function on a global so the
+// renderer could hand this module a derivation without being imported — nothing
+// ever supplied one and nothing ever read it back. It was the scar of
+// an earlier attempt at the separation src/model/views.js now makes properly,
+// and a dead workaround for a dependency that no longer exists reads as a live
+// mechanism. Callers wanting the map take it from views.netsFor(project).

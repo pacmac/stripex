@@ -7,6 +7,7 @@ const here = import.meta.url;
 const L = await softImport('../../src/model/labels.js', here);
 const boardm = await softImport('../../src/model/board.js', here);
 const R = await softImport('../../src/render/svg.js', here);
+const V = await softImport('../../src/model/views.js', here);
 const C = await softImport('../../src/render/colours.js', here);
 
 const s = suite('point-to-point');
@@ -356,7 +357,7 @@ s.check('and none is emitted when the wires layer is off', () => {
 
 s.check('the nets a pen wire joins are unchanged by any of this', () => {
   const p = withWire();
-  const { segmentNet } = R.netsFor(p);
+  const { segmentNet } = V.netsFor(p);
   eq(segmentNet['s:2:0'], segmentNet['s:5:0'], 'rows 2 and 5 are still one net');
 });
 

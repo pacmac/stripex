@@ -5,7 +5,8 @@
 // cannot drift apart. Hit-testing reads data-* attributes off event.target
 // rather than recomputing layout — one description of where things are.
 
-import { renderBoard, findingsFor, netsFor, runList, DEFAULT_LAYERS } from '/src/render/svg.js';
+import { renderBoard, DEFAULT_LAYERS } from '/src/render/svg.js';
+import { findingsFor, netsFor, runList } from '/src/model/views.js';
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
 import { rotatePlacement } from '/src/model/rotate.js';
 import { requiredBreaks, ownerOf, effectiveBreaks } from '/src/model/breaks.js';

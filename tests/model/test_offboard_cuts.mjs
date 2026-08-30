@@ -7,6 +7,7 @@ const here = import.meta.url;
 const brk = await softImport('../../src/model/breaks.js', here);
 const boardm = await softImport('../../src/model/board.js', here);
 const R = await softImport('../../src/render/svg.js', here);
+const V = await softImport('../../src/model/views.js', here);
 
 const s = suite('offboard-cuts');
 
@@ -92,9 +93,9 @@ s.check('a board with nothing wrong is completely unaffected', () => {
 
 s.check('the nets still come out right for the cuts that remain', () => {
   const p = highDip();
-  const { nets } = R.netsFor(p);
+  const { nets } = V.netsFor(p);
   ok(nets.length > 0, 'nets derived');
-  eq(R.findingsFor(p).filter((f) => f.code === 'bad-break').length, 0,
+  eq(V.findingsFor(p).filter((f) => f.code === 'bad-break').length, 0,
     'and the DRC is not complaining about impossible cuts');
 });
 

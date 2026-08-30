@@ -8,7 +8,7 @@ const here = import.meta.url;
 const brk = await softImport('../../src/model/breaks.js', here);
 const lib = await softImport('../../src/parts/library.js', here);
 const E = await softImport('../../src/model/edit.js', here);
-const R = await softImport('../../src/render/svg.js', here);
+const V = await softImport('../../src/model/views.js', here);
 const boardm = await softImport('../../src/model/board.js', here);
 
 const s = suite('autobreak-switch');
@@ -40,7 +40,7 @@ s.check('autoBreak true is the same as leaving it out', () => {
 s.check('WITH THE CUTS OFF, THE DRC REPORTS THE SHORTS', () => {
   // The point of switching them off is to cut the strips yourself. Until you do,
   // the package really is shorted pin to pin and the tool must say so.
-  const errors = R.findingsFor(project(dil({ autoBreak: false })))
+  const errors = V.findingsFor(project(dil({ autoBreak: false })))
     .filter((f) => f.severity === 'error');
   ok(errors.length > 0, `shorted with no cuts (${errors.length} errors)`);
   ok(errors.every((f) => f.code === 'missing-required-break'),
@@ -53,7 +53,7 @@ s.check('...and cutting them by hand clears the errors', () => {
   for (const b of brk.requiredBreaks(dil(), lib.getPart)) {
     p.breaks.push({ row: b.row, x: b.x, at: 'gap' });
   }
-  eq(R.findingsFor(p).filter((f) => f.severity === 'error'), [], 'clean');
+  eq(V.findingsFor(p).filter((f) => f.severity === 'error'), [], 'clean');
 });
 
 s.check('a hand cut in a different place is honoured, not overruled', () => {
@@ -61,7 +61,7 @@ s.check('a hand cut in a different place is honoured, not overruled', () => {
   const pins = brk.requiredBreaks(dil(), lib.getPart);
   // one gap to the left of where the tool would have drilled
   for (const b of pins) p.breaks.push({ row: b.row, x: b.x - 1, at: 'gap' });
-  eq(R.findingsFor(p).filter((f) => f.severity === 'error'), [], 'clean');
+  eq(V.findingsFor(p).filter((f) => f.severity === 'error'), [], 'clean');
   eq(brk.effectiveBreaks(p).length, pins.length, 'only the user cuts');
 });
 

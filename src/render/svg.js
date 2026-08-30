@@ -15,10 +15,12 @@ import {
 } from '../model/geometry.js';
 import { segments } from '../net/segments.js';
 import { resolvePins } from '../model/rotate.js';
-import { nets as deriveNets, wireRunList } from '../net/derive.js';
-import { drc } from '../net/drc.js';
 import { effectiveBreaks } from '../model/breaks.js';
 import { netLabelsByNet } from '../model/nets.js';
+// The renderer ASKS the model what is connected, and does not answer it. These
+// four used to be exported from here, which made the SVG module the place the
+// server and the tests went to learn what a net was.
+import { netsFor } from '../model/views.js';
 import {
   wireColour, silkOf, segmentShade, isWireColoured, linkColour,
 } from './colours.js';
@@ -83,36 +85,6 @@ const n = (v) => Math.round(v * 1000) / 1000;
 const esc = (s) => String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;');
-
-// --- derived views of a project, shared with the editor's panels -------------
-
-// Everything project-shaped reads effectiveBreaks, never project.breaks: the
-// cuts a part requires are derived from the placements rather than stored, so a
-// caller that read the stored list would see a board missing half its cuts.
-export function netsFor(project) {
-  const segs = segments(project.board, effectiveBreaks(project));
-  const pins = resolvePins(project.placements ?? [], getPart);
-  return deriveNets(segs, pins, project.placements ?? [], getPart, project.wires ?? []);
-}
-
-export function findingsFor(project) {
-  return drc(project.board, effectiveBreaks(project), project.placements ?? [],
-    getPart, project.wires ?? []);
-}
-
-export function runList(project) {
-  const segs = segments(project.board, effectiveBreaks(project));
-  const { segmentNet } = netsFor(project);
-  return wireRunList(project.wires ?? [], segmentNet, segs);
-}
-
-// The cuts to make, for the exporter's sheet. Derived ones included, or half the
-// cuts would be missing from the list you build the board from.
-export function cutList(project) {
-  return [...effectiveBreaks(project)].sort(
-    (a, b) => (a.row - b.row) || (a.x - b.x),
-  );
-}
 
 // --- part bodies -------------------------------------------------------------
 //

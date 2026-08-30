@@ -5,6 +5,7 @@ import { suite, eq, ok, softImport } from '../run.mjs';
 
 const here = import.meta.url;
 const R = await softImport('../../src/render/svg.js', here);
+const V = await softImport('../../src/model/views.js', here);
 const board = await softImport('../../src/model/board.js', here);
 
 const s = suite('layers+selection');
@@ -82,7 +83,7 @@ s.check('hiding labels keeps the parts but drops their text', () => {
 s.check('hiding the drc layer drops the markers', () => {
   const p = board.makeProject({ cols: 12, rows: 6 });
   p.placements.push({ ref: 'R1', part: 'res-axial', span: 3, at: { col: 1, row: 0 }, rot: 0 });
-  const findings = R.findingsFor(p);
+  const findings = V.findingsFor(p);
   ok(els(R.renderBoard(p, { findings }), 'drc').length > 0, 'markers drawn by default');
   eq(els(R.renderBoard(p, { findings, layers: { drc: false } }), 'drc').length, 0,
     'markers gone when hidden');
@@ -91,11 +92,11 @@ s.check('hiding the drc layer drops the markers', () => {
 s.check('HIDING A LAYER CHANGES NEITHER THE NETS NOR THE CHECKS', () => {
   // Hiding is not deleting. A hidden link still joins its strips.
   const p = project();
-  const netsBefore = R.netsFor(p).nets.length;
-  const findingsBefore = R.findingsFor(p).length;
+  const netsBefore = V.netsFor(p).nets.length;
+  const findingsBefore = V.findingsFor(p).length;
   R.renderBoard(p, { layers: { links: false, wires: false, copper: false } });
-  eq(R.netsFor(p).nets.length, netsBefore, 'net count unchanged');
-  eq(R.findingsFor(p).length, findingsBefore, 'finding count unchanged');
+  eq(V.netsFor(p).nets.length, netsBefore, 'net count unchanged');
+  eq(V.findingsFor(p).length, findingsBefore, 'finding count unchanged');
 });
 
 // ---------------------------------------------------------------- selection

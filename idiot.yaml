@@ -1543,18 +1543,35 @@
   type: bug
   what: netsFor, findingsFor, runList and cutList are exported from src/render/svg.js, so app.js and the
     server import connectivity from the module whose job is to produce an SVG string.
-  spec: docs/specs/architecture-for-netlist.md
+  spec: docs/specs/views-out-of-the-renderer.md
   files:
   - src/render/svg.js
-  - public/app.js
+  - src/model/views.js
+  - src/model/nets.js
   - src/server/index.js
+  - public/app.js
   test:
-    command: null
-    criterion: the four query functions live in a model module, svg.js imports them, and the 38 existing
-      suites pass unchanged
+    command:
+    - node
+    - tests/model/test_views.mjs
+    criterion: the four derived views live in src/model/views.js, svg.js exports none of them, no model
+      or net module imports the renderer, the server imports it only to draw, and provideSegmentNet and
+      its global are gone
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/the-model-asks-the-renderer-what-a-net-is.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T19:33:15.318'
+    commit: 2c29da8-dirty
+  fix:
+    file: .proofs/the-model-asks-the-renderer-what-a-net-is.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:35:57.715'
+    commit: 2c29da8-dirty
 - id: app-js-is-a-third-of-the-codebase
   type: new
   what: 'public/app.js is 1379 of 4611 lines and holds four separable things: state and persistence, every

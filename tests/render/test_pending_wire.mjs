@@ -5,6 +5,7 @@ import { suite, eq, ok, softImport } from '../run.mjs';
 
 const here = import.meta.url;
 const R = await softImport('../../src/render/svg.js', here);
+const V = await softImport('../../src/model/views.js', here);
 const boardm = await softImport('../../src/model/board.js', here);
 const geom = await softImport('../../src/model/geometry.js', here);
 
@@ -89,7 +90,7 @@ s.check('A HALF-DRAWN WIRE IS NOT A WIRE', () => {
   const p = board();
   R.renderBoard(p, { pendingWire: pending });
   eq(p.wires, [], 'no wire stored');
-  eq(R.runList(p), [], 'and none in the run list');
+  eq(V.runList(p), [], 'and none in the run list');
   eq(els(R.renderBoard(p, { pendingWire: pending }), 'wire-pad').length, 0, 'and no pads');
 });
 

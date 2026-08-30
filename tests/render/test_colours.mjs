@@ -7,6 +7,7 @@ import { suite, eq, ok, softImport } from '../run.mjs';
 const here = import.meta.url;
 const C = await softImport('../../src/render/colours.js', here);
 const R = await softImport('../../src/render/svg.js', here);
+const V = await softImport('../../src/model/views.js', here);
 const boardm = await softImport('../../src/model/board.js', here);
 const E = await softImport('../../src/model/edit.js', here);
 const lib = await softImport('../../src/parts/library.js', here);
@@ -183,7 +184,7 @@ s.check('the difference is a hint, not a stripe', () => {
 s.check('a highlighted net is not shaded, so highlight stays unambiguous', () => {
   const p = boardm.makeProject({ cols: 12, rows: 4 });
   p.breaks.push({ row: 1, x: 5, at: 'gap' });
-  const { nets } = R.netsFor(p);
+  const { nets } = V.netsFor(p);
   const svg = R.renderBoard(p, { highlightNet: nets[0].id });
   const lit = els(svg, 'copper').filter((e) => attr(e, 'data-highlight') === 'true');
   eq(new Set(lit.map((e) => attr(e, 'fill'))).size, 1, 'one highlight colour');

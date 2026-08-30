@@ -5,6 +5,7 @@ import { suite, eq, ok, softImport } from '../run.mjs';
 
 const here = import.meta.url;
 const R = await softImport('../../src/render/svg.js', here);
+const V = await softImport('../../src/model/views.js', here);
 const N = await softImport('../../src/model/nets.js', here);
 const boardm = await softImport('../../src/model/board.js', here);
 
@@ -35,14 +36,14 @@ function chain() {
 
 s.check('A LIT SEGMENT IS NOT WASHED OUT LIKE UNLIT COPPER', () => {
   const p = chain();
-  const net = R.netsFor(p).segmentNet['s:0:0'];
+  const net = V.netsFor(p).segmentNet['s:0:0'];
   const svg = R.renderBoard(p, { highlightNet: net });
   for (const el of lit(svg)) eq(Number(attr(el, 'opacity')), 1, 'lit is full opacity');
 });
 
 s.check('...while unlit copper keeps its wash, because it IS under the board', () => {
   const p = chain();
-  const net = R.netsFor(p).segmentNet['s:0:0'];
+  const net = V.netsFor(p).segmentNet['s:0:0'];
   const svg = R.renderBoard(p, { highlightNet: net });
   for (const el of unlit(svg)) {
     ok(Number(attr(el, 'opacity')) < 1, 'unlit is washed');
@@ -51,7 +52,7 @@ s.check('...while unlit copper keeps its wash, because it IS under the board', (
 
 s.check('the lit colour is far from the unlit one', () => {
   const p = chain();
-  const net = R.netsFor(p).segmentNet['s:0:0'];
+  const net = V.netsFor(p).segmentNet['s:0:0'];
   const svg = R.renderBoard(p, { highlightNet: net });
   const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const a = rgb(attr(lit(svg)[0], 'fill'));
@@ -64,7 +65,7 @@ s.check('A CHAIN OF THREE WIRES LIGHTS ALL FOUR STRIPS', () => {
   // The report was that a highlight "only flows in 1 direction". It does not —
   // this is here so that claim can never become true unnoticed.
   const p = chain();
-  const net = R.netsFor(p).segmentNet['s:0:0'];
+  const net = V.netsFor(p).segmentNet['s:0:0'];
   const svg = R.renderBoard(p, { highlightNet: net });
   eq(lit(svg).map((e) => attr(e, 'data-seg')).sort(),
     ['s:0:0', 's:2:0', 's:4:0', 's:6:0'], 'all four');
@@ -80,7 +81,7 @@ const named = (over = {}) => {
 
 s.check('A LABEL ANCHORED TO A HOLE NAMES THE WHOLE NET', () => {
   const p = named();
-  const { segmentNet } = R.netsFor(p);
+  const { segmentNet } = V.netsFor(p);
   for (const seg of ['s:0:0', 's:2:0', 's:4:0', 's:6:0']) {
     eq(N.labelFor(p, segmentNet[seg])?.name, 'GND', `${seg} is on GND`);
   }
@@ -91,12 +92,12 @@ s.check('THE NAME SURVIVES A NET BEING RENUMBERED', () => {
   // Net ids are positional: n0 is the net holding the top-left-most segment, so
   // adding a wire reshuffles them. A name stored against n0 would jump nets.
   const p = named();
-  const before = R.netsFor(p).segmentNet['s:0:0'];
+  const before = V.netsFor(p).segmentNet['s:0:0'];
   // join two strips ABOVE nothing, forcing the numbering to change
   p.wires.push({ ref: 'D', from: { col: 3, row: 1 }, to: { col: 3, row: 3 } });
-  const after = R.netsFor(p).segmentNet['s:0:0'];
+  const after = V.netsFor(p).segmentNet['s:0:0'];
   eq(N.labelFor(p, after)?.name, 'GND', 'still GND');
-  ok(N.labelFor(p, R.netsFor(p).segmentNet['s:1:0'])?.name !== 'GND',
+  ok(N.labelFor(p, V.netsFor(p).segmentNet['s:1:0'])?.name !== 'GND',
     'and the new net did not inherit it');
   void before;
 });
@@ -188,7 +189,7 @@ s.check('A SECOND NAME ON ONE NET IS STILL REACHABLE', () => {
   // netLabelsByNet keeps the first and discards the rest, so the second name had
   // no row, no field, and no way to be renamed or cleared. It was permanent.
   const p = twoNames();
-  const { segmentNet } = R.netsFor(p);
+  const { segmentNet } = V.netsFor(p);
   const all = N.netLabelsAllByNet(p, segmentNet);
   const netId = [...all.keys()][0];
   eq(all.size, 1, 'one net');
@@ -198,17 +199,17 @@ s.check('A SECOND NAME ON ONE NET IS STILL REACHABLE', () => {
 s.check('each one knows the hole it is anchored to', () => {
   // Which is what makes a field able to edit or clear it on its own.
   const p = twoNames();
-  const all = N.netLabelsAllByNet(p, R.netsFor(p).segmentNet);
+  const all = N.netLabelsAllByNet(p, V.netsFor(p).segmentNet);
   const holes = [...all.values()][0].map((l) => `${l.hole.col},${l.hole.row}`);
   eq(holes, ['1,0', '9,6'], 'the two holes');
 });
 
 s.check('an ordinary net has one, and an unnamed one has none', () => {
   const p = named();
-  const all = N.netLabelsAllByNet(p, R.netsFor(p).segmentNet);
+  const all = N.netLabelsAllByNet(p, V.netsFor(p).segmentNet);
   for (const list of all.values()) ok(list.length >= 1, 'no empty lists');
   const plain = boardm.makeProject({ cols: 12, rows: 8 });
-  eq(N.netLabelsAllByNet(plain, R.netsFor(plain).segmentNet).size, 0, 'nothing on a bare board');
+  eq(N.netLabelsAllByNet(plain, V.netsFor(plain).segmentNet).size, 0, 'nothing on a bare board');
 });
 
 s.check('a label on a killed hole is still dropped', () => {
@@ -217,7 +218,7 @@ s.check('a label on a killed hole is still dropped', () => {
   const p = chain();
   p.breaks = [{ row: 0, x: 3, at: 'hole' }];
   p.netLabels = { '3,0': { name: 'NOWHERE' } };
-  const all = N.netLabelsAllByNet(p, R.netsFor(p).segmentNet);
+  const all = N.netLabelsAllByNet(p, V.netsFor(p).segmentNet);
   ok(![...all.values()].flat().some((l) => l.name === 'NOWHERE'), 'not listed');
 });
 
@@ -225,7 +226,7 @@ s.check('netLabelsByNet still answers with exactly the first', () => {
   // The board draws one plate per net and the strip takes one colour, so the
   // single-label question still has to have a single answer.
   const p = twoNames();
-  const { segmentNet } = R.netsFor(p);
+  const { segmentNet } = V.netsFor(p);
   const one = N.netLabelsByNet(p, segmentNet);
   eq([...one.values()].map((l) => l.name), ['0V'], 'the first');
 });
@@ -244,7 +245,7 @@ s.check('ON PETER’S BOARD, ALL TWELVE NAMES ARE REACHABLE', () => {
   // Eleven of the twelve had a field and that one did not, so it could not be
   // renamed, cleared, or even located.
   const p = JSON.parse(readFileSync(new URL('../fixtures/two-names-on-one-net.json', import.meta.url)));
-  const { segmentNet } = R.netsFor(p);
+  const { segmentNet } = V.netsFor(p);
   const stored = Object.keys(p.netLabels).length;
   const names = reachableLabels(p, segmentNet).map((l) => l.name);
   eq(stored, 12, 'twelve stored');

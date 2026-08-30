@@ -8,6 +8,7 @@ import { suite, eq, ok, softImport } from '../run.mjs';
 
 const here = import.meta.url;
 const R = await softImport('../../src/render/svg.js', here);
+const V = await softImport('../../src/model/views.js', here);
 const board = await softImport('../../src/model/board.js', here);
 const geom = await softImport('../../src/model/geometry.js', here);
 
@@ -166,19 +167,19 @@ s.check('DRC error holes are marked', () => {
   const p = board.makeProject({ cols: 10, rows: 6 });
   // Both legs on one uncut strip: shorted out.
   p.placements.push({ ref: 'R1', part: 'res-axial', span: 3, at: { col: 1, row: 0 }, rot: 0 });
-  const svg = R.renderBoard(p, { findings: R.findingsFor(p) });
+  const svg = R.renderBoard(p, { findings: V.findingsFor(p) });
   ok(els(svg, 'drc').length > 0, 'a DRC marker is drawn');
 });
 
 s.check('a clean layout draws no DRC markers', () => {
   const p = project();
-  eq(els(R.renderBoard(p, { findings: R.findingsFor(p).filter((d) => d.severity === 'error') }),
+  eq(els(R.renderBoard(p, { findings: V.findingsFor(p).filter((d) => d.severity === 'error') }),
     'drc').length, 0, 'no error markers');
 });
 
 s.check('highlighting a net marks its segments and nothing else', () => {
   const p = project();
-  const { nets } = R.netsFor(p);
+  const { nets } = V.netsFor(p);
   const svg = R.renderBoard(p, { highlightNet: nets[0].id });
   const lit = els(svg, 'copper').filter((e) => attr(e, 'data-highlight') === 'true');
   eq(lit.length, nets[0].segments.length, 'exactly the net’s segments are lit');
@@ -193,7 +194,7 @@ s.check('the two themes render differently', () => {
 s.check('the wire run list is rendered in ref order', () => {
   const p = project();
   p.wires.push({ ref: 'W2', from: { col: 1, row: 1 }, to: { col: 2, row: 3 } });
-  eq(R.runList(p).map((w) => w.ref), ['W1', 'W2'], 'run list order');
+  eq(V.runList(p).map((w) => w.ref), ['W1', 'W2'], 'run list order');
 });
 
 process.exit((await s.run()) ? 0 : 1);
