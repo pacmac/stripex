@@ -2695,7 +2695,13 @@
     failures: 1
     at: '2026-08-30T22:08:19.067'
     commit: 36ed01c-dirty
-  fix: null
+  fix:
+    file: .proofs/there-is-no-way-to-ask-what-a-stored-board-connects.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T22:11:02.387'
+    commit: a112a8f-dirty
 - id: a-board-cannot-be-resized-through-the-api
   type: new
   what: "There is no op or endpoint to change board.cols/rows. Making a board narrower means DELETE and\
@@ -2719,7 +2725,13 @@
     failures: 1
     at: '2026-08-30T22:09:58.405'
     commit: 36ed01c-dirty
-  fix: null
+  fix:
+    file: .proofs/a-board-cannot-be-resized-through-the-api.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T22:11:01.792'
+    commit: a112a8f-dirty
 - id: nothing-catches-two-part-bodies-in-the-same-column
   type: bug
   what: "Two components in one column whose row spans overlap are physically impossible and no check reports\
@@ -2775,4 +2787,26 @@
     failures: 1
     at: '2026-08-30T22:08:19.564'
     commit: 36ed01c-dirty
+  fix:
+    file: .proofs/the-tightening-pass-has-no-query-behind-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T22:11:02.970'
+    commit: a112a8f-dirty
+- id: usage-calls-a-column-empty-when-a-package-is-sitting-on-it
+  type: bug
+  what: "usageOf reports emptyColumns purely by hole occupancy, so a column inside a component's footprint\
+    \ reads as empty. On the SMT 555 it names column 7 \u2014 the DIP's own spot-face column, between\
+    \ its two pin columns, whose holes are dead and which cannot be removed. A true statement that invites\
+    \ a wrong conclusion, in the one query whose whole job is to point at waste."
+  spec: docs/specs/board-queries-and-resize.md
+  files:
+  - src/model/views.js
+  test:
+    command: null
+    criterion: a column or row covered by a placement's body is not reported as empty, or is reported
+      separately from one that is genuinely free
+    runs: 1
+  trial: null
   fix: null
