@@ -11,6 +11,7 @@ import { rotatePlacement } from '/src/model/rotate.js';
 import { requiredBreaks, ownerOf, effectiveBreaks } from '/src/model/breaks.js';
 import { cursorFor } from '/src/render/cursors.js';
 import { TABS, DEFAULT_TAB, focusTabFor, bodyId } from '/src/render/panels.js';
+import { applyPlacementEdit, applyWireEdit, editableFields } from '/src/model/edit.js';
 import { partList, getPart } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -341,31 +342,80 @@ function paintInspector() {
   }
 
   if (sel.kind === 'wire') {
-    const w = state.project.wires.find((x) => x.ref === sel.ref);
-    if (!w) { el.innerHTML = '<p class="empty">Gone.</p>'; return; }
+    const wi = state.project.wires.findIndex((x) => x.ref === sel.ref);
+    if (wi < 0) { el.innerHTML = '<p class="empty">Gone.</p>'; return; }
+    const w = state.project.wires[wi];
     el.innerHTML = `
-      <div class="field"><span>Wire</span><span class="mono">${w.ref}</span></div>
-      <div class="field"><span>From</span><span class="mono">${w.from.col},${w.from.row}</span></div>
-      <div class="field"><span>To</span><span class="mono">${w.to.col},${w.to.row}</span></div>`;
+      <div class="field"><span>Wire</span>
+        <input data-wedit="ref" value="${escapeHtml(w.ref)}" style="width:90px"></div>
+      <div class="field"><span>From column</span>
+        <input type="number" data-wedit="from.col" value="${w.from.col}" min="0"></div>
+      <div class="field"><span>From row</span>
+        <input type="number" data-wedit="from.row" value="${w.from.row}" min="0"></div>
+      <div class="field"><span>To column</span>
+        <input type="number" data-wedit="to.col" value="${w.to.col}" min="0"></div>
+      <div class="field"><span>To row</span>
+        <input type="number" data-wedit="to.row" value="${w.to.row}" min="0"></div>
+      <p class="hint" id="editError"></p>`;
+
+    for (const input of el.querySelectorAll('[data-wedit]')) {
+      input.addEventListener('change', (e) => {
+        const field = e.target.dataset.wedit;
+        const { wire, error } = applyWireEdit(w, field, e.target.value);
+        if (error) { paintInspector(); $('#editError').textContent = error; return; }
+        state.project.wires[wi] = wire;
+        if (field === 'ref') state.selection = { kind: 'wire', ref: wire.ref };
+        commit(`${wire.ref} ${field} = ${e.target.value}`);
+      });
+    }
     return;
   }
 
-  const pl = state.project.placements.find((x) => x.ref === sel.ref);
-  if (!pl) { el.innerHTML = '<p class="empty">Gone.</p>'; return; }
+  const idx = state.project.placements.findIndex((x) => x.ref === sel.ref);
+  if (idx < 0) { el.innerHTML = '<p class="empty">Gone.</p>'; return; }
+  const pl = state.project.placements[idx];
   const part = getPart(pl.part);
-  el.innerHTML = `
-    <div class="field"><span>Ref</span><span class="mono">${pl.ref}</span></div>
-    <div class="field"><span>Part</span><span>${part.name}</span></div>
-    <div class="field"><span>At</span><span class="mono">${pl.at.col},${pl.at.row}</span></div>
-    <div class="field"><span>Rotation</span><span class="mono">${pl.rot ?? 0}°</span></div>
-    ${part.parametric ? `<div class="field"><span>Span</span><span class="mono">${pl.span}</span></div>` : ''}
-    <div class="field"><span>Value</span>
-      <input id="valueEdit" value="${escapeHtml(pl.value ?? '')}" style="width:110px"></div>`;
+  const can = editableFields(part);
 
-  $('#valueEdit')?.addEventListener('change', (e) => {
-    pl.value = e.target.value;
-    commit(`${pl.ref} = ${e.target.value}`);
-  });
+  const num = (field, val, extra = '') => `<input type="number" data-edit="${field}"`
+    + ` value="${val}" ${extra}>`;
+
+  el.innerHTML = `
+    <div class="field"><span>Part</span><span>${escapeHtml(part.name)}</span></div>
+    <div class="field"><span>Ref</span>
+      <input data-edit="ref" value="${escapeHtml(pl.ref)}" style="width:90px"></div>
+    <div class="field"><span>Value</span>
+      <input data-edit="value" value="${escapeHtml(pl.value ?? '')}" style="width:90px"></div>
+    ${can.includes('span') ? `<div class="field"><span>${escapeHtml(part.spanLabel ?? 'Span')}</span>
+      ${num('span', pl.span ?? part.defaultSpan, `min="${part.minSpan ?? 1}"`)}</div>` : ''}
+    ${can.includes('width') ? `<div class="field"><span>${escapeHtml(part.widthLabel ?? 'Width')}</span>
+      ${num('width', pl.width ?? part.defaultWidth, `min="${part.minWidth ?? 2}"`)}</div>` : ''}
+    <div class="field"><span>Rotation</span>
+      <select data-edit="rot">${[0, 90, 180, 270].map((r) =>
+    `<option value="${r}"${(pl.rot ?? 0) === r ? ' selected' : ''}>${r}°</option>`).join('')}</select></div>
+    <div class="field"><span>Column</span>${num('col', pl.at.col, 'min="0"')}</div>
+    <div class="field"><span>Row</span>${num('row', pl.at.row, 'min="0"')}</div>
+    <p class="hint" id="editError"></p>`;
+
+  // One commit per change event, not per keystroke, so an edit is one undo step.
+  for (const input of el.querySelectorAll('[data-edit]')) {
+    input.addEventListener('change', (e) => {
+      const field = e.target.dataset.edit;
+      const { placement, error } = applyPlacementEdit(pl, getPart, field, e.target.value);
+      if (error) {
+        // Refused edits put the input back rather than leaving a value on screen
+        // that is not the value in the project. Repaint FIRST, then write the
+        // message: repainting rebuilds this panel, so a message written before
+        // it is wiped out and the user is refused with no reason given.
+        paintInspector();
+        $('#editError').textContent = error;
+        return;
+      }
+      state.project.placements[idx] = placement;
+      if (field === 'ref') state.selection = { kind: 'part', ref: placement.ref };
+      commit(`${placement.ref} ${field} = ${e.target.value}`);
+    });
+  }
 }
 
 const escapeHtml = (s) => String(s ?? '')

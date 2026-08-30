@@ -405,3 +405,32 @@
     runs: 1
   trial: null
   fix: null
+- id: a-selected-part-cannot-be-edited
+  type: bug
+  what: The Focus panel prints a part's ref, span, width, rotation and position as text, so changing any
+    of them means deleting the part and placing it again
+  spec: docs/specs/editable-selection.md
+  files:
+  - src/model/edit.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_edit.mjs
+    criterion: 'tests/model/test_edit.mjs passes: every field applies through applyPlacementEdit, and
+      a refused edit leaves the placement unchanged'
+    runs: 1
+  trial:
+    file: .proofs/a-selected-part-cannot-be-edited.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:39:28.839'
+    commit: db4a480-dirty
+  fix:
+    file: .proofs/a-selected-part-cannot-be-edited.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:41:13.728'
+    commit: db4a480-dirty
