@@ -1336,3 +1336,34 @@
     failures: 0
     at: '2026-08-30T14:11:32.430'
     commit: 76a8671-dirty
+- id: an-smt-part-is-drawn-at-chip-size-and-is-barely-visible
+  type: new
+  what: 'The 0603 is drawn at its true 1.6 x 0.8 mm, which is accurate and invisible: 0.8 mm of translucent
+    silkscreen on a 2.0 mm strip over copper, holes and a cut. It should be a land pattern reaching across
+    both holes and just inside the strip.'
+  spec: docs/specs/smt-land-pattern.md
+  files:
+  - src/render/svg.js
+  - src/parts/library.js
+  test:
+    command:
+    - node
+    - tests/parts/test_smt.mjs
+    criterion: '16/16 checks: the land reaches across both through holes, is a little narrower than the
+      copper strip, keeps a termination at each end, and is derived from the board geometry rather than
+      a size in the library'
+    runs: 1
+  trial:
+    file: .proofs/an-smt-part-is-drawn-at-chip-size-and-is-barely-visible.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T14:15:48.457'
+    commit: f82c635-dirty
+  fix:
+    file: .proofs/an-smt-part-is-drawn-at-chip-size-and-is-barely-visible.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T14:18:10.208'
+    commit: f82c635-dirty

@@ -214,9 +214,8 @@ const silk = (c) => `fill="${c.silkFill}" fill-opacity="${SILK_FILL_OPACITY}"`
   + ` stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"`;
 
 // `box` is the footprint: pin extent grown by half a pitch. Every shape is drawn
-// inside it, so no shape carries its own size any more — with one deliberate
-// exception, the 0603, which really is smaller than its footprint and is drawn
-// at its true 1.6 x 0.8 mm.
+// inside it, so no shape carries its own size — the 0603 was the last exception
+// and is now drawn as its land as well, across the two holes it bridges.
 function bodyFor(part, pts, c, box) {
   const shape = part.body?.shape ?? 'blob';
   const a = pts[0];
@@ -306,19 +305,37 @@ function bodyFor(part, pts, c, box) {
         + ` stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}" stroke-dasharray="1 1"/>`;
     }
     case 'chip': {
-      // Drawn at its real size in millimetres, not at a hole pitch: a 0603 is
-      // 1.6 x 0.8 mm and sits over the cut, nowhere near filling the 2.54 mm
-      // between the holes its pads are modelled at.
-      const bl = part.body.lenMm ?? 1.6;
-      const bw = part.body.widMm ?? 0.8;
-      const cap = bl * 0.22;
+      // THE LAND, NOT THE CHIP.
+      //
+      // This used to be drawn at the part's true 1.6 x 0.8 mm, and the reason
+      // given was correct: a 0603 really is that size and really does sit in
+      // the middle of the 2.54 mm between the holes its pads are modelled at.
+      // It was still the wrong drawing. 0.8 mm of translucent silkscreen on a
+      // 2.0 mm strip, over copper and holes and a cut, is accurate and
+      // invisible — and a part you cannot see is not on the drawing. Every
+      // other body here is a footprint; the 0603 was the one part drawn as an
+      // object, and the smallest one on the board.
+      //
+      // Length: the pin span plus one hole, so the ends finish on the OUTER
+      // EDGES of both holes — pins at +-1.27, holes 1.0 across, rectangle at
+      // +-1.77. That is what says the part bridges these two holes.
+      // Width: a little inside the track, so the copper shows either side and
+      // the land is never mistaken for the strip itself.
+      //
+      // Both come from constants that describe the board, so if the geometry is
+      // ever corrected the drawing follows.
+      const bl = len + HOLE_DIA_MM;
+      const bw = TRACK_W_MM * 0.85;
+      // One termination over each hole: where the solder actually goes, and
+      // what makes this read as a two-terminal part rather than a plain box.
+      const cap = HOLE_DIA_MM;
       return `<g transform="translate(${n(mx)} ${n(my)}) rotate(${n(angle)})">`
         + `<rect data-kind="part-body" x="${n(-bl / 2)}" y="${n(-bw / 2)}"`
-        + ` width="${n(bl)}" height="${n(bw)}" ${silk(c)}/>`
+        + ` width="${n(bl)}" height="${n(bw)}" rx="${n(0.25)}" ${silk(c)}/>`
         + `<rect x="${n(-bl / 2)}" y="${n(-bw / 2)}" width="${n(cap)}" height="${n(bw)}"`
-        + ` fill="${c.silk}" fill-opacity="0.5"/>`
+        + ` rx="${n(0.25)}" fill="${c.silk}" fill-opacity="0.5"/>`
         + `<rect x="${n(bl / 2 - cap)}" y="${n(-bw / 2)}" width="${n(cap)}" height="${n(bw)}"`
-        + ` fill="${c.silk}" fill-opacity="0.5"/></g>`;
+        + ` rx="${n(0.25)}" fill="${c.silk}" fill-opacity="0.5"/></g>`;
     }
     case 'line':
     default:
