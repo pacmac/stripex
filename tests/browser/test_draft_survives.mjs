@@ -103,6 +103,50 @@ s.check('A LOCAL DRAFT IS NOT REPLACED BY AN OLDER SERVER COPY', async () => {
   } finally { await page.close(); }
 });
 
+s.check('A RELOAD WITH NO EDITS WRITES NOTHING', async () => {
+  // Peter: "even if I make no changes and refresh the page, it seems it saves it
+  // overwriting any backend changes." It did. connectBoards ended with an
+  // unconditional scheduleSave() in a finally, so every load pushed the
+  // browser's copy up — and a change made to the file by anyone else was gone
+  // the next time he refreshed. It ate a label fix of mine while I was making
+  // it.
+  //
+  // Opening a board is not an edit. Nothing may be written until something
+  // actually changes.
+  needBrowser();
+  const made = await api('/api/boards', {
+    method: 'POST', body: JSON.stringify({ name: 'Quiet Reload', project: board('Quiet Reload', ['R1']) }),
+  });
+  const slug = made.body.slug;
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  try {
+    await page.addInitScript((sl) => {
+      localStorage.clear();
+      localStorage.setItem('stripex.openBoard', sl);
+    }, slug);
+    await page.goto(base);
+    await page.waitForSelector('#boardWrap svg');
+    await page.waitForTimeout(1200);
+
+    // Now somebody edits the FILE — me, at the bench, or another session.
+    const cur = await api(`/api/boards/${slug}`);
+    const edited = { ...cur.body.project, name: 'Quiet Reload', netLabels: { '0,0': { name: 'FROM_OUTSIDE' } } };
+    const put = await api(`/api/boards/${slug}`, {
+      method: 'PUT', body: JSON.stringify({ project: edited, version: cur.body.version }),
+    });
+    eq(put.status, 200, 'the outside edit landed');
+
+    // And the browser is reloaded, changing nothing.
+    await page.reload();
+    await page.waitForSelector('#boardWrap svg');
+    await page.waitForTimeout(1500);
+
+    const after = await api(`/api/boards/${slug}`);
+    eq(after.body.project.netLabels?.['0,0']?.name, 'FROM_OUTSIDE',
+      'the outside edit survived a reload that changed nothing');
+  } finally { await page.close(); }
+});
+
 s.check('and an identical draft opens the server copy without fuss', async () => {
   needBrowser();
   const made = await api('/api/boards', {

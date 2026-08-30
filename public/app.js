@@ -225,6 +225,9 @@ async function refreshBoards() {
 // write is a write.
 let saveTimer = null;
 let saving = false;
+// An edit that arrived before the board was open. Flushed once, by
+// connectBoards, and only if it really happened — see the comment there.
+let savePending = false;
 function scheduleSave() {
   // NOTHING SAVES UNTIL THE DRAFT QUESTION IS SETTLED. Boot draws, then asks the
   // server what it has and whether this browser holds something different. A
@@ -232,7 +235,8 @@ function scheduleSave() {
   // read it, so the two matched, so the draft was treated as "same as the
   // server" and replaced — the same data loss by a different route, and
   // intermittent, which is worse. Measured as 1 of 3 runs passing.
-  if (!state.ready || !state.slug) return;
+  if (!state.slug) return;
+  if (!state.ready) { savePending = true; return; }
   showSaveState('saving');
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveToServer, 400);
@@ -1825,10 +1829,21 @@ async function connectBoards() {
   try {
     await decideWhichBoard();
   } finally {
-    // Whatever happened — opened, migrated, or the server never answered —
-    // saving is allowed from here and not before.
+    // Saving is allowed from here and not before.
+    //
+    // AND OPENING A BOARD IS NOT AN EDIT. This used to end with an
+    // unconditional scheduleSave(), so every page load pushed this browser's
+    // copy to the server — and a change made to the file by anyone else was
+    // destroyed by the next refresh, with nothing typed. It ate a fix of mine
+    // while I was making it. Peter: "even if I make no changes and refresh the
+    // page, it seems it saves it overwriting any beckend changes."
+    //
+    // Only an edit that actually happened during the boot window is flushed,
+    // and not even that when a differing draft was kept: there the banner says
+    // "make any edit to save yours", and the user's next edit is what does it.
     state.ready = true;
-    scheduleSave();
+    if (savePending && !state.conflict) scheduleSave();
+    savePending = false;
   }
 }
 

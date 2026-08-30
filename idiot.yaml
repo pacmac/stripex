@@ -1974,3 +1974,33 @@
     failures: 0
     at: '2026-08-30T16:48:07.016'
     commit: a37299d-dirty
+- id: a-reload-with-no-edits-overwrites-the-server
+  type: bug
+  what: 'connectBoards ends with an unconditional scheduleSave() in a finally, so every page load pushes
+    the browser''s copy to the server. A change made to the board file by anyone else is destroyed the
+    next time the page is refreshed, even with no edits made. Peter: ''even if I make no changes and refresh
+    the page, it seems it saves it overwriting any beckend changes.'''
+  spec: docs/specs/boards-on-the-server.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_draft_survives.mjs
+    criterion: '3/3: an outside edit to a board file survives a browser reload that changes nothing, while
+      a differing draft is still kept and an identical one still opens quietly'
+    runs: 1
+  trial:
+    file: .proofs/a-reload-with-no-edits-overwrites-the-server.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:54:22.329'
+    commit: fd77d5f-dirty
+  fix:
+    file: .proofs/a-reload-with-no-edits-overwrites-the-server.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:55:34.566'
+    commit: fd77d5f-dirty
