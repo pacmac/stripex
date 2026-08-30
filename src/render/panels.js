@@ -32,6 +32,77 @@ export function focusTabFor(selection) {
 
 export const bodyId = (tabId) => `tab-${tabId}`;
 
+// ---------------------------------------------------------- the left panel
+//
+// Four cards, each owning the settings that belong to it. Before this, the panel
+// was four unrelated things stacked: the parts, the chosen part's span and
+// width, the break tool's cut type, and layer visibility — with two of them
+// being settings that floated free of what they configured.
+
+export const CARDS = [
+  { id: 'library', title: 'Library', icon: '▦' },
+  { id: 'cutting', title: 'Cutting', icon: '✂' },
+  { id: 'layers', title: 'Layers', icon: '◫' },
+  { id: 'board', title: 'Board', icon: '▭' },
+];
+
+// Which card a tool opens, or null.
+//
+// LAYERS AND BOARD ARE NEVER OPENED BY A TOOL. They are a view concern and a
+// document concern, not any tool's settings, and moving the panel on a tool
+// change for something the tool does not use is exactly the disassociation this
+// replaces.
+const TOOL_CARDS = {
+  place: 'library',
+  wire: 'library',      // it picks a part from the same list
+  break: 'cutting',
+};
+
+export const cardForTool = (tool) => TOOL_CARDS[tool] ?? null;
+
+// The parameters a part actually has — nothing more, and nothing disabled.
+//
+// A part with none shows none. Two greyed boxes are what the old panel did, and
+// they are what made span and width look like properties of the panel rather
+// than of the DIP.
+export function paramsFor(part) {
+  const out = [];
+  if (!part) return out;
+  if (part.parametric === 'span') {
+    out.push({
+      field: 'span',
+      label: part.spanLabel ?? 'span',
+      min: part.minSpan ?? 1,
+      value: part.defaultSpan ?? 1,
+    });
+  }
+  if (part.defaultWidth != null) {
+    out.push({
+      field: 'width',
+      label: part.widthLabel ?? 'width',
+      min: part.minWidth ?? 2,
+      value: part.defaultWidth,
+    });
+  }
+  return out;
+}
+
+// Group a part list by category, in the order CATEGORIES declares. Empty
+// categories are dropped, so a filtered library shows no empty headings.
+export function groupParts(parts, categories) {
+  return categories
+    .map((c) => ({ id: c.id, name: c.name, parts: parts.filter((p) => p.category === c.id) }))
+    .filter((g) => g.parts.length > 0);
+}
+
+// Search by name or id. Useless at fourteen parts and essential at sixty, and it
+// cannot be bolted onto a list that has grown a different shape in between.
+export function filterParts(parts, query) {
+  const q = String(query ?? '').trim().toLowerCase();
+  if (!q) return parts;
+  return parts.filter((p) => `${p.name} ${p.id}`.toLowerCase().includes(q));
+}
+
 // Should this message replace the status line?
 //
 // The editor tested the message for TRUTHINESS, and '' — which means "clear the

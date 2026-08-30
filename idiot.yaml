@@ -1137,3 +1137,37 @@
     failures: 0
     at: '2026-08-30T12:06:39.462'
     commit: 0952b41-dirty
+- id: the-left-panel-stacks-unrelated-things-and-cannot-hold-a-library
+  type: new
+  what: Parts, part parameters, the break tool's cut type and layer visibility are stacked flat, parameters
+    float free of the part they configure, and a flat list cannot hold a real component library
+  spec: docs/specs/left-panel-cards.md
+  files:
+  - src/parts/devices.js
+  - src/parts/library.js
+  - src/render/panels.js
+  - src/model/rotate.js
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/parts/test_devices.mjs
+    criterion: 'tests/render/test_cards.mjs and tests/parts/test_devices.mjs pass: cards own their settings,
+      every part has a category, and a device resolves to a placement with no dependency on the catalogue'
+    runs: 1
+  trial:
+    file: .proofs/the-left-panel-stacks-unrelated-things-and-cannot-hold-a-library.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T12:24:36.361'
+    commit: 4076b3b-dirty
+  fix:
+    file: .proofs/the-left-panel-stacks-unrelated-things-and-cannot-hold-a-library.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T12:30:04.606'
+    commit: 4076b3b-dirty

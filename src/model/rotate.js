@@ -30,11 +30,14 @@ export function resolvePins(placements, getPart) {
   const out = [];
   for (const pl of placements) {
     const part = getPart(pl.part);
-    for (const pin of pinsOf(part, pl.span, pl.width)) {
+    for (const [i, pin] of pinsOf(part, pl.span, pl.width).entries()) {
       const [dx, dy] = rotate(pin.dx, pin.dy, pl.rot ?? 0);
       out.push({
         ref: pl.ref,
-        pin: pin.name,
+        // A placement may carry its own pin names — a device copies them in when
+        // it is placed. Everything downstream that prints a pin then says STEP
+        // rather than 5 without knowing devices exist.
+        pin: pl.pinNames?.[i] ?? pin.name,
         col: pl.at.col + dx,
         row: pl.at.row + dy,
         electrical: pin.electrical !== false,

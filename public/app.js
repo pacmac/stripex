@@ -12,6 +12,7 @@ import { requiredBreaks, ownerOf, effectiveBreaks } from '/src/model/breaks.js';
 import { cursorFor } from '/src/render/cursors.js';
 import {
   TABS, DEFAULT_TAB, focusTabFor, bodyId, inspectorKey, shouldSetStatus,
+  CARDS, cardForTool, paramsFor, groupParts, filterParts,
 } from '/src/render/panels.js';
 import { toolForKey } from '/src/render/keys.js';
 import { loadProject } from '/src/model/repair.js';
@@ -54,7 +55,9 @@ function swatches(field, current, effective, label) {
       <button class="sw sw-clear${current ? '' : ' is-on'}" data-swatch="${field}"
         data-hex="" title="Default">&times;</button></div>`;
 }
-import { partList, getPart, defaultRotOf, placesWith } from '/src/parts/library.js';
+import {
+  partList, getPart, defaultRotOf, placesWith, CATEGORIES,
+} from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STORE_KEY = 'stripex.project';
@@ -99,6 +102,11 @@ const state = {
   wireStart: null,
   moveAnchor: null,
   drag: null,
+  // Which left-hand card is open. Arming a tool opens the card that holds its
+  // settings; a card opened by hand stays open until a tool that owns one is
+  // armed. Nothing ever disappears, so the panel's shape is learnable.
+  openCard: 'library',
+  search: '',
   layers: loadLayers(),
   undo: [],
   redo: [],
@@ -250,14 +258,29 @@ function focusOnSelectionChange() {
 }
 
 function paintLayers() {
+  const body = $('[data-cardbody="layers"]');
+  if (!body) return;
   const hidden = LAYER_ROWS.filter(([k]) => !state.layers[k]).length;
-  $('#layers').innerHTML = LAYER_ROWS.map(([key, label, colour]) => `
+  body.innerHTML = `<div class="layers">${LAYER_ROWS.map(([key, label, colour]) => `
     <label class="${state.layers[key] ? '' : 'is-off'}">
       <input type="checkbox" data-layer="${key}" ${state.layers[key] ? 'checked' : ''}>
       <span class="swatch" style="background:${colour}"></span>
       <span>${label}</span>
-    </label>`).join('');
-  $('#layersAll').hidden = hidden === 0;
+    </label>`).join('')}</div>
+    ${hidden ? '<button id="layersAll" class="linky">show every layer</button>' : ''}`;
+  body.addEventListener('change', (e) => {
+    const key = e.target.dataset.layer;
+    if (!key) return;
+    state.layers[key] = e.target.checked;
+    try { localStorage.setItem(LAYER_KEY, JSON.stringify(state.layers)); } catch { /* full */ }
+    const off = LAYER_ROWS.filter(([k]) => !state.layers[k]).map(([, l]) => l.toLowerCase());
+    draw(off.length ? `hidden: ${off.join(', ')}` : 'all layers shown');
+  });
+  $('#layersAll')?.addEventListener('click', () => {
+    state.layers = { ...DEFAULT_LAYERS };
+    try { localStorage.setItem(LAYER_KEY, JSON.stringify(state.layers)); } catch { /* full */ }
+    draw('all layers shown');
+  });
 }
 
 // The selection has to be visible in the panels too, not only on the board —
@@ -897,14 +920,151 @@ function onBoardClick(evt) {
 
 // -------------------------------------------------------------------- palette
 
-function buildPalette() {
-  const parts = partList();
-  $('#palette').innerHTML = parts.map((p) => `
-    <button data-part="${p.id}" class="${p.id === state.part ? 'is-on' : ''}">
-      ${p.name}${p.kind === 'link' ? '<span class="kind">link</span>' : ''}
-    </button>`).join('');
-  syncSpan();
+// ------------------------------------------------------------------- cards
+//
+// The left panel was four unrelated things stacked, with the chosen part's span
+// and width and the break tool's cut type floating free of what they configure.
+// Now each card owns its own settings, and arming a tool opens the card that
+// holds them.
+//
+// Layers and Board are never opened by a tool: they are a view concern and a
+// document concern, not any tool's settings.
+
+function buildCards() {
+  $('#cards').innerHTML = CARDS.map((c) => `
+    <section class="card" data-card="${c.id}">
+      <button class="card-head" data-cardtoggle="${c.id}">
+        <span class="card-icon">${c.icon}</span>
+        <span class="card-title">${c.title}</span>
+        <span class="card-sub" data-cardsub="${c.id}"></span>
+        <span class="card-chev">▾</span>
+      </button>
+      <div class="card-body" data-cardbody="${c.id}" hidden></div>
+    </section>`).join('');
+
+  for (const b of $('#cards').querySelectorAll('[data-cardtoggle]')) {
+    b.addEventListener('click', () => {
+      // Opened by hand stays open until a tool that owns a card is armed.
+      state.openCard = state.openCard === b.dataset.cardtoggle ? null : b.dataset.cardtoggle;
+      paintCards();
+    });
+  }
+  paintCards();
+}
+
+function paintCards() {
+  for (const c of CARDS) {
+    const open = state.openCard === c.id;
+    $(`[data-cardbody="${c.id}"]`).hidden = !open;
+    $(`[data-card="${c.id}"]`).classList.toggle('is-open', open);
+  }
+  // The header says what the next click will do even when collapsed.
+  const part = getPart(state.part);
+  $('[data-cardsub="library"]').textContent = part ? part.name : '';
+  $('[data-cardsub="cutting"]').textContent =
+    state.cut === 'hole' ? 'spot-face' : 'knife';
+  const off = LAYER_ROWS.filter(([k]) => !state.layers[k]).length;
+  $('[data-cardsub="layers"]').textContent = off ? `${off} hidden` : '';
+  $('[data-cardsub="board"]').textContent =
+    `${state.project.board.cols} × ${state.project.board.rows}`;
+
+  if (state.openCard === 'library') paintLibrary();
+  if (state.openCard === 'cutting') paintCutting();
+  if (state.openCard === 'layers') paintLayers();
+  if (state.openCard === 'board') paintBoardCard();
+}
+
+function paintLibrary() {
+  const all = partList();
+  const groups = groupParts(filterParts(all, state.search), CATEGORIES);
+  const part = getPart(state.part);
+
+  // A part's parameters appear directly beneath IT, not in the panel. That is
+  // the whole complaint: span belongs to the resistor, not to the sidebar.
+  const paramsHtml = (p) => {
+    if (p.id !== state.part) return '';
+    const fields = paramsFor(getPart(p.id));
+    if (!fields.length) return '';
+    return `<div class="part-params">${fields.map((f) => `
+      <label>${escapeHtml(f.label)}
+        <input type="number" data-param="${f.field}" min="${f.min}"
+          value="${state[f.field] ?? f.value}"></label>`).join('')}</div>`;
+  };
+
+  $('[data-cardbody="library"]').innerHTML = `
+    <input id="libsearch" class="lib-search" placeholder="search parts"
+      value="${escapeHtml(state.search)}">
+    ${groups.map((g) => `
+      <div class="lib-group">${escapeHtml(g.name)}</div>
+      ${g.parts.map((p) => `
+        <button data-part="${p.id}" class="${p.id === state.part ? 'is-on' : ''}">
+          ${escapeHtml(p.name)}${p.kind === 'link' ? '<span class="kind">link</span>' : ''}
+        </button>${paramsHtml(p)}`).join('')}`).join('')
+    || '<p class="empty">Nothing matches.</p>'}
+    <p class="hint">${part ? escapeHtml(partHint(part)) : ''}</p>
+    <p class="hint">These are the settings for the <b>next</b> part you place.
+      To change one already on the board, select it and use <b>Focus</b>.</p>`;
+
+  const search = $('#libsearch');
+  search.addEventListener('input', (e) => {
+    state.search = e.target.value;
+    paintLibrary();
+    $('#libsearch').focus();
+  });
+  for (const input of $('[data-cardbody="library"]').querySelectorAll('[data-param]')) {
+    input.addEventListener('change', (e) => {
+      state[e.target.dataset.param] = Math.max(1, Number(e.target.value) || 1);
+      draw('');
+    });
+  }
   markPaletteArmed();
+}
+
+function partHint(part) {
+  const bits = [part.kind === 'link'
+    ? 'A link is zero-ohm: it joins the strips it bridges into one net.'
+    : 'A component sits between nets — it never joins two strips.'];
+  if ((part.side ?? 'top') === 'copper') {
+    bits.push('Soldered to the copper underneath, straddling a cut.');
+  }
+  if (part.requiresBreak) bits.push('Placing it cuts the strips it needs.');
+  return bits.join(' ');
+}
+
+function paintCutting() {
+  $('[data-cardbody="cutting"]').innerHTML = `
+    <div class="cuts">
+      <label><input type="radio" name="cut" value="gap"
+        ${state.cut === 'gap' ? 'checked' : ''}>
+        <span>Knife — between two holes</span></label>
+      <label><input type="radio" name="cut" value="hole"
+        ${state.cut === 'hole' ? 'checked' : ''}>
+        <span>Spot-face cutter — at a hole</span></label>
+    </div>
+    <p class="hint">A spot-face kills the hole as well as the track: nothing
+      soldered there connects to anything.</p>`;
+  for (const r of $('[data-cardbody="cutting"]').querySelectorAll('input[name="cut"]')) {
+    r.addEventListener('change', (e) => { state.cut = e.target.value; setTool('break'); });
+  }
+}
+
+function paintBoardCard() {
+  $('[data-cardbody="board"]').innerHTML = `
+    <label class="span-row">Columns
+      <input id="cols" type="number" min="4" max="120" value="${state.project.board.cols}"></label>
+    <label class="span-row">Rows
+      <input id="rows" type="number" min="2" max="120" value="${state.project.board.rows}"></label>`;
+  for (const id of ['#cols', '#rows']) {
+    $(id).addEventListener('change', () => {
+      state.project.board.cols = Math.max(4, Number($('#cols').value) || 25);
+      state.project.board.rows = Math.max(2, Number($('#rows').value) || 20);
+      commit(`board is ${state.project.board.cols} × ${state.project.board.rows}`);
+    });
+  }
+}
+
+function buildPalette() {
+  paintCards();
 }
 
 // A part shows as ARMED only while the tool that uses it is armed.
@@ -915,43 +1075,8 @@ function buildPalette() {
 // said why.
 function markPaletteArmed() {
   const armed = state.tool === 'place' || state.tool === 'wire';
-  const list = $('#palette');
-  if (list) list.classList.toggle('is-armed', armed);
-}
-
-function syncSpan() {
-  const part = getPart(state.part);
-  const box = $('#span');
-  box.disabled = !part.parametric;
-  box.min = part.minSpan ?? 1;
-  if (part.parametric) {
-    state.span = Math.max(state.span, part.minSpan ?? 1);
-    box.value = state.span;
-  }
-  $('#spanLabel').textContent = part.parametric ? (part.spanLabel ?? '') : 'fixed';
-
-  // A DIL has two dimensions; most parts have one. Show the second only when it
-  // means something.
-  const hasWidth = part.defaultWidth != null;
-  $('#widthRow').hidden = !hasWidth;
-  if (hasWidth) {
-    state.width = Math.max(state.width, part.minWidth ?? 2);
-    $('#width').min = part.minWidth ?? 2;
-    $('#width').value = state.width;
-    $('#widthLabel').textContent = part.widthLabel ?? '';
-  }
-
-  const hints = [];
-  hints.push(part.kind === 'link'
-    ? 'A link is zero-ohm: it joins the strips it bridges into one net.'
-    : 'A component sits between nets — it never joins two strips.');
-  if ((part.side ?? 'top') === 'copper') {
-    hints.push('Soldered to the copper underneath, straddling a cut — the hole stays free.');
-  }
-  if (part.requiresBreak) {
-    hints.push('Placing it cuts the strips it needs.');
-  }
-  $('#paletteHint').textContent = hints.join(' ');
+  const body = $('[data-cardbody="library"]');
+  if (body) body.classList.toggle('is-armed', armed);
 }
 
 // ---------------------------------------------------------------------- wiring
@@ -967,6 +1092,12 @@ function setTool(tool) {
   // out of step with the button the toolbar shows as lit. Board only — a
   // crosshair over the parts list would be nonsense.
   $('#boardWrap').style.cursor = cursorFor(tool);
+  // Arming a tool opens the card holding its settings. A tool that configures
+  // nothing leaves whatever is open alone, rather than closing the panel for no
+  // reason.
+  const card = cardForTool(tool);
+  if (card) state.openCard = card;
+  paintCards();
   markPaletteArmed();
   const help = {
     select: 'Click a part or wire to select it; click a strip to highlight its net.',
@@ -983,7 +1114,7 @@ function setTool(tool) {
 
 function boot() {
   buildTabs();
-  buildPalette();
+  buildCards();
   setTool('select');
 
   document.addEventListener('click', (evt) => {
@@ -1016,21 +1147,6 @@ function boot() {
     if (evt.target.closest('#boardWrap')) onBoardClick(evt);
   });
 
-  $('#layers').addEventListener('change', (e) => {
-    const key = e.target.dataset.layer;
-    if (!key) return;
-    state.layers[key] = e.target.checked;
-    try { localStorage.setItem(LAYER_KEY, JSON.stringify(state.layers)); } catch { /* full */ }
-    const off = LAYER_ROWS.filter(([k]) => !state.layers[k]).map(([, l]) => l.toLowerCase());
-    draw(off.length ? `hidden: ${off.join(', ')}` : 'all layers shown');
-  });
-
-  $('#layersAll').addEventListener('click', () => {
-    state.layers = { ...DEFAULT_LAYERS };
-    try { localStorage.setItem(LAYER_KEY, JSON.stringify(state.layers)); } catch { /* full */ }
-    draw('all layers shown');
-  });
-
   // The rubber band follows the cursor by moving ONE existing element. draw()
   // rebuilds the whole board as a string, and doing that per mousemove would
   // rebuild five hundred holes to move one line.
@@ -1045,23 +1161,6 @@ function boot() {
     band.setAttribute('x2', state.view === 'underside' ? w - pos.x : pos.x);
     band.setAttribute('y2', pos.y);
   });
-
-  $('#span').addEventListener('change', (e) => {
-    state.span = Math.max(1, Number(e.target.value) || 1);
-    syncSpan();
-  });
-
-  $('#width').addEventListener('change', (e) => {
-    state.width = Math.max(2, Number(e.target.value) || 3);
-    syncSpan();
-  });
-
-  for (const radio of document.querySelectorAll('input[name="cut"]')) {
-    radio.addEventListener('change', (e) => {
-      state.cut = e.target.value;
-      setTool('break');
-    });
-  }
 
   $('#rotate').addEventListener('click', () => {
     if (state.selection?.kind === 'part') {
@@ -1086,17 +1185,6 @@ function boot() {
     state.view = e.target.value;
     draw(state.view === 'underside' ? 'underside — mirrored, this is what you solder' : 'top');
   });
-
-  for (const id of ['#cols', '#rows']) {
-    $(id).addEventListener('change', () => {
-      state.project.board.cols = Math.max(4, Number($('#cols').value) || 25);
-      state.project.board.rows = Math.max(2, Number($('#rows').value) || 20);
-      state.project.breaks = state.project.breaks.filter(
-        (b) => b.row < state.project.board.rows && b.x <= state.project.board.cols - 2,
-      );
-      commit(`board is ${state.project.board.cols} × ${state.project.board.rows}`);
-    });
-  }
 
   $('#theme').addEventListener('click', () => {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
@@ -1128,8 +1216,6 @@ function boot() {
         state.undo.push(JSON.stringify(state.project));
         state.project = loaded;
         state.selection = null;
-        $('#cols').value = loaded.board.cols;
-        $('#rows').value = loaded.board.rows;
         persist();
         draw(`loaded ${file.name}`);
       } catch (e) {
@@ -1198,9 +1284,6 @@ function boot() {
       setTool(t);
     }
   });
-
-  $('#cols').value = state.project.board.cols;
-  $('#rows').value = state.project.board.rows;
 
   const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
   if (prefersDark) {
