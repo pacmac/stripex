@@ -84,7 +84,7 @@
     },
     {
       "row": 18,
-      "x": 5,
+      "x": 7,
       "at": "hole"
     }
   ],
@@ -223,7 +223,7 @@
       "span": 7,
       "width": 6,
       "autoBreak": false,
-      "silk": "#c92a2a"
+      "silk": "#0ca678"
     },
     {
       "ref": "J4",

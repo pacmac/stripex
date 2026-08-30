@@ -224,6 +224,15 @@ function persist() {
   return ok;
 }
 
+// The localStorage copy, and nothing else. Its job is now narrow and honest: it
+// draws the board while the server is unreachable. It is a cache, not a second
+// source of truth — which is what it had quietly become.
+function persistDraftOnly() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state.project)); }
+  catch { /* persist() reports a full store */ }
+  setDirty(false);
+}
+
 // ------------------------------------------------------------- the server
 
 const api = async (url, opts) => {
@@ -1857,9 +1866,79 @@ function boot() {
 // THE MIGRATION IS THE POINT. There is a board in localStorage right now with
 // twelve net names on it. "Storage moved to the server" must not mean "your
 // board is gone", which is the failure this project has already had once.
+// THE FEED. The file is the board; this is how the screen learns it changed.
+//
+// Peter: "the entire board should be a ws feed, so that changes that are made to
+// the config file are updated immediately in the dashboard. that system of
+// receovered files etc hacks is very convoluted and confusing."
+//
+// He was right, and the convolution was the workaround: four bugs this session
+// came from nothing telling the browser the file had moved, and every attempt to
+// guess it afterwards was wrong. Two of them cost him work.
+let liveSocket = null;
+function connectLive() {
+  if (liveSocket) return;
+  let url;
+  try {
+    url = new URL('/api/live', window.location.href);
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  } catch { return; }
+
+  let ws;
+  try { ws = new WebSocket(url.toString()); } catch { return; }
+  liveSocket = ws;
+
+  ws.addEventListener('message', (evt) => {
+    let msg = null;
+    try { msg = JSON.parse(evt.data); } catch { return; }
+    if (msg.type === 'boards' || msg.type === 'hello') {
+      state.boards = msg.boards ?? state.boards;
+      paintCards();
+      return;
+    }
+    if (msg.type !== 'board' || msg.slug !== state.slug) return;
+    applyFromFeed(msg);
+  });
+
+  // A dropped feed is not a broken editor: it still draws, still saves, and
+  // tries again. Saying nothing and quietly going stale is what this replaces.
+  const retry = () => {
+    liveSocket = null;
+    setTimeout(connectLive, 2000);
+  };
+  ws.addEventListener('close', retry);
+  ws.addEventListener('error', () => { try { ws.close(); } catch { retry(); } });
+}
+
+// A board has arrived. Apply it when the editor is idle; offer it when it is
+// not — only the person knows whether their half-drawn wire matters more than
+// what arrived, and no heuristic can be told that.
+function applyFromFeed(msg) {
+  if (msg.version === state.version) return;      // our own save coming back
+  const busy = state.wireStart || state.moveAnchor;
+  if (busy) {
+    state.incoming = msg;
+    banner('This board changed on the server while you were mid-action. '
+      + 'Finish or press Escape, then it will be applied.', 'warn');
+    return;
+  }
+  const { project, repairs } = loadProject(JSON.stringify(msg.project));
+  if (!project) return;
+  loadRepairs = repairs;
+  state.project = project;
+  state.version = msg.version;
+  state.selection = null;
+  history.reset(state.project);
+  persistDraftOnly();
+  syncBoardSize();
+  paintCards();
+  draw('updated from the server');
+}
+
 async function connectBoards() {
   try {
     await decideWhichBoard();
+    connectLive();
   } finally {
     // Saving is allowed from here and not before.
     //
@@ -1898,14 +1977,11 @@ async function decideWhichBoard() {
     // clean browser was told its copy differed — and it does differ, and it is
     // not work, and refusing to open the board over it is the opposite of
     // protecting anything.
-    // Kept ONLY when this browser has work the server has not seen. A draft that
-    // merely differs — because somebody else edited the file — is not work, and
-    // holding it back is how a person ends up looking at their own stale board
-    // for ever.
-    const { ok: readOk, body } = await api(`/api/boards/${wanted}`);
-    const unsaved = readOk && storedDraft && isDirty()
-      && JSON.stringify(body.project) !== JSON.stringify(state.project);
-    await openBoard(wanted, { keepDraft: unsaved ? state.project : null });
+    // THE SERVER'S COPY, unless this browser is holding work that never reached
+    // it. The byte comparison is gone: the feed states what the file is, so
+    // there is nothing left to guess, and guessing is what told Peter his copy
+    // differed on every single load.
+    await openBoard(wanted, { keepDraft: storedDraft && isDirty() ? state.project : null });
     return;
   }
 

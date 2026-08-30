@@ -6,6 +6,7 @@
 // second version of the truth with nothing checking it against the first.
 
 import express from 'express';
+import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
@@ -15,6 +16,7 @@ import { renderBoard, findingsFor, netsFor, runList } from '../render/svg.js';
 import * as boards from './boards.js';
 import * as ops from '../model/ops.js';
 import * as rules from '../model/rules.js';
+import { attachLive as makeLive } from './live.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const app = express();
@@ -171,21 +173,53 @@ app.delete('/api/boards/:slug', (req, res) => {
   catch (e) { return boardError(res, e); }
 });
 
+// The live feed. Attached to an http server rather than to the express app,
+// because a WebSocket upgrade happens below express — which is also why the
+// tests hand it a server rather than importing a socket.
+//
+// DECLARED ABOVE THE LISTEN BLOCK, and that is not cosmetic: it was below, and
+// the listen block calls attachLive, so starting the server as an entry point
+// died on a temporal dead zone — "Cannot access 'live' before initialization" —
+// while 48 suites passed, because every one of them imports `app` and calls
+// things after the module has finished evaluating.
+let live = null;
+
 const port = Number(process.env.PORT ?? 3020);
 
 // Bound to 0.0.0.0 explicitly, not left to the default, so it is reachable from
 // the other machines on the bench rather than only from localhost.
 const host = process.env.HOST ?? '0.0.0.0';
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  app.listen(port, host, () => {
-    console.log(`stripex listening on ${host}:${port}`);
+// STARTED BY src/server/main.js, NOT BY GUESSING HOW THIS FILE WAS REACHED.
+//
+// This used to be wrapped in `if (process.argv[1] === fileURLToPath(...))`, and
+// it does not survive a process manager: pm2 in fork mode runs its own container
+// script and requires the app, so argv[1] is pm2's wrapper, the guard was false,
+// and the process came up reporting "online" while listening on nothing and
+// logging nothing at all.
+export function start({ port: p = port, host: h = host } = {}) {
+  // A real http server rather than app.listen(), because a WebSocket upgrade
+  // happens below express and needs the server's own 'upgrade' event.
+  const server = createServer(app);
+  attachLive(server);
+  server.listen(p, h, () => {
+    console.log(`stripex listening on ${h}:${p}`);
     for (const [name, addrs] of Object.entries(networkInterfaces())) {
       for (const a of addrs ?? []) {
-        if (a.family === 'IPv4') console.log(`  http://${a.address}:${port}  (${name})`);
+        if (a.family === 'IPv4') console.log(`  http://${a.address}:${p}  (${name})`);
       }
     }
   });
+  return server;
 }
+
+export function attachLive(server) {
+  live = makeLive(server, { dirFor: boardsDir });
+  return live;
+}
+export function closeLive() { live?.close(); live = null; }
+// Announced by the write endpoints so a change reaches clients immediately; the
+// directory watcher is the safety net for writes nothing here made.
+export const announce = (slug) => live?.announce(slug);
 
 export { app };

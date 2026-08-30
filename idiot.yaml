@@ -2158,3 +2158,69 @@
     failures: 0
     at: '2026-08-30T17:50:43.709'
     commit: 69f6948-dirty
+- id: nothing-tells-the-browser-the-board-file-changed
+  type: new
+  what: 'A board is a file and a screen with no channel between them, so everything built to reconcile
+    them has failed at least once: a reload overwrote the server, opening discarded unsaved work, a clean
+    browser refused to open a board, and ''your copy differs'' showed on every load for ever. Four bugs,
+    one cause. Peter lost work to two of them and told me three times that wires I had written were not
+    on his screen.'
+  spec: docs/specs/live-board-feed.md
+  files:
+  - src/server/live.js
+  - src/server/index.js
+  - public/app.js
+  - package.json
+  test:
+    command:
+    - node
+    - tests/server/test_live.mjs
+    criterion: '7/7 live checks: the feed greets a client, a board file written by hand reaches every
+      client with its version, an API change is indistinguishable from it, list changes are pushed, and
+      a dead socket does not stop the survivors'
+    runs: 1
+  trial:
+    file: .proofs/nothing-tells-the-browser-the-board-file-changed.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T18:01:18.275'
+    commit: 719375e-dirty
+  fix:
+    file: .proofs/nothing-tells-the-browser-the-board-file-changed.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T18:04:51.083'
+    commit: 719375e-dirty
+- id: the-server-does-not-start
+  type: bug
+  what: "attachLive is called from the listen block, which runs partway down src/server/index.js, above\
+    \ the 'let live = null' it references \u2014 a temporal dead zone. The server exits on boot with 'Cannot\
+    \ access live before initialization'. Every server check imports app and calls things after the module\
+    \ has fully evaluated, so 48 suites passed while the server would not run at all."
+  spec: docs/specs/live-board-feed.md
+  files:
+  - src/server/index.js
+  - tests/server/test_server_starts.mjs
+  test:
+    command:
+    - node
+    - tests/server/test_server_starts.mjs
+    criterion: '3/3: started as an entry point the server prints listening, serves / and /api/boards,
+      and greets a live feed client'
+    runs: 1
+  trial:
+    file: .proofs/the-server-does-not-start.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T18:06:02.570'
+    commit: 719375e-dirty
+  fix:
+    file: .proofs/the-server-does-not-start.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T18:10:00.664'
+    commit: 719375e-dirty
