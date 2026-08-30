@@ -528,6 +528,42 @@ main {
   border: 1px solid rgba(128, 128, 128, 0.45);
 }
 
+/* The Rules card. A rule is a sentence you agree to, so the row carries its own
+   explanation rather than a tooltip nobody hovers — and a rule that is OFF is
+   dimmed and says so, because a constraint silently switched off is how a board
+   gets built wrong by someone who believes they are protected. */
+.rules { display: flex; flex-direction: column; gap: 2px; }
+.rules .rule {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 7px;
+  padding: 6px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.rules label.rule:hover { background: var(--panel-2); }
+.rules .rule input[type="checkbox"] { width: auto; margin: 2px 0 0; accent-color: var(--accent); }
+.rules .rule-label { grid-column: 2; font-weight: 600; }
+.rules .rule-help { grid-column: 2; color: var(--ink-dim); font-size: 11px; line-height: 1.35; }
+.rules .rule.is-off .rule-label, .rules .rule.is-off .rule-help { color: var(--ink-dim); }
+.rules .rule > .rule-label:first-child,
+.rules .rule > .rule-help:first-child + .rule-patterns { grid-column: 1 / -1; }
+.rules .rule-patterns {
+  grid-column: 1 / -1;
+  width: 100%;
+  font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  resize: vertical;
+}
+.rules .rule-changed {
+  margin-left: 6px;
+  font-weight: 500;
+  font-size: 10px;
+  padding: 0 4px;
+  border-radius: 3px;
+  color: var(--warning, #b8860b);
+  border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+}
+
 /* The selected net's row, in the highlight colour the board uses for it, so the
    two views of one thing look like one thing. */
 .row.is-net-on {

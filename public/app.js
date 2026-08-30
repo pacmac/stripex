@@ -40,7 +40,10 @@ import { pinLocation } from '/src/model/move.js';
 // directly, so a wire the API refused was accepted by clicking — one board with
 // two sets of rules, and the looser one was the one a person used.
 import * as ops from '/src/model/ops.js';
-import { checkRules } from '/src/model/rules.js';
+import {
+  checkRules, disabledRuleNotes, rulesFor, ruleValue, warnOnlyFor,
+  RULE_DEFS, DEFAULT_RULES,
+} from '/src/model/rules.js';
 import {
   wireColour, silkOf, linkColour, wireLengthHoles,
   COLOUR_CODE, PALETTE_16,
@@ -473,7 +476,7 @@ function draw(message) {
   // the DRC's own shape, so the Checks tab and the board markers show them
   // without learning a second format. This is where a pen wire on power — which
   // the editor allows and the API refuses — becomes visible instead of silent.
-  lastFindings = [...findingsFor(p), ...checkRules(p)];
+  lastFindings = [...findingsFor(p), ...checkRules(p), ...disabledRuleNotes(p)];
 
   $('#boardWrap').innerHTML = renderBoard(p, {
     view: state.view,
@@ -1179,7 +1182,7 @@ function onBoardClick(evt) {
       // makes an existing board unusable is a rule nobody keeps. It shows in
       // Checks, where he can see it and decide.
       const from = state.wireStart;
-      const made = ops.addWire(p, from, hole, { warnOnly: ['penWiresSignalsOnly'] });
+      const made = ops.addWire(p, from, hole, { warnOnly: warnOnlyFor('editor') });
       if (made.error) {
         state.wireStart = null;
         return draw(made.error);
@@ -1376,7 +1379,85 @@ function paintCards() {
 
   if (state.openCard === 'library') paintLibrary();
   if (state.openCard === 'layers') paintLayers();
+  if (state.openCard === 'rules') paintRules();
   if (state.openCard === 'board') paintBoardCard();
+}
+
+// The Rules card, RENDERED FROM THE RULE DEFINITIONS.
+//
+// Nothing here names a rule. Adding one to RULE_DEFS in src/model/rules.js gives
+// it a row, a label and its help text with no edit to this file — which is what
+// "this list will grow so it needs to be configurable" has to mean. Three
+// checkboxes typed in here would be a second list of rules, disagreeing with the
+// first within a month.
+function paintRules() {
+  const body = $('[data-cardbody="rules"]');
+  if (!body) return;
+  const rules = rulesFor(state.project);
+  const own = state.project.rules ?? {};
+
+  const row = (def) => {
+    const value = ruleValue(rules, def.id);
+    const changed = ruleValue(DEFAULT_RULES, def.id) !== undefined
+      && JSON.stringify(value) !== JSON.stringify(ruleValue(DEFAULT_RULES, def.id));
+    // THE DEFAULT IS SHOWN BESIDE ANYTHING CHANGED. A rule quietly switched off
+    // weeks ago is how a board gets built wrong by someone who believes they
+    // are protected.
+    const flag = changed ? '<span class="rule-changed" title="changed from the default">changed</span>' : '';
+    if (def.kind === 'boolean') {
+      return `<label class="rule ${value ? '' : 'is-off'}">
+        <input type="checkbox" data-rule="${def.id}" ${value ? 'checked' : ''}>
+        <span class="rule-label">${escapeHtml(def.label)}${flag}</span>
+        <span class="rule-help">${escapeHtml(def.help)}</span>
+      </label>`;
+    }
+    // patterns: one per line, because that is how they are read and edited.
+    return `<div class="rule">
+      <span class="rule-label">${escapeHtml(def.label)}${flag}</span>
+      <span class="rule-help">${escapeHtml(def.help)}</span>
+      <textarea class="rule-patterns" rows="4" data-rule="${def.id}"
+        spellcheck="false">${escapeHtml((value ?? []).join('\n'))}</textarea>
+    </div>`;
+  };
+
+  body.innerHTML = `<div class="rules">${RULE_DEFS.map(row).join('')}</div>
+    ${Object.keys(own).length ? '<button id="rulesReset" class="linky">back to the defaults</button>' : ''}`;
+
+  body.addEventListener('change', (e) => {
+    const id = e.target.dataset.rule;
+    if (!id) return;
+    const def = RULE_DEFS.find((d) => d.id === id);
+    if (!def) return;
+    const patch = def.kind === 'boolean'
+      ? { [id]: e.target.checked }
+      // A dotted id is a path: netClasses.power becomes {netClasses:{power:[...]}}
+      : pathPatch(id, e.target.value.split('\n').map((s) => s.trim()).filter(Boolean));
+    const out = ops.setRules(state.project, patch);
+    // REFUSED, NOT SWALLOWED. A pattern that does not compile is a rule that
+    // would silently never fire; the status line is where the person who just
+    // typed it is still looking.
+    if (out.error) { paintRules(); return say(out.error); }
+    state.project = out.project;
+    commit(def.kind === 'boolean'
+      ? `${def.label}: ${e.target.checked ? 'on' : 'off'}`
+      : `${def.label} updated`);
+    paintRules();
+  });
+
+  $('#rulesReset')?.addEventListener('click', () => {
+    const next = JSON.parse(JSON.stringify(state.project));
+    delete next.rules;
+    state.project = next;
+    commit('rules back to the defaults');
+    paintRules();
+  });
+}
+
+// {a.b: v} -> {a: {b: v}} — so a rule id can be a path without the panel knowing
+// the shape of the rule set.
+function pathPatch(id, value) {
+  const parts = String(id).split('.');
+  return parts.reverse().reduce((acc, key) => ({ [key]: acc }), value);
 }
 
 function paintLibrary() {

@@ -43,12 +43,129 @@ export const DEFAULT_RULES = {
   },
 };
 
+// WHAT EACH RULE IS, IN ONE LIST, BESIDE THE RULE ITSELF.
+//
+// Peter: "this list will grow so it needs to be configurable." Three checkboxes
+// typed into index.html would satisfy today's three and would have to be typed
+// again for the fourth — two lists that must agree with nothing checking that
+// they do, which is the shape that already shipped a part called "X1" and a
+// palette that disagreed with the armed tool.
+//
+// So the Rules card is RENDERED FROM THIS. Adding a rule here gives it a control
+// and costs no edit anywhere else, and a check asserts the two cannot drift.
+//
+// `id` is a dotted path into the rule set, so netClasses.power is addressable
+// without the panel knowing that netClasses is a nested object.
+export const RULE_DEFS = [
+  {
+    id: 'linksAreStraight',
+    kind: 'boolean',
+    label: 'Wire links are straight',
+    help: 'A link runs along a strip or across it, never diagonally.',
+    // Deliberately has no checker — see the note where the other two are checked.
+    enforcedBy: 'ops.addLink',
+  },
+  {
+    id: 'penWiresFreeHolesOnly',
+    kind: 'boolean',
+    label: 'Point to point is hole to hole',
+    help: 'A pen wire ends in a free hole, never one that already has a pin in it.',
+    enforcedBy: 'ops.addWire',
+  },
+  {
+    id: 'penWiresSignalsOnly',
+    kind: 'boolean',
+    label: 'Power goes by wire link',
+    help: 'Point to point is for signals. Refused over the API; warned at the mouse, '
+      + 'because a rule that makes an existing board unusable is a rule nobody keeps.',
+    enforcedBy: 'ops.addWire',
+    warnsOnly: 'editor',
+  },
+  {
+    id: 'netClasses.power',
+    kind: 'patterns',
+    label: 'Power net names',
+    help: 'A net whose name matches one of these is power. Case is ignored.',
+    enforcedBy: 'netClassOf',
+  },
+];
+
+const byId = (id) => RULE_DEFS.find((d) => d.id === id) ?? null;
+
+// The rules a given caller WARNS about rather than refuses.
+//
+// Derived from the definitions rather than typed at the call site, so the split
+// is declared once beside the rule it belongs to. It was a literal list in
+// app.js — a second statement of which rules are advisory, free to disagree with
+// the first.
+export const warnOnlyFor = (who) => RULE_DEFS
+  .filter((d) => d.warnsOnly === who).map((d) => d.id);
+
+// A dotted path in, the value out, without the caller knowing the shape.
+export function ruleValue(rules, id) {
+  return String(id).split('.').reduce((acc, k) => (acc == null ? acc : acc[k]), rules);
+}
+
 // The rules in force for a board: its own, over the defaults. `netClasses` is
 // REPLACED rather than merged — a board that redefines what counts as power
 // means it, and quietly keeping the old patterns underneath would make the
 // override untestable.
 export function rulesFor(project) {
   return { ...DEFAULT_RULES, ...(project?.rules ?? {}) };
+}
+
+// A rule that is OFF, said out loud.
+//
+// A constraint switched off six weeks ago is how a board gets built wrong by
+// someone who believes they are protected. Only boolean rules can be "off"; a
+// pattern list that has been edited is a different thing and is not a warning.
+export function disabledRuleNotes(project) {
+  const rules = rulesFor(project);
+  const out = [];
+  for (const def of RULE_DEFS) {
+    if (def.kind !== 'boolean') continue;
+    if (ruleValue(rules, def.id) === false) {
+      out.push({
+        severity: 'warning',
+        code: 'rule-disabled',
+        message: `${def.label} is switched off for this board — ${def.id}`,
+        refs: [def.id],
+        holes: [],
+      });
+    }
+  }
+  return out;
+}
+
+// What is wrong with a proposed change to the rules, or null.
+//
+// SEPARATE FROM ops.setRules so the panel can say it before the write is
+// attempted, and so the reason is one sentence rather than a thrown error.
+export function validateRulePatch(patch) {
+  for (const [key, value] of Object.entries(patch ?? {})) {
+    if (key === 'netClasses') {
+      for (const [cls, list] of Object.entries(value ?? {})) {
+        const def = byId(`netClasses.${cls}`);
+        if (!def) return `${JSON.stringify(`netClasses.${cls}`)} is not a rule`;
+        if (!Array.isArray(list)) return `netClasses.${cls} must be a list of patterns`;
+        for (const pattern of list) {
+          // A bad regex is swallowed at match time, so a stored one is a rule
+          // that silently never fires. The door is the only place it can still
+          // be reported to whoever typed it.
+          try { new RegExp(pattern, 'i'); } catch (e) {
+            return `${JSON.stringify(pattern)} is not a usable pattern: ${e.message}`;
+          }
+        }
+      }
+      continue;
+    }
+    const def = byId(key);
+    if (!def) return `${JSON.stringify(key)} is not a rule`;
+    if (def.kind === 'boolean' && typeof value !== 'boolean') {
+      return `${key} is on or off, not ${JSON.stringify(value)}`;
+    }
+  }
+  return null;
 }
 
 export function netClassOf(name, rules = DEFAULT_RULES) {

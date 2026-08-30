@@ -1,0 +1,2 @@
+$ node tests/model/test_rules_config.mjs
+rules-config: 8/8 checks passed

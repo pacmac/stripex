@@ -15,7 +15,10 @@ s.check('THE CARDS EXIST, IN ORDER', () => {
   // from the left panel." A card holding one either/or setting was a panel you
   // had to open to change a thing you change constantly; two buttons in the
   // toolbar say which is armed without being opened.
-  eq(P.CARDS.map((c) => c.id), ['library', 'layers', 'board'], 'card ids');
+  // RULES sits between the view concern and the document concern, because that
+  // is what it is: what this board is built under. Peter: "this list will grow
+  // so it needs to be configurable."
+  eq(P.CARDS.map((c) => c.id), ['library', 'layers', 'rules', 'board'], 'card ids');
   for (const c of P.CARDS) {
     ok(c.title, `${c.id} has a title`);
     ok(c.icon, `${c.id} has an icon`);

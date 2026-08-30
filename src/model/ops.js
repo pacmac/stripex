@@ -21,7 +21,7 @@ import { getDevice, placementFor } from '../parts/devices.js';
 import { resolvePins, isRotation } from './rotate.js';
 import { segments, segmentIndex, holeKey } from '../net/segments.js';
 import { effectiveBreaks } from './breaks.js';
-import { checkRules, rulesFor, netClassOf } from './rules.js';
+import { checkRules, rulesFor, netClassOf, validateRulePatch } from './rules.js';
 import { netLabelsAllByNet, setNetLabel } from './nets.js';
 import { nets as deriveNets } from '../net/derive.js';
 
@@ -283,9 +283,35 @@ export function setLabel(project, hole, { name, colour } = {}) {
   return { project: setNetLabel(clone(project), hole, name || colour ? { name, colour } : null) };
 }
 
+// ------------------------------------------------------------------ rules
+
+// Change the rules this BOARD is built under.
+//
+// Peter: "this list will grow so it needs to be configurable." The patch is
+// validated against RULE_DEFS rather than merged blindly: a rule id nobody has
+// heard of is a typo that would sit in the file for ever doing nothing, and a
+// pattern that does not compile is a rule that silently never fires — both are
+// refused here, where whoever typed them is still listening.
+//
+// netClasses is merged one class at a time so a caller can replace `power`
+// without having to restate every other class it does not care about.
+export function setRules(project, patch = {}) {
+  const bad = validateRulePatch(patch);
+  if (bad) return fail('bad-rule', bad);
+  const next = clone(project);
+  const current = next.rules ?? {};
+  const merged = { ...current, ...patch };
+  if (patch.netClasses) {
+    merged.netClasses = { ...(current.netClasses ?? {}), ...patch.netClasses };
+  }
+  next.rules = merged;
+  return { project: next };
+}
+
 // --------------------------------------------------------------- the batch
 
 const OPS = {
+  setRules: (p, a) => setRules(p, a.rules ?? a.patch ?? {}),
   addPart: (p, a) => addPart(p, a),
   removePart: (p, a) => removePart(p, a.ref),
   movePart: (p, a) => movePart(p, a.ref, a.pin, a.to),

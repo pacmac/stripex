@@ -63,6 +63,11 @@ export const CARDS = [
   // opened. Peter: "I want 2 buttons and remove the cutting section from the
   // left panel."
   { id: 'layers', title: 'Layers', icon: '◫' },
+  // RULES, because Peter said "this list will grow so it needs to be
+  // configurable" and configurable-by-editing-JSON is not that. The card's rows
+  // are rendered from RULE_DEFS in src/model/rules.js, so a new rule arrives
+  // with its own control and this file does not learn its name.
+  { id: 'rules', title: 'Rules', icon: '⚖' },
   { id: 'board', title: 'Board', icon: '▭' },
 ];
 
