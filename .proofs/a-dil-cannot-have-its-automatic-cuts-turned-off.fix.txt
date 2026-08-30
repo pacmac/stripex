@@ -1,0 +1,2 @@
+$ node tests/model/test_autobreak_switch.mjs
+autobreak-switch: 11/11 checks passed

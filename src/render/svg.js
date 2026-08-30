@@ -18,7 +18,9 @@ import { resolvePins } from '../model/rotate.js';
 import { nets as deriveNets, wireRunList } from '../net/derive.js';
 import { drc } from '../net/drc.js';
 import { effectiveBreaks } from '../model/breaks.js';
-import { wireColour, silkOf, segmentShade } from './colours.js';
+import {
+  wireColour, silkOf, segmentShade, isWireColoured, linkColour,
+} from './colours.js';
 import { getPart, getPart as defaultGetPart, sideOf } from '../parts/library.js';
 
 export const THEMES = {
@@ -521,8 +523,15 @@ export function renderBoard(project, opts = {}) {
       // The part's own silkscreen colour, if it has one. Only the body and its
       // outline: the pads below keep the theme colour, so a pale part on a pale
       // board cannot make its own pads unreadable.
-      const partSilk = silkOf(pl, part, c.silk);
-      out.push(bodyFor(part, pts, { ...c, silk: partSilk, silkFill: partSilk },
+      //
+      // A WIRE LINK is a piece of wire, so its body takes the wire colour for
+      // its span instead — while its pads still take silkscreen. Overriding its
+      // silk recolours the pads and leaves the wire; overriding its colour
+      // recolours the wire and leaves the pads.
+      const bodyInk = isWireColoured(part)
+        ? linkColour(pl, part)
+        : silkOf(pl, part, c.silk);
+      out.push(bodyFor(part, pts, { ...c, silk: bodyInk, silkFill: bodyInk },
         footprintBoxFromPoints(pts)));
       if (L.labels) {
         out.push(`<text data-kind="part-label" data-ref="${esc(pl.ref)}"`
@@ -545,12 +554,16 @@ export function renderBoard(project, opts = {}) {
     // One rounded radius for both shapes: rounding each independently made the
     // square 1.727 mm across where the circle was 1.728, and the whole point of
     // matching their extents is that they read as the same size.
+    // Pads take the part's SILKSCREEN colour — including a wire link's, whose
+    // body is wire-coloured while its pads are silk. A pad is a silkscreen
+    // marking, not copper, so a part's silkscreen colour has to paint it.
+    const padInk = silkOf(pl, part, c.silk);
     const padR = n(PAD_R_MM);
     for (const [i, p] of pts.entries()) {
       const pinName = pins[i]?.pin ?? '';
       const common = `data-kind="pad" data-pin="${esc(pinName)}"`
         + ` data-first="${i === 0}" pointer-events="all"`
-        + ` fill="none" stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"`;
+        + ` fill="none" stroke="${padInk}" stroke-width="${SILK_STROKE_MM}"`;
       out.push(i === 0
         ? `<rect ${common} x="${n(p.x - padR)}" y="${n(p.y - padR)}"`
           + ` width="${padR * 2}" height="${padR * 2}"/>`

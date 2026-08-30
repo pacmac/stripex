@@ -21,19 +21,56 @@ export const COLOUR_CODE = [
 // leave the next click starting another one.
 export const TOOL_AFTER_ESCAPE = 'select';
 
-// The digit at the end of a ref, or 0. W1 -> 1, W23 -> 23, GND -> 0.
-function refNumber(ref) {
-  const m = /(\d+)\s*$/.exec(String(ref ?? ''));
-  return m ? Number(m[1]) : 0;
+// Sixteen swatches: the ten code colours plus six for parts. The native colour
+// input opens an operating-system dialog with a spectrum, an eyedropper and a
+// hex field, for a choice between a handful of sane values on a board.
+export const PALETTE_16 = [
+  ...COLOUR_CODE,
+  { name: 'pink', hex: '#f06595' },
+  { name: 'cyan', hex: '#22b8cf' },
+  { name: 'teal', hex: '#0ca678' },
+  { name: 'gold', hex: '#f59f00' },
+  { name: 'maroon', hex: '#862e2e' },
+  { name: 'navy', hex: '#1b3a6b' },
+];
+
+// The colour for a wire of this many holes.
+//
+// It is keyed on LENGTH, not on the wire's number. Colour tells you which
+// pre-cut wire to take out of the drawer, so a 3-hole wire is orange in every
+// project and on every board. Wrapping at ten is the same idea: the drawer has
+// ten compartments, so an 11-hole wire is brown like a 1-hole one.
+export function colourForLength(holes) {
+  const n = Math.max(0, Math.round(Number(holes) || 0));
+  return COLOUR_CODE[n % COLOUR_CODE.length].hex;
 }
 
-// A wire's colour. Its own number through the code, so the LAST DIGIT of the ref
-// names the colour and a run list of thirty wires still reads off a ten-way
-// drawer. An explicit `colour` on the wire wins, so a project saved before this
-// existed gets colours without being migrated.
+// How long a pen wire is, in holes. Straight-line, because a pen wire runs
+// diagonally and the wire you cut for it is that long: a 3-4-5 diagonal is a
+// 5-hole wire and takes the same green as a straight 5-hole one, which is right
+// — they are the same piece of wire.
+export function wireLengthHoles(wire) {
+  if (!wire?.from || !wire?.to) return 0;
+  return Math.round(Math.hypot(wire.to.col - wire.from.col, wire.to.row - wire.from.row));
+}
+
+// A wire's colour: its own override, else the colour for its length.
 export function wireColour(wire) {
   if (wire?.colour) return wire.colour;
-  return COLOUR_CODE[refNumber(wire?.ref) % COLOUR_CODE.length].hex;
+  return colourForLength(wireLengthHoles(wire));
+}
+
+// A wire LINK is a piece of wire too, so its body is coloured by its span. Its
+// pads are not: they stay silkscreen like every other part's, so a link reads as
+// a coloured wire between two ordinary pads.
+//
+// `kind: 'link'` is what marks a part as wire-coloured, so a future zero-ohm
+// part gets it without a second list to keep in step.
+export const isWireColoured = (part) => part?.kind === 'link';
+
+export function linkColour(placement, part) {
+  if (placement?.colour) return placement.colour;
+  return colourForLength(placement?.span ?? part?.defaultSpan ?? 0);
 }
 
 // A part's silkscreen colour: this placement, then the library's default for the

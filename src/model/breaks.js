@@ -48,7 +48,23 @@ function cutBetween(row, a, b, breakType) {
 // declares no such requirement — a resistor lying along a strip is also shorted,
 // but that is the user's mistake to see reported, not a package whose datasheet
 // demands a cut.
+// The cuts this placement NEEDS to work, whether or not it is deriving them
+// itself. The DRC asks this one: switching the automatic cuts off does not make
+// a shorted chip un-shorted, it just means the user intends to cut the strips
+// by hand — and until they do, the tool must still say the package is shorted.
+export function neededBreaks(placement, getPart) {
+  return computeBreaks(placement, getPart);
+}
+
+// The cuts this placement CONTRIBUTES to the board. Same list, unless the user
+// has switched them off for this part because they are going to cut the strips
+// under it themselves, in their own places and with their own tool.
 export function requiredBreaks(placement, getPart) {
+  if (placement.autoBreak === false) return [];
+  return computeBreaks(placement, getPart);
+}
+
+function computeBreaks(placement, getPart) {
   let part;
   try { part = getPart(placement.part); } catch { return []; }
   if (!part.requiresBreak) return [];
@@ -145,7 +161,7 @@ export function mergeBreaks(existing = [], additions = []) {
 // the segment index, so the DRC can name the exact gap to cut rather than saying
 // "shorted" and leaving the user to work out where.
 export function missingBreaks(placement, getPart, segmentIndexMap) {
-  const need = requiredBreaks(placement, getPart);
+  const need = neededBreaks(placement, getPart);
   const pins = resolvePins([placement], getPart).filter((p) => p.electrical);
   const segOf = (col, row) => segmentIndexMap.get(`${col},${row}`);
 

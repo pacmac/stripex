@@ -291,6 +291,41 @@ main {
 
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
+/* 16 swatches plus a clear, four to a row. */
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 3px;
+  padding: 2px 6px 8px;
+}
+
+.sw {
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 0;
+}
+.sw:hover { border-color: var(--ink); }
+.sw.is-on { outline: 2px solid var(--wire); outline-offset: 1px; }
+
+.sw-clear {
+  background: var(--panel-2);
+  color: var(--ink-dim);
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* The colour actually in use, whether chosen or derived. */
+.sw-now {
+  width: 22px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  display: inline-block;
+}
+
 .fold { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 6px; }
 .fold summary {
   cursor: pointer;

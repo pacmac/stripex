@@ -642,3 +642,64 @@
     failures: 0
     at: '2026-08-30T10:05:48.720'
     commit: 936e0c7-dirty
+- id: wire-colour-comes-from-the-ref-and-links-have-none
+  type: bug
+  what: Wire colour is keyed on the ref number rather than the wire's length, and a wire link is drawn
+    in the silk colour so every link is near black whatever its span
+  spec: docs/specs/wire-colour-by-length.md
+  files:
+  - src/render/colours.js
+  - src/render/svg.js
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/render/test_wire_colour.mjs
+    criterion: 'tests/render/test_wire_colour.mjs passes: a 3-hole wire is orange, a 3-4-5 diagonal is
+      green, and a link''s body takes its wire colour while its pads stay silk'
+    runs: 1
+  trial:
+    file: .proofs/wire-colour-comes-from-the-ref-and-links-have-none.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:12:29.047'
+    commit: 46543d7-dirty
+  fix:
+    file: .proofs/wire-colour-comes-from-the-ref-and-links-have-none.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:17:04.997'
+    commit: 46543d7-dirty
+- id: a-dil-cannot-have-its-automatic-cuts-turned-off
+  type: new
+  what: A requiresBreak part always derives its own cuts, so you cannot switch them off and cut the strips
+    under it yourself
+  spec: docs/specs/wire-colour-by-length.md
+  files:
+  - src/model/breaks.js
+  - src/model/edit.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_autobreak_switch.mjs
+    criterion: 'tests/model/test_autobreak_switch.mjs passes: autoBreak false on a placement derives no
+      cuts and the DRC then reports the shorts'
+    runs: 1
+  trial:
+    file: .proofs/a-dil-cannot-have-its-automatic-cuts-turned-off.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:14:36.989'
+    commit: 46543d7-dirty
+  fix:
+    file: .proofs/a-dil-cannot-have-its-automatic-cuts-turned-off.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:17:05.133'
+    commit: 46543d7-dirty

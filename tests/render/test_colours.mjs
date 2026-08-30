@@ -30,39 +30,48 @@ s.check('THE CODE IS THE STANDARD ONE, BLACK THROUGH WHITE', () => {
     'in order');
 });
 
-s.check('W1 IS BROWN AND W9 IS WHITE', () => {
-  eq(C.wireColour({ ref: 'W1' }), C.COLOUR_CODE[1].hex, 'W1 brown');
-  eq(C.wireColour({ ref: 'W9' }), C.COLOUR_CODE[9].hex, 'W9 white');
-  eq(C.wireColour({ ref: 'W5' }), C.COLOUR_CODE[5].hex, 'W5 green');
+// Corrected 2026-08-30: the code is keyed on the wire's LENGTH, not its ref.
+// These three checks previously asserted the ref rule. Detail lives in
+// tests/render/test_wire_colour.mjs; these guard the drawing.
+const wire = (holes, extra = {}) => ({
+  ref: 'W1', from: { col: 0, row: 0 }, to: { col: holes, row: 0 }, ...extra,
 });
 
-s.check('THE LAST DIGIT NAMES THE COLOUR, SO IT WRAPS AT TEN', () => {
-  eq(C.wireColour({ ref: 'W10' }), C.COLOUR_CODE[0].hex, 'W10 black');
-  eq(C.wireColour({ ref: 'W23' }), C.COLOUR_CODE[3].hex, 'W23 orange');
-  eq(C.wireColour({ ref: 'W100' }), C.COLOUR_CODE[0].hex, 'W100 black');
+s.check('A ONE-HOLE WIRE IS BROWN AND A NINE-HOLE ONE IS WHITE', () => {
+  eq(C.wireColour(wire(1)), C.COLOUR_CODE[1].hex, '1 hole brown');
+  eq(C.wireColour(wire(9)), C.COLOUR_CODE[9].hex, '9 holes white');
+  eq(C.wireColour(wire(5)), C.COLOUR_CODE[5].hex, '5 holes green');
+});
+
+s.check('THE LENGTH NAMES THE COLOUR, SO IT WRAPS AT TEN', () => {
+  eq(C.wireColour(wire(10)), C.COLOUR_CODE[0].hex, '10 holes black');
+  eq(C.wireColour(wire(23)), C.COLOUR_CODE[3].hex, '23 holes orange');
 });
 
 s.check('an explicit colour on the wire wins', () => {
-  eq(C.wireColour({ ref: 'W1', colour: '#ff00ff' }), '#ff00ff', 'override');
+  eq(C.wireColour(wire(3, { colour: '#ff00ff' })), '#ff00ff', 'override');
 });
 
-s.check('a ref with no number still gets a colour rather than nothing', () => {
+s.check('a malformed wire still gets a colour rather than nothing', () => {
   ok(C.wireColour({ ref: 'GND' }), 'a colour came back');
-  ok(C.wireColour({ ref: '' }), 'even for an empty ref');
+  ok(C.wireColour({}), 'even with no ends');
 });
 
 // ------------------------------------------------------------ drawing
 
-function withWires(refs) {
+// Wires of DIFFERENT LENGTHS, since length is what the colour encodes. The
+// earlier version of this helper drew every wire the same length, so all three
+// were correctly the same colour and the check looked broken when it was not.
+function withWires(lengths) {
   const p = boardm.makeProject({ cols: 20, rows: 12 });
-  refs.forEach((ref, i) => p.wires.push({
-    ref, from: { col: 0, row: i }, to: { col: 10, row: i + 1 },
+  lengths.forEach((len, i) => p.wires.push({
+    ref: `W${i + 1}`, from: { col: 0, row: i }, to: { col: len, row: i },
   }));
   return p;
 }
 
-s.check('each wire is drawn in its own code colour', () => {
-  const svg = R.renderBoard(withWires(['W1', 'W2', 'W3']), {});
+s.check('each wire is drawn in the colour for its own length', () => {
+  const svg = R.renderBoard(withWires([1, 2, 3]), {});
   const strokes = els(svg, 'wire').map((e) => attr(e, 'stroke'));
   eq(strokes, [C.COLOUR_CODE[1].hex, C.COLOUR_CODE[2].hex, C.COLOUR_CODE[3].hex], 'strokes');
 });
@@ -108,14 +117,17 @@ s.check('a part with no silk colour is unchanged', () => {
   eq(attr(body, 'stroke'), R.THEMES.light.silk, 'theme silk');
 });
 
-s.check('A COLOURED PART CANNOT MAKE ITS OWN PADS UNREADABLE', () => {
-  // The silk colour paints the outline and wash; pads keep the theme colour, so
-  // a pale part on a pale board still has legible pads.
+s.check('THE SILK COLOUR PAINTS THE PADS TOO', () => {
+  // Corrected 2026-08-30. This check originally asserted the opposite — that
+  // pads keep the theme colour so a part could not make its own pads
+  // unreadable. That was my invention, not the model: a pad is a SILKSCREEN
+  // marking rather than copper, so a part's silkscreen colour has to paint it.
+  // Legibility is the user's choice, and it is one they can undo.
   const p = boardm.makeProject({ cols: 20, rows: 12 });
   p.placements.push({ ref: 'R1', part: 'res-axial', span: 4,
-    at: { col: 2, row: 2 }, rot: 0, silk: '#f8f8f8' });
+    at: { col: 2, row: 2 }, rot: 0, silk: '#00a0a0' });
   for (const pad of els(R.renderBoard(p, {}), 'pad')) {
-    eq(attr(pad, 'stroke'), R.THEMES.light.silk, 'pad keeps the theme colour');
+    eq(attr(pad, 'stroke'), '#00a0a0', 'pad takes the part silk colour');
   }
 });
 

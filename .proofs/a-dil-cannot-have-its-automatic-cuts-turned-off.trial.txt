@@ -1,0 +1,14 @@
+$ node tests/model/test_autobreak_switch.mjs
+FAIL  AUTOBREAK FALSE DERIVES NO CUTS AT ALL
+      none required: expected [], got [{"row":4,"x":11,"at":"hole"},{"row":5,"x":11,"at":"hole"},{"row":6,"x":11,"at":"hole"},{"row":7,"x":11,"at":"hole"},{"row":8,"x":11,"at":"hole"},{"row":9,"x":11,"at":"hole"},{"row":10,"x":11,"at":"hole"}]
+FAIL  WITH THE CUTS OFF, THE DRC REPORTS THE SHORTS
+      shorted with no cuts (0 errors): expected truthy, got falsy
+FAIL  a hand cut in a different place is honoured, not overruled
+      only the user cuts: expected 7, got 14
+FAIL  turning them back on restores them
+      off: expected 0, got 7
+FAIL  AUTOBREAK IS AN EDITABLE FIELD ON PARTS THAT CUT
+      a DIL offers it: expected truthy, got falsy
+FAIL  the edit applies and is a real boolean
+      accepted: expected truthy, got falsy
+autobreak-switch: 5/11 checks passed

@@ -11,6 +11,8 @@ export function editableFields(part) {
   const fields = ['ref', 'value', 'silk', 'rot', 'col', 'row'];
   if (part.parametric) fields.push('span');
   if (part.defaultWidth != null) fields.push('width');
+  // Only a part that cuts its own strips has cuts to switch off.
+  if (part.requiresBreak) fields.push('autoBreak');
   return fields;
 }
 
@@ -69,6 +71,12 @@ export function applyPlacementEdit(placement, getPart, field, value) {
       if (!Number.isInteger(n)) return refuse(placement, 'width must be a whole number of holes');
       if (n < min) return refuse(placement, `${part.name} needs a width of at least ${min}`);
       next.width = n;
+      return accept(next);
+    }
+
+    case 'autoBreak': {
+      // Accepts a real boolean or the string a checkbox hands over.
+      next.autoBreak = value === true || value === 'true' || value === 'on';
       return accept(next);
     }
 

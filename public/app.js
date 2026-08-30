@@ -13,11 +13,31 @@ import { cursorFor } from '/src/render/cursors.js';
 import { TABS, DEFAULT_TAB, focusTabFor, bodyId, inspectorKey } from '/src/render/panels.js';
 import { applyPlacementEdit, applyWireEdit, editableFields } from '/src/model/edit.js';
 import { movePlacementByPin, pinLocation } from '/src/model/move.js';
-import { TOOL_AFTER_ESCAPE, wireColour, silkOf, COLOUR_CODE } from '/src/render/colours.js';
+import {
+  TOOL_AFTER_ESCAPE, wireColour, silkOf, linkColour, wireLengthHoles,
+  COLOUR_CODE, PALETTE_16,
+} from '/src/render/colours.js';
 
 // The theme's silk colour, for seeding the colour input when a part has none of
 // its own. A colour input cannot show "unset", so it shows what is being used.
 const THEME_SILK = { light: '#26303d', dark: '#e6ded0' };
+
+// Sixteen swatches and a Default. The native colour input opens an operating
+// system dialog with a spectrum, an eyedropper and a hex field, for a choice
+// between a handful of sane values on a board.
+//
+// Default matters more than the sixteen: without a way to clear an override
+// there is no route back to "whatever the length says".
+function swatches(field, current, effective, label) {
+  const cells = PALETTE_16.map((c) => `<button class="sw${
+    current === c.hex ? ' is-on' : ''}" data-swatch="${field}" data-hex="${c.hex}"
+    style="background:${c.hex}" title="${c.name}"></button>`).join('');
+  return `<div class="field"><span>${label}</span>
+      <span class="sw-now" style="background:${effective}" title="in use"></span></div>
+    <div class="swatches" data-for="${field}">${cells}
+      <button class="sw sw-clear${current ? '' : ' is-on'}" data-swatch="${field}"
+        data-hex="" title="Default">&times;</button></div>`;
+}
 import { partList, getPart } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -416,11 +436,14 @@ function paintInspectorFrom() {
       <div class="field"><span>Wire</span>
         <input data-wedit="ref" value="${escapeHtml(w.ref)}" style="width:90px"></div>
       <div class="field"><span>Colour</span>
-        <input type="color" data-wedit="colour" value="${escapeHtml(wireColour(w))}"></div>
-      <p class="hint">Defaults to the 0&ndash;9 component code from the last digit of
-        the ref — ${escapeHtml(w.ref)} is
-        ${escapeHtml(COLOUR_CODE[(Number((/(\d+)\s*$/.exec(w.ref) ?? [])[1]) || 0)
-    % COLOUR_CODE.length].name)}.</p>
+        <span class="sw-now" style="background:${wireColour(w)}" title="in use"></span></div>
+      <div class="swatches" data-for="wire-colour">${PALETTE_16.map((cc) =>
+    `<button class="sw${w.colour === cc.hex ? ' is-on' : ''}" data-wswatch="colour"
+        data-hex="${cc.hex}" style="background:${cc.hex}" title="${cc.name}"></button>`).join('')}
+        <button class="sw sw-clear${w.colour ? '' : ' is-on'}" data-wswatch="colour"
+          data-hex="" title="Default">&times;</button></div>
+      <p class="hint">${wireLengthHoles(w)} holes long, so the 0&ndash;9 code makes it
+        ${escapeHtml(COLOUR_CODE[wireLengthHoles(w) % COLOUR_CODE.length].name)}.</p>
       <div class="field"><span>From column</span>
         <input type="number" data-wedit="from.col" value="${w.from.col}" min="0"></div>
       <div class="field"><span>From row</span>
@@ -430,6 +453,20 @@ function paintInspectorFrom() {
       <div class="field"><span>To row</span>
         <input type="number" data-wedit="to.row" value="${w.to.row}" min="0"></div>
       <p class="hint" id="editError"></p>`;
+
+    for (const sw of el.querySelectorAll('[data-wswatch]')) {
+      sw.addEventListener('click', (e) => {
+        const j = state.project.wires.findIndex((x) => x.ref === state.selection?.ref);
+        if (j < 0) return;
+        const { wire, error } = applyWireEdit(
+          state.project.wires[j], 'colour', e.currentTarget.dataset.hex,
+        );
+        if (error) { $('#editError').textContent = error; return; }
+        state.project.wires[j] = wire;
+        inspectorShape = null;
+        commit(`${wire.ref} colour ${e.currentTarget.dataset.hex || 'default'}`);
+      });
+    }
 
     for (const input of el.querySelectorAll('[data-wedit]')) {
       input.addEventListener('change', (e) => {
@@ -462,9 +499,15 @@ function paintInspectorFrom() {
       <input data-edit="ref" value="${escapeHtml(pl.ref)}" style="width:90px"></div>
     <div class="field"><span>Value</span>
       <input data-edit="value" value="${escapeHtml(pl.value ?? '')}" style="width:90px"></div>
-    <div class="field"><span>Silkscreen</span>
-      <input type="color" data-edit="silk"
-        value="${escapeHtml(silkOf(pl, part, THEME_SILK[state.theme]))}"></div>
+    ${swatches('silk', pl.silk, silkOf(pl, part, THEME_SILK[state.theme]), 'Silkscreen')}
+    ${part.kind === 'link'
+    ? swatches('colour', pl.colour, linkColour(pl, part), 'Wire')
+    : ''}
+    ${can.includes('autoBreak') ? `<div class="field"><span>Cuts its own strips</span>
+      <input type="checkbox" data-edit="autoBreak"
+        ${pl.autoBreak === false ? '' : 'checked'}></div>
+      <p class="hint">Turn this off to cut the strips under it yourself. Until you
+        do, the package is reported as shorted pin to pin.</p>` : ''}
     ${can.includes('span') ? `<div class="field"><span>${escapeHtml(part.spanLabel ?? 'Span')}</span>
       ${num('span', pl.span ?? part.defaultSpan, `min="${part.minSpan ?? 1}"`)}</div>` : ''}
     ${can.includes('width') ? `<div class="field"><span>${escapeHtml(part.widthLabel ?? 'Width')}</span>
@@ -477,9 +520,26 @@ function paintInspectorFrom() {
     <p class="hint" id="editError"></p>`;
 
   // One commit per change event, not per keystroke, so an edit is one undo step.
+  for (const sw of el.querySelectorAll('[data-swatch]')) {
+    sw.addEventListener('click', (e) => {
+      const field = e.currentTarget.dataset.swatch;
+      const hex = e.currentTarget.dataset.hex;
+      const i2 = state.project.placements.findIndex((x) => x.ref === state.selection?.ref);
+      if (i2 < 0) return;
+      const { placement, error } = applyPlacementEdit(
+        state.project.placements[i2], getPart, field, hex,
+      );
+      if (error) { $('#editError').textContent = error; return; }
+      state.project.placements[i2] = placement;
+      inspectorShape = null;          // the swatch selection changed, so repaint
+      commit(`${placement.ref} ${field} ${hex || 'default'}`);
+    });
+  }
+
   for (const input of el.querySelectorAll('[data-edit]')) {
     input.addEventListener('change', (e) => {
       const field = e.target.dataset.edit;
+      const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
       // Look the placement up NOW rather than using the one captured when this
       // panel was built. The panel no longer rebuilds after every edit, so a
       // captured copy goes stale: editing span would write back a placement
@@ -488,7 +548,7 @@ function paintInspectorFrom() {
       const i2 = state.project.placements.findIndex((x) => x.ref === state.selection?.ref);
       if (i2 < 0) return;
       const current = state.project.placements[i2];
-      const { placement, error } = applyPlacementEdit(current, getPart, field, e.target.value);
+      const { placement, error } = applyPlacementEdit(current, getPart, field, value);
       if (error) {
         // Put the rejected value back — including into the focused field, which
         // is the one that holds it — and leave the field itself alone so the
@@ -499,7 +559,10 @@ function paintInspectorFrom() {
       }
       state.project.placements[i2] = placement;
       if (field === 'ref') state.selection = { kind: 'part', ref: placement.ref };
-      commit(`${placement.ref} ${field} = ${e.target.value}`);
+      // The autoBreak checkbox changes whether the hint below it applies, so the
+      // panel's shape changed and it has to be rebuilt rather than value-synced.
+      if (field === 'autoBreak') inspectorShape = null;
+      commit(`${placement.ref} ${field} = ${value}`);
     });
   }
 }

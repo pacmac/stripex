@@ -1,0 +1,22 @@
+$ node tests/render/test_wire_colour.mjs
+FAIL  A 3-HOLE WIRE IS ORANGE, WHATEVER IT IS CALLED
+      C.colourForLength is not a function
+FAIL  A 3-4-5 DIAGONAL IS A 5-HOLE WIRE
+      C.wireLengthHoles is not a function
+FAIL  the code wraps at ten, because the drawer has ten compartments
+      C.colourForLength is not a function
+FAIL  A LINK IS NO LONGER BLACK — IT TAKES THE COLOUR FOR ITS SPAN
+      a 3-hole link is orange: expected "#e8590c", got "#26303d"
+FAIL  recolouring the wire leaves the pads alone
+      wire recoloured: expected "#ff00ff", got "#26303d"
+FAIL  recolouring the silkscreen leaves the wire alone
+      pads recoloured: expected "#00a0a0", got "#26303d"
+FAIL  kind link is what marks a part as wire-coloured, not a second list
+      C.isWireColoured is not a function
+FAIL  THE PICKER OFFERS 16 COLOURS
+      Cannot read properties of undefined (reading 'length')
+FAIL  every code colour is in the palette, so a wire can be set to any of them
+      Cannot read properties of undefined (reading 'map')
+FAIL  CLEARING A COLOUR RETURNS IT TO THE DERIVED ONE
+      back to the length colour: expected "#e8590c", got "#7b4a12"
+wire-colour: 3/13 checks passed
