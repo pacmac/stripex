@@ -556,3 +556,31 @@
     failures: 0
     at: '2026-08-30T08:59:57.991'
     commit: 6eb453c-dirty
+- id: pads-are-invisible-and-pin-1-is-not-square
+  type: bug
+  what: Pads are drawn at 0.12mm in a mid grey so they cannot be seen, and pin 1 is not distinguished
+    by a square marker
+  spec: docs/specs/visible-pads.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_pads.mjs
+    criterion: 'tests/render/test_pads.mjs passes: one pad per pin, pin 1 square and the rest round, at
+      the silkscreen stroke weight'
+    runs: 1
+  trial:
+    file: .proofs/pads-are-invisible-and-pin-1-is-not-square.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T09:42:41.038'
+    commit: 98cea16-dirty
+  fix:
+    file: .proofs/pads-are-invisible-and-pin-1-is-not-square.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T09:44:07.304'
+    commit: 98cea16-dirty

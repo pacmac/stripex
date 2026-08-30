@@ -132,6 +132,11 @@ const SILK_FILL_OPACITY = 0.16;
 // radius grew with the lead span.
 export const SILK_MARGIN_MM = PITCH_MM / 2;
 
+// Pad half-extent. Bigger than the 0.5 mm hole radius, so a pad reads as an
+// annulus round its hole rather than covering it, and smaller than the half
+// pitch, so pads on neighbouring holes can never touch.
+export const PAD_R_MM = PITCH_MM * 0.34;
+
 // The same box from already-resolved millimetre points, which is what the
 // renderer has to hand — and which is already mirrored for the underside view,
 // so the outline follows the pins there too.
@@ -249,10 +254,11 @@ function bodyFor(part, pts, c, box) {
         : `<path d="M ${n(x0 + w / 2 - notchR)} ${n(y0)} A ${n(notchR)} ${n(notchR)} 0 0 1`
           + ` ${n(x0 + w / 2 + notchR)} ${n(y0)}" fill="none" stroke="${c.silk}"`
           + ` stroke-width="${SILK_STROKE_MM}"/>`;
+      // No separate pin-1 ring: pin 1 is marked by its square pad now, on every
+      // part alike, and two markers on one pin would be a double outline for no
+      // reason. The notch stays — it marks the PACKAGE, not the pin.
       return `<rect data-kind="part-body" x="${n(x0)}" y="${n(y0)}" width="${n(w)}"`
-        + ` height="${n(h)}" rx="${n(PITCH_MM * 0.2)}" ${silk(c)}/>${notch}`
-        + `<circle cx="${n(pts[0].x)}" cy="${n(pts[0].y)}" r="${n(PITCH_MM * 0.34)}"`
-        + ` fill="none" stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"/>`;
+        + ` height="${n(h)}" rx="${n(PITCH_MM * 0.2)}" ${silk(c)}/>${notch}`;
     }
     case 'header': {
       // The shroud is the whole box; each way gets a square inside it.
@@ -500,14 +506,30 @@ export function renderBoard(project, opts = {}) {
           + ` font-family="sans-serif">${esc(pl.value ? `${pl.ref} ${pl.value}` : pl.ref)}</text>`);
       }
     }
+    // Pads, at the silkscreen weight so they are as legible as the outline
+    // beside them. They used to be 0.12 mm in a mid grey — about a fifth that
+    // weight — which is why every pad but pin 1 read as absent.
+    //
+    // PIN 1 IS SQUARE and the rest are round: the board convention, and the same
+    // whether the part is polarised or not. Both are drawn to the same half
+    // extent, because the distinction is meant to be read as SHAPE, not weight.
+    //
+    // pointer-events="all" because the fill is none: without it only the stroke
+    // is hit-testable and a click in the middle falls through to whatever is
+    // underneath, which makes the move tool impossible to aim.
+    // One rounded radius for both shapes: rounding each independently made the
+    // square 1.727 mm across where the circle was 1.728, and the whole point of
+    // matching their extents is that they read as the same size.
+    const padR = n(PAD_R_MM);
     for (const [i, p] of pts.entries()) {
-      // pointer-events="all" because the fill is none: without it only the
-      // 0.12 mm stroke is hit-testable and a click in the middle of the pad
-      // falls through to whatever is underneath, which makes the move tool
-      // impossible to aim.
-      out.push(`<circle data-kind="pad" data-pin="${esc(pins[i]?.pin ?? '')}"`
-        + ` cx="${n(p.x)}" cy="${n(p.y)}" pointer-events="all"`
-        + ` r="${n(PITCH_MM * 0.26)}" fill="none" stroke="${c.lead}" stroke-width="0.12"/>`);
+      const pinName = pins[i]?.pin ?? '';
+      const common = `data-kind="pad" data-pin="${esc(pinName)}"`
+        + ` data-first="${i === 0}" pointer-events="all"`
+        + ` fill="none" stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"`;
+      out.push(i === 0
+        ? `<rect ${common} x="${n(p.x - padR)}" y="${n(p.y - padR)}"`
+          + ` width="${padR * 2}" height="${padR * 2}"/>`
+        : `<circle ${common} cx="${n(p.x)}" cy="${n(p.y)}" r="${padR}"/>`);
     }
     out.push('</g>');
   }
