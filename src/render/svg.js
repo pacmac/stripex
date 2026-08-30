@@ -17,6 +17,7 @@ import { segments } from '../net/segments.js';
 import { resolvePins } from '../model/rotate.js';
 import { nets as deriveNets, wireRunList } from '../net/derive.js';
 import { drc } from '../net/drc.js';
+import { effectiveBreaks } from '../model/breaks.js';
 import { getPart, sideOf } from '../parts/library.js';
 
 export const THEMES = {
@@ -67,21 +68,32 @@ const esc = (s) => String(s ?? '')
 
 // --- derived views of a project, shared with the editor's panels -------------
 
+// Everything project-shaped reads effectiveBreaks, never project.breaks: the
+// cuts a part requires are derived from the placements rather than stored, so a
+// caller that read the stored list would see a board missing half its cuts.
 export function netsFor(project) {
-  const segs = segments(project.board, project.breaks ?? []);
+  const segs = segments(project.board, effectiveBreaks(project));
   const pins = resolvePins(project.placements ?? [], getPart);
   return deriveNets(segs, pins, project.placements ?? [], getPart, project.wires ?? []);
 }
 
 export function findingsFor(project) {
-  return drc(project.board, project.breaks ?? [], project.placements ?? [],
+  return drc(project.board, effectiveBreaks(project), project.placements ?? [],
     getPart, project.wires ?? []);
 }
 
 export function runList(project) {
-  const segs = segments(project.board, project.breaks ?? []);
+  const segs = segments(project.board, effectiveBreaks(project));
   const { segmentNet } = netsFor(project);
   return wireRunList(project.wires ?? [], segmentNet, segs);
+}
+
+// The cuts to make, for the exporter's sheet. Derived ones included, or half the
+// cuts would be missing from the list you build the board from.
+export function cutList(project) {
+  return [...effectiveBreaks(project)].sort(
+    (a, b) => (a.row - b.row) || (a.x - b.x),
+  );
 }
 
 // --- part bodies -------------------------------------------------------------
@@ -226,7 +238,8 @@ export function renderBoard(project, opts = {}) {
   // telling parts apart matters most.
   const halo = (ref, body) => `<g data-kind="selection" data-ref="${esc(ref)}">${body}</g>`;
 
-  const segs = segments(b, project.breaks ?? []);
+  const cuts = effectiveBreaks(project);
+  const segs = segments(b, cuts);
   const { segmentNet } = highlightNet ? netsFor(project) : { segmentNet: {} };
 
   const out = [];
@@ -257,7 +270,7 @@ export function renderBoard(project, opts = {}) {
   // 3. break markers. A break cuts BETWEEN hole x and hole x+1, so its centre is
   //    on the boundary at (x+1)*pitch — never on a hole.
   if (L.breaks) {
-    for (const br of project.breaks ?? []) {
+    for (const br of cuts) {
       const at = br.at ?? 'gap';
       // A knife cut sits on the boundary between two holes; a spot-face sits ON
       // a hole. Drawing both in the same place would be the off-by-half-a-hole

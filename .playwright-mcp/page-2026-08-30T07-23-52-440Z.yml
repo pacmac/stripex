@@ -1,0 +1,117 @@
+- generic [active] [ref=e1]:
+  - paragraph [ref=e2]: Project storage is not built yet — this board lives in this browser only. Use Save to download a copy.
+  - banner [ref=e3]:
+    - generic [ref=e4]: stripex
+    - toolbar "Tools" [ref=e5]:
+      - button "Select" [ref=e6] [cursor=pointer]
+      - button "Place" [ref=e7] [cursor=pointer]
+      - button "Break" [ref=e8] [cursor=pointer]
+      - button "Wire" [ref=e9] [cursor=pointer]
+      - button "Delete" [ref=e10] [cursor=pointer]
+    - generic [ref=e12]:
+      - button "Rotate" [ref=e13] [cursor=pointer]
+      - button "Undo" [ref=e14] [cursor=pointer]
+      - button "Redo" [ref=e15] [cursor=pointer]
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - text: View
+        - combobox "View" [ref=e19]:
+          - option "Top (component side)" [selected]
+          - option "Underside (solder side)"
+      - generic [ref=e20]:
+        - text: Board
+        - spinbutton "Board × 20" [ref=e21]: "25"
+        - text: ×
+        - spinbutton "rows" [ref=e22]: "20"
+    - generic [ref=e23]:
+      - button "◐" [ref=e24] [cursor=pointer]
+      - button "Save" [ref=e25] [cursor=pointer]
+      - button "Load" [ref=e26] [cursor=pointer]
+      - button "Export SVG" [ref=e27] [cursor=pointer]
+  - main [ref=e28]:
+    - complementary [ref=e29]:
+      - heading "Parts" [level=2] [ref=e30]
+      - generic [ref=e31]:
+        - button "Wire linklink" [ref=e32] [cursor=pointer]
+        - button "Resistor (axial)" [ref=e33] [cursor=pointer]
+        - button "Diode (axial)" [ref=e34] [cursor=pointer]
+        - button "Capacitor (ceramic)" [ref=e35] [cursor=pointer]
+        - button "Capacitor (electrolytic)" [ref=e36] [cursor=pointer]
+        - button "LED" [ref=e37] [cursor=pointer]
+        - button "Transistor (TO-92)" [ref=e38] [cursor=pointer]
+        - button "Regulator / transistor (TO-220)" [ref=e39] [cursor=pointer]
+        - button "DIP / IC socket" [ref=e40] [cursor=pointer]
+        - button "SMT resistor 0603" [ref=e41] [cursor=pointer]
+        - button "SMT capacitor 0603" [ref=e42] [cursor=pointer]
+        - button "Pin header" [ref=e43] [cursor=pointer]
+        - button "Mounting hole" [ref=e44] [cursor=pointer]
+      - generic [ref=e45]:
+        - text: Span
+        - spinbutton "Span lead pitch in holes" [ref=e46]: "4"
+        - generic [ref=e47]: lead pitch in holes
+      - generic [ref=e48]:
+        - text: Width
+        - spinbutton "Width" [ref=e49]: "3"
+      - paragraph [ref=e50]: A component sits between nets — it never joins two strips.
+      - heading "Cut with" [level=2] [ref=e51]
+      - generic [ref=e52]:
+        - generic [ref=e53] [cursor=pointer]:
+          - radio "Knife — between two holes" [checked] [ref=e54]
+          - generic [ref=e55]: Knife — between two holes
+        - generic [ref=e56] [cursor=pointer]:
+          - radio "Spot-face cutter — at a hole" [ref=e57]
+          - generic [ref=e58]: Spot-face cutter — at a hole
+      - paragraph [ref=e59]: "A spot-face kills the hole as well as the track: nothing soldered there connects to anything."
+      - heading "Layers" [level=2] [ref=e60]
+      - generic [ref=e61]:
+        - generic [ref=e62] [cursor=pointer]:
+          - checkbox "Components" [checked] [ref=e63]
+          - generic [ref=e65]: Components
+        - generic [ref=e66] [cursor=pointer]:
+          - checkbox "Wire links" [checked] [ref=e67]
+          - generic [ref=e69]: Wire links
+        - generic [ref=e70] [cursor=pointer]:
+          - checkbox "Pen wires" [checked] [ref=e71]
+          - generic [ref=e73]: Pen wires
+        - generic [ref=e74] [cursor=pointer]:
+          - checkbox "Track breaks" [checked] [ref=e75]
+          - generic [ref=e77]: Track breaks
+        - generic [ref=e78] [cursor=pointer]:
+          - checkbox "Copper strips" [checked] [ref=e79]
+          - generic [ref=e81]: Copper strips
+        - generic [ref=e82] [cursor=pointer]:
+          - checkbox "Holes" [checked] [ref=e83]
+          - generic [ref=e85]: Holes
+        - generic [ref=e86] [cursor=pointer]:
+          - checkbox "Refs and values" [checked] [ref=e87]
+          - generic [ref=e89]: Refs and values
+        - generic [ref=e90] [cursor=pointer]:
+          - checkbox "Check markers" [checked] [ref=e91]
+          - generic [ref=e93]: Check markers
+    - generic [ref=e94]:
+      - img [ref=e96]:
+        - generic [ref=e623]: W1
+        - generic [ref=e624]: R1
+      - paragraph [ref=e632]: Click a part or wire to select it; click a strip to highlight its net.
+    - complementary [ref=e633]:
+      - tablist [ref=e634]:
+        - button "Checks" [ref=e635] [cursor=pointer]
+        - button "Nets" [ref=e636] [cursor=pointer]
+        - button "Run list" [ref=e637] [cursor=pointer]
+        - button "Focus" [ref=e638] [cursor=pointer]
+      - generic [ref=e640]:
+        - generic [ref=e641]:
+          - generic [ref=e642]: 1 errors
+          - generic [ref=e643]: 2 warnings
+          - generic [ref=e644]: 19 notes
+        - generic [ref=e645]:
+          - generic [ref=e646]: R1
+          - generic [ref=e647]: R1 has 1 and 2 on the same strip segment — the part is shorted out
+        - generic [ref=e648]:
+          - generic [ref=e649]: ·
+          - generic [ref=e650]: row 10 holes 0-24 has only one connection
+        - generic [ref=e651]:
+          - generic [ref=e652]: ·
+          - generic [ref=e653]: row 15 holes 0-24 has only one connection
+        - group [ref=e654]:
+          - generic "19 unused strip segments" [ref=e655] [cursor=pointer]

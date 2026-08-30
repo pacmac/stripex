@@ -304,3 +304,33 @@
     failures: 0
     at: '2026-08-29T23:15:53.943'
     commit: a7da7c0-dirty
+- id: a-parts-cuts-do-not-move-or-delete-with-it
+  type: bug
+  what: Cuts a part requires are stored as ordinary breaks, so they stay behind when the part is deleted
+    and do not follow it when it rotates
+  spec: docs/specs/part-owned-breaks.md
+  files:
+  - src/model/breaks.js
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_owned_breaks.mjs
+    criterion: 'tests/model/test_owned_breaks.mjs passes: a part''s cuts are derived, move when it rotates
+      and vanish when it is deleted'
+    runs: 1
+  trial:
+    file: .proofs/a-parts-cuts-do-not-move-or-delete-with-it.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:27:33.532'
+    commit: eb4d0a8-dirty
+  fix:
+    file: .proofs/a-parts-cuts-do-not-move-or-delete-with-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:31:20.710'
+    commit: eb4d0a8-dirty

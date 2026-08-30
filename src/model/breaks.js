@@ -14,6 +14,7 @@
 // row, the strip between them has to be cut.
 
 import { resolvePins } from './rotate.js';
+import { getPart as defaultGetPart } from '../parts/library.js';
 
 // The gap index that separates two holes in the same row. A gap `x` cuts between
 // hole x and hole x+1, so separating columns a and b (a < b) needs a <= x < b.
@@ -45,6 +46,54 @@ export function requiredBreaks(placement, getPart) {
     }
   }
   return out;
+}
+
+// --- derived cuts ------------------------------------------------------------
+//
+// A part's required cuts are NOT STORED. They are computed from the placements
+// every time the board is interpreted.
+//
+// This is the correction to what cuts-and-mounting.md originally argued. That
+// spec said a cut should outlive its part because copper does not un-cut itself
+// — true of a finished board, wrong for a design tool used before anything is
+// cut. In a design, a cut a chip requires is a property of the chip: move the
+// chip and the cut moves, delete the chip and the cut was never needed.
+//
+// Deriving rather than storing is what makes that work with no machinery. There
+// is no stored copy to move on rotation and none to clean up on deletion,
+// because two bugs that look separate — cuts left behind, cuts that do not
+// follow — are one bug: a stored fact derived from another. Hooks on delete and
+// on rotate would have been two more places to forget.
+
+export function derivedBreaks(project) {
+  const out = [];
+  const seen = new Set();
+  for (const pl of project.placements ?? []) {
+    for (const b of requiredBreaks(pl, project.getPart ?? defaultGetPart)) {
+      const k = `${b.row}:${b.x}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push({ ...b, owner: pl.ref });
+    }
+  }
+  return out;
+}
+
+// Every cut on the board: the user's, plus the ones the parts imply. A user cut
+// in the same place WINS, so it stays deletable — otherwise cutting a track by
+// hand where a chip also needs one would silently make your own cut permanent.
+export function effectiveBreaks(project) {
+  const user = project.breaks ?? [];
+  const taken = new Set(user.map((b) => `${b.row}:${b.x}`));
+  return [...user, ...derivedBreaks(project).filter((b) => !taken.has(`${b.row}:${b.x}`))];
+}
+
+// Which part, if any, is responsible for the cut at this place. Returns null for
+// a user cut and for nothing at all — the editor uses it to refuse deleting a
+// cut that a part needs, and to say which part to move instead.
+export function ownerOf(project, row, x) {
+  const found = effectiveBreaks(project).find((b) => b.row === row && b.x === x);
+  return found?.owner ?? null;
 }
 
 const keyOf = (b) => `${b.row}:${b.x}:${b.at ?? 'gap'}`;

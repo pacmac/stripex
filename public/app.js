@@ -8,7 +8,7 @@
 import { renderBoard, findingsFor, netsFor, runList, DEFAULT_LAYERS } from '/src/render/svg.js';
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
 import { rotatePlacement } from '/src/model/rotate.js';
-import { requiredBreaks, mergeBreaks } from '/src/model/breaks.js';
+import { requiredBreaks, ownerOf, effectiveBreaks } from '/src/model/breaks.js';
 import { cursorFor } from '/src/render/cursors.js';
 import { TABS, DEFAULT_TAB, focusTabFor, bodyId } from '/src/render/panels.js';
 import { partList, getPart } from '/src/parts/library.js';
@@ -303,8 +303,22 @@ function paintInspector() {
 
   if (sel.kind === 'break') {
     const [row, x] = sel.ref.split(',').map(Number);
-    const br = state.project.breaks.find((b) => b.row === row && b.x === x);
+    // Look in the EFFECTIVE cuts: a cut a part requires is derived, so it is not
+    // in project.breaks and would otherwise inspect as a generic knife cut.
+    const br = effectiveBreaks(state.project).find((b) => b.row === row && b.x === x);
     const at = br?.at ?? 'gap';
+
+    if (br?.owner) {
+      el.innerHTML = `
+        <div class="field"><span>Cut for</span><span class="mono">${escapeHtml(br.owner)}</span></div>
+        <div class="field"><span>Row</span><span class="mono">${row}</span></div>
+        <div class="field"><span>Between</span><span class="mono">holes ${x} and ${x + 1}</span></div>
+        <p class="hint">${escapeHtml(br.owner)} cannot work unless this strip is cut, so
+          the cut belongs to it: move ${escapeHtml(br.owner)} and it follows, delete
+          ${escapeHtml(br.owner)} and it goes.</p>`;
+      return;
+    }
+
     el.innerHTML = at === 'hole'
       ? `<div class="field"><span>Spot-face</span><span class="mono">hole ${x}, row ${row}</span></div>
          <p class="hint">The cutter takes the copper off around the hole, so the
@@ -415,18 +429,13 @@ function onBoardClick(evt) {
       p.placements.push(pl);
       state.selection = { kind: 'part', ref: pl.ref };
 
-      // A package that cannot work without its strips cut brings its own cuts.
-      // A DIL shorts every pin to its opposite one otherwise, and an 0603 shorts
-      // itself out — both are guaranteed, not possible, so making the user
-      // discover them as errors would be busywork.
-      const need = requiredBreaks(pl, getPart);
-      if (need.length) {
-        const before = p.breaks.length;
-        p.breaks = mergeBreaks(p.breaks, need);
-        const added = p.breaks.length - before;
-        return commit(`placed ${pl.ref} and cut ${added} strip${added === 1 ? '' : 's'} under it`);
-      }
-      commit(`placed ${pl.ref}`);
+      // The cuts this part needs are DERIVED from the placement, not inserted
+      // here. That is why they follow it when it turns and go with it when it is
+      // deleted — there is no stored copy to get out of step.
+      const need = requiredBreaks(pl, getPart).length;
+      commit(need
+        ? `placed ${pl.ref}, which cuts ${need} strip${need === 1 ? '' : 's'} under it`
+        : `placed ${pl.ref}`);
       return;
     }
 
@@ -500,8 +509,12 @@ function onBoardClick(evt) {
       }
       if (breakEl) {
         const [row, x] = breakEl.getAttribute('data-break').split(',').map(Number);
+        const owner = ownerOf(p, row, x);
+        if (owner) {
+          return say(`that cut belongs to ${owner} — move or delete ${owner} instead`);
+        }
         p.breaks = p.breaks.filter((bk) => !(bk.row === row && bk.x === x));
-        return commit(`restored row ${row} gap ${x}`);
+        return commit(`restored the copper at row ${row}`);
       }
       return say('nothing there to delete');
     }
@@ -669,25 +682,8 @@ function boot() {
       // rotatePlacement turns it about its own centre and returns a new object,
       // so the part stays where it sits instead of swinging around pin 1.
       list[i] = rotatePlacement(list[i], getPart);
-
-      // A turned DIL lies over different strips than it did, so the cuts it
-      // needs are different ones. Without this, rotating a chip leaves it
-      // shorted pin-to-pin with the old cuts stranded somewhere else — placing
-      // cut its strips but turning did not.
-      //
-      // The stale cuts are deliberately NOT removed: a cut in a real board is
-      // permanent, and un-cutting copper when a part moves would describe a
-      // board you cannot build.
-      const need = requiredBreaks(list[i], getPart);
-      if (need.length) {
-        const before = state.project.breaks.length;
-        state.project.breaks = mergeBreaks(state.project.breaks, need);
-        const added = state.project.breaks.length - before;
-        if (added) {
-          return commit(`${list[i].ref} rotated to ${list[i].rot}° and ${added} `
-            + `more strip${added === 1 ? '' : 's'} cut under it`);
-        }
-      }
+      // Its cuts follow it, because they are derived rather than stored. This
+      // used to merge a fresh set in and strand the old ones somewhere else.
       return commit(`${list[i].ref} rotated to ${list[i].rot}°`);
     }
     state.rot = (state.rot + 90) % 360;
