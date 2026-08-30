@@ -1535,3 +1535,34 @@
     failures: 0
     at: '2026-08-30T15:15:12.714'
     commit: d3fb7d1-dirty
+- id: a-focused-dropdown-swallows-ctrl-z
+  type: bug
+  what: "The keydown handler returns early for any input, select or textarea before reaching the Ctrl+Z\
+    \ branch, so with the View dropdown focused Ctrl+Z does nothing \u2014 and a select has no undo of\
+    \ its own to offer instead, so the keystroke is simply lost. The shortcut also has no mapping node\
+    \ can check, which is why the hole was invisible."
+  spec: docs/specs/undo-shortcut.md
+  files:
+  - src/render/keys.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_keys.mjs
+    criterion: '13/13 checks: ctrl or cmd with z is undo and with shift is redo whatever the case of the
+      letter, nothing else is bound, and only a field with an undo of its own may swallow the shortcut'
+    runs: 1
+  trial:
+    file: .proofs/a-focused-dropdown-swallows-ctrl-z.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:18:16.597'
+    commit: 5e2c281-dirty
+  fix:
+    file: .proofs/a-focused-dropdown-swallows-ctrl-z.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T15:19:01.069'
+    commit: 5e2c281-dirty

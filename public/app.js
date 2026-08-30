@@ -14,7 +14,7 @@ import {
   TABS, DEFAULT_TAB, focusTabFor, bodyId, inspectorKey, shouldSetStatus,
   CARDS, cardForTool, paramsFor, groupParts, filterParts, highlightFor,
 } from '/src/render/panels.js';
-import { toolForKey } from '/src/render/keys.js';
+import { toolForKey, historyActionForKey, ownsUndo } from '/src/render/keys.js';
 import { loadProject } from '/src/model/repair.js';
 import { pushSnapshot, readHistory, describe } from '/src/model/history.js';
 import { makeUndo } from '/src/model/undo.js';
@@ -1397,11 +1397,17 @@ function boot() {
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.target.matches('input, select, textarea')) return;
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+    // Undo and redo are checked FIRST, and against a narrower guard: a field may
+    // keep Ctrl+Z only when it has an undo of its own. The blanket
+    // `input, select, textarea` guard below let the View dropdown swallow it and
+    // offer nothing in return.
+    const history_ = historyActionForKey(e);
+    if (history_ && !ownsUndo(e.target)) {
       e.preventDefault();
-      return e.shiftKey ? redo() : undo();
+      return history_ === 'redo' ? redo() : undo();
     }
+
+    if (e.target.matches('input, select, textarea')) return;
     if (e.key === 'Escape') {
       state.selection = null;
       // Escape means "stop what I am doing", and the armed tool is part of what

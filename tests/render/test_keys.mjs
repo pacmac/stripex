@@ -52,4 +52,69 @@ s.check('no key is bound to two different tools', () => {
   eq(new Set(keys.map((k) => k.toLowerCase())).size, keys.length, 'no duplicate keys');
 });
 
+// ------------------------------------------------- undo and redo on the keyboard
+// Governed by docs/specs/undo-shortcut.md
+
+const ev = (key, mods = {}) => ({ key, ctrlKey: false, metaKey: false, shiftKey: false, ...mods });
+
+s.check('CTRL+Z IS UNDO AND CTRL+SHIFT+Z IS REDO', () => {
+  eq(K.historyActionForKey(ev('z', { ctrlKey: true })), 'undo', 'ctrl+z');
+  eq(K.historyActionForKey(ev('z', { ctrlKey: true, shiftKey: true })), 'redo', 'ctrl+shift+z');
+});
+
+s.check('Cmd works too, and the case of the letter does not matter', () => {
+  // Shift makes the browser report 'Z', so reading the key literally would have
+  // made redo unreachable on every keyboard.
+  eq(K.historyActionForKey(ev('z', { metaKey: true })), 'undo', 'cmd+z');
+  eq(K.historyActionForKey(ev('Z', { ctrlKey: true, shiftKey: true })), 'redo', 'capital Z');
+  eq(K.historyActionForKey(ev('Z', { metaKey: true, shiftKey: true })), 'redo', 'cmd+shift+Z');
+});
+
+s.check('and nothing else is', () => {
+  eq(K.historyActionForKey(ev('z')), null, 'a bare z is the letter z');
+  eq(K.historyActionForKey(ev('y', { ctrlKey: true })), null, 'ctrl+y is not bound');
+  eq(K.historyActionForKey(ev('a', { ctrlKey: true })), null, 'ctrl+a');
+  eq(K.historyActionForKey(null), null, 'nothing at all');
+});
+
+// -------------------------------------------- who may swallow the shortcut
+
+const el = (tag, type) => ({
+  tagName: tag.toUpperCase(),
+  type,
+  isContentEditable: false,
+});
+
+s.check('A DROPDOWN DOES NOT OWN CTRL+Z', () => {
+  // Measured: with the View select focused, Ctrl+Z did nothing at all. A field
+  // may swallow the shortcut when it has an undo of its own to offer instead.
+  // A select has none, so the keystroke was simply lost — and changing the view
+  // and then wanting to undo something is an ordinary thing to do.
+  eq(K.ownsUndo(el('select')), false, 'a select');
+});
+
+s.check('nor does anything else without text to undo', () => {
+  // All of these exist in this editor: the Layers checkboxes, the net colour
+  // swatches, the colour input in Focus.
+  eq(K.ownsUndo(el('input', 'checkbox')), false, 'a checkbox');
+  eq(K.ownsUndo(el('input', 'radio')), false, 'a radio');
+  eq(K.ownsUndo(el('input', 'color')), false, 'a colour input');
+  eq(K.ownsUndo(el('input', 'range')), false, 'a slider');
+  eq(K.ownsUndo(el('input', 'file')), false, 'a file input');
+  eq(K.ownsUndo(el('button')), false, 'a button');
+  eq(K.ownsUndo(el('div')), false, 'a plain element');
+  eq(K.ownsUndo(null), false, 'nothing');
+});
+
+s.check('BUT A TEXT FIELD DOES, AND KEEPS ITS OWN UNDO', () => {
+  // Measured: typing GND into a net-name field and pressing Ctrl+Z cleared the
+  // FIELD and left the board alone. That is right and must stay right.
+  eq(K.ownsUndo(el('input', 'text')), true, 'a text input');
+  eq(K.ownsUndo(el('input')), true, 'an input with no type is a text input');
+  eq(K.ownsUndo(el('input', 'number')), true, 'a number input — span and width are typed into');
+  eq(K.ownsUndo(el('input', 'search')), true, 'search');
+  eq(K.ownsUndo(el('textarea')), true, 'a textarea');
+  eq(K.ownsUndo({ tagName: 'DIV', isContentEditable: true }), true, 'contenteditable');
+});
+
 process.exit((await s.run()) ? 0 : 1);
