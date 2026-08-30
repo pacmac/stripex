@@ -13,6 +13,11 @@ import { cursorFor } from '/src/render/cursors.js';
 import { TABS, DEFAULT_TAB, focusTabFor, bodyId, inspectorKey } from '/src/render/panels.js';
 import { applyPlacementEdit, applyWireEdit, editableFields } from '/src/model/edit.js';
 import { movePlacementByPin, pinLocation } from '/src/model/move.js';
+import { TOOL_AFTER_ESCAPE, wireColour, silkOf, COLOUR_CODE } from '/src/render/colours.js';
+
+// The theme's silk colour, for seeding the colour input when a part has none of
+// its own. A colour input cannot show "unset", so it shows what is being used.
+const THEME_SILK = { light: '#26303d', dark: '#e6ded0' };
 import { partList, getPart } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -410,6 +415,12 @@ function paintInspectorFrom() {
     el.innerHTML = `
       <div class="field"><span>Wire</span>
         <input data-wedit="ref" value="${escapeHtml(w.ref)}" style="width:90px"></div>
+      <div class="field"><span>Colour</span>
+        <input type="color" data-wedit="colour" value="${escapeHtml(wireColour(w))}"></div>
+      <p class="hint">Defaults to the 0&ndash;9 component code from the last digit of
+        the ref — ${escapeHtml(w.ref)} is
+        ${escapeHtml(COLOUR_CODE[(Number((/(\d+)\s*$/.exec(w.ref) ?? [])[1]) || 0)
+    % COLOUR_CODE.length].name)}.</p>
       <div class="field"><span>From column</span>
         <input type="number" data-wedit="from.col" value="${w.from.col}" min="0"></div>
       <div class="field"><span>From row</span>
@@ -451,6 +462,9 @@ function paintInspectorFrom() {
       <input data-edit="ref" value="${escapeHtml(pl.ref)}" style="width:90px"></div>
     <div class="field"><span>Value</span>
       <input data-edit="value" value="${escapeHtml(pl.value ?? '')}" style="width:90px"></div>
+    <div class="field"><span>Silkscreen</span>
+      <input type="color" data-edit="silk"
+        value="${escapeHtml(silkOf(pl, part, THEME_SILK[state.theme]))}"></div>
     ${can.includes('span') ? `<div class="field"><span>${escapeHtml(part.spanLabel ?? 'Span')}</span>
       ${num('span', pl.span ?? part.defaultSpan, `min="${part.minSpan ?? 1}"`)}</div>` : ''}
     ${can.includes('width') ? `<div class="field"><span>${escapeHtml(part.widthLabel ?? 'Width')}</span>
@@ -920,9 +934,12 @@ function boot() {
       return e.shiftKey ? redo() : undo();
     }
     if (e.key === 'Escape') {
-      state.wireStart = null;
-      state.moveAnchor = null;
       state.selection = null;
+      // Escape means "stop what I am doing", and the armed tool is part of what
+      // you are doing: cancelling a half-drawn wire should not leave the next
+      // click starting another one. setTool clears the wire start and the move
+      // handle on its way.
+      setTool(TOOL_AFTER_ESCAPE);
       return draw('cancelled');
     }
     if (e.key.toLowerCase() === 'r') return $('#rotate').click();

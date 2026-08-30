@@ -584,3 +584,61 @@
     failures: 0
     at: '2026-08-30T09:44:07.304'
     commit: 98cea16-dirty
+- id: escape-does-not-return-to-the-select-tool
+  type: bug
+  what: Esc cancels the pending wire and selection but leaves the previous tool armed, so cancelling a
+    half-drawn wire starts another one on the next click
+  spec: docs/specs/colour-and-escape.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_colours.mjs
+    criterion: 'tests/render/test_colours.mjs passes its Escape check: cancelling arms Select'
+    runs: 1
+  trial:
+    file: .proofs/escape-does-not-return-to-the-select-tool.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:03:26.884'
+    commit: 936e0c7-dirty
+  fix:
+    file: .proofs/escape-does-not-return-to-the-select-tool.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:05:48.574'
+    commit: 936e0c7-dirty
+- id: wires-and-parts-have-no-colour-and-cut-segments-look-identical
+  type: new
+  what: Every wire is the same blue, parts cannot be coloured, and the two halves of a cut strip are drawn
+    identically so a break is easy to miss
+  spec: docs/specs/colour-and-escape.md
+  files:
+  - src/render/colours.js
+  - src/render/svg.js
+  - src/model/edit.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_colours.mjs
+    criterion: 'tests/render/test_colours.mjs passes: W1 brown through W9 white with overrides, and a
+      cut row draws two different shades'
+    runs: 1
+  trial:
+    file: .proofs/wires-and-parts-have-no-colour-and-cut-segments-look-identical.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:03:27.063'
+    commit: 936e0c7-dirty
+  fix:
+    file: .proofs/wires-and-parts-have-no-colour-and-cut-segments-look-identical.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:05:48.720'
+    commit: 936e0c7-dirty

@@ -18,6 +18,7 @@ import { resolvePins } from '../model/rotate.js';
 import { nets as deriveNets, wireRunList } from '../net/derive.js';
 import { drc } from '../net/drc.js';
 import { effectiveBreaks } from '../model/breaks.js';
+import { wireColour, silkOf, segmentShade } from './colours.js';
 import { getPart, getPart as defaultGetPart, sideOf } from '../parts/library.js';
 
 export const THEMES = {
@@ -41,6 +42,9 @@ export const THEMES = {
     select: '#0a7ea4',
     silk: '#26303d',
     silkFill: '#1d2836',
+    // Light ground, so the casing is a light halo: it is a white wire that would
+    // otherwise vanish here.
+    wireCasing: '#fbf7ee',
   },
   dark: {
     substrate: '#2a2418',
@@ -62,6 +66,9 @@ export const THEMES = {
     select: '#3fc9f0',
     silk: '#e6ded0',
     silkFill: '#f2ece2',
+    // Dark ground, so the casing is a dark halo: here it is the black wire that
+    // needs rescuing.
+    wireCasing: '#0b0906',
   },
 };
 
@@ -364,10 +371,14 @@ export function renderBoard(project, opts = {}) {
       const right = (g.x1 + 1) * PITCH_MM - (g.x1 < b.cols - 1 ? TRACK_GAP_MM / 2 : 0);
       const y = holeToMm(0, g.row).y - TRACK_W_MM / 2;
       const x = under ? w - right : left;
+      // Adjacent segments of one row alternate shades. A highlighted net is
+      // NOT shaded: highlighting has to stay unambiguous.
+      const segIndex = Number(g.id.split(':')[2]) || 0;
+      const fill = lit ? c.copperLit : segmentShade(copperFill, segIndex);
       out.push(`<rect data-kind="copper" data-seg="${g.id}"`
         + `${lit ? ' data-highlight="true"' : ''}`
         + ` x="${n(x)}" y="${n(y)}" width="${n(right - left)}" height="${TRACK_W_MM}"`
-        + ` fill="${lit ? c.copperLit : copperFill}" opacity="${under ? 1 : 0.55}"/>`);
+        + ` fill="${fill}" opacity="${under ? 1 : 0.55}"/>`);
     }
   }
 
@@ -431,11 +442,20 @@ export function renderBoard(project, opts = {}) {
           + ` x2="${n(mx(z.x))}" y2="${n(z.y)}" stroke="${c.select}"`
           + ` stroke-width="${n(PITCH_MM * 0.52)}" stroke-linecap="round" opacity="0.75"/>`));
       }
+      // Every wire gets a casing first: a slightly wider stroke in the theme's
+      // contrasting ink. Without it a black wire vanishes on the dark board and
+      // a white one vanishes on the light board — and the colour code contains
+      // both, so the palette cannot simply avoid them.
+      const width = PITCH_MM * (sel ? 0.3 : 0.2);
+      out.push(`<line data-kind="wire-casing" data-ref="${esc(wire.ref)}"`
+        + ` x1="${n(mx(a.x))}" y1="${n(a.y)}" x2="${n(mx(z.x))}" y2="${n(z.y)}"`
+        + ` stroke="${c.wireCasing}" stroke-width="${n(width + PITCH_MM * 0.09)}"`
+        + ' stroke-linecap="round" opacity="0.55" pointer-events="none"/>');
       out.push(`<line data-kind="wire" data-ref="${esc(wire.ref)}"`
         + `${sel ? ' data-selected="true"' : ''}`
         + ` x1="${n(mx(a.x))}" y1="${n(a.y)}" x2="${n(mx(z.x))}" y2="${n(z.y)}"`
-        + ` stroke="${c.wire}" stroke-width="${n(PITCH_MM * (sel ? 0.3 : 0.2))}"`
-        + ' stroke-linecap="round" opacity="0.9"/>');
+        + ` stroke="${wireColour(wire)}" stroke-width="${n(width)}"`
+        + ' stroke-linecap="round"/>');
       if (L.labels) {
         out.push(`<text data-kind="wire-label" data-ref="${esc(wire.ref)}"`
           + ` x="${n((mx(a.x) + mx(z.x)) / 2)}" y="${n((a.y + z.y) / 2 - 0.5)}"`
@@ -498,7 +518,12 @@ export function renderBoard(project, opts = {}) {
         out.push(`<line x1="${n(pts[0].x)}" y1="${n(pts[0].y)}" x2="${n(pts[1].x)}"`
           + ` y2="${n(pts[1].y)}" stroke="${c.lead}" stroke-width="${n(PITCH_MM * 0.14)}"/>`);
       }
-      out.push(bodyFor(part, pts, c, footprintBoxFromPoints(pts)));
+      // The part's own silkscreen colour, if it has one. Only the body and its
+      // outline: the pads below keep the theme colour, so a pale part on a pale
+      // board cannot make its own pads unreadable.
+      const partSilk = silkOf(pl, part, c.silk);
+      out.push(bodyFor(part, pts, { ...c, silk: partSilk, silkFill: partSilk },
+        footprintBoxFromPoints(pts)));
       if (L.labels) {
         out.push(`<text data-kind="part-label" data-ref="${esc(pl.ref)}"`
           + ` x="${n(pts[0].x)}" y="${n(Math.min(...pts.map((p) => p.y)) - PITCH_MM * 0.5)}"`

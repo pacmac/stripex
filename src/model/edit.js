@@ -8,7 +8,7 @@
 import { rotatePlacement, isRotation } from './rotate.js';
 
 export function editableFields(part) {
-  const fields = ['ref', 'value', 'rot', 'col', 'row'];
+  const fields = ['ref', 'value', 'silk', 'rot', 'col', 'row'];
   if (part.parametric) fields.push('span');
   if (part.defaultWidth != null) fields.push('width');
   return fields;
@@ -41,6 +41,18 @@ export function applyPlacementEdit(placement, getPart, field, value) {
     case 'value':
       next.value = String(value ?? '');
       return accept(next);
+
+    case 'silk': {
+      // The part's silkscreen colour. Empty clears it, falling back to the
+      // library's default for the type and then to the theme.
+      const v = String(value ?? '').trim();
+      if (!v) { delete next.silk; return accept(next); }
+      if (!/^#[0-9a-fA-F]{6}$/.test(v)) {
+        return refuse(placement, 'a silkscreen colour must be a #rrggbb value');
+      }
+      next.silk = v.toLowerCase();
+      return accept(next);
+    }
 
     case 'span': {
       const n = Number(value);
@@ -90,6 +102,15 @@ export function applyWireEdit(wire, field, value) {
     const ref = String(value ?? '').trim();
     if (!ref) return { wire, error: 'a wire needs a reference' };
     next.ref = ref;
+    return { wire: next, error: null };
+  }
+  if (field === 'colour') {
+    const v = String(value ?? '').trim();
+    if (!v) { delete next.colour; return { wire: next, error: null }; }
+    if (!/^#[0-9a-fA-F]{6}$/.test(v)) {
+      return { wire, error: 'a wire colour must be a #rrggbb value' };
+    }
+    next.colour = v.toLowerCase();
     return { wire: next, error: null };
   }
   const m = /^(from|to)\.(col|row)$/.exec(field);
