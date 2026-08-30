@@ -405,6 +405,10 @@
     runs: 1
   trial: null
   fix: null
+  withdrawn:
+    why: 'Superseded: Peter has given the rule, which is pin extents grown by 0.05 inch rather than per-part
+      datasheet dimensions. Refiled against docs/specs/footprint-geometry.md'
+    at: '2026-08-30T08:49:49.745'
 - id: a-selected-part-cannot-be-edited
   type: bug
   what: The Focus panel prints a part's ref, span, width, rotation and position as text, so changing any
@@ -463,3 +467,60 @@
     failures: 0
     at: '2026-08-30T08:48:47.040'
     commit: 194a12b-dirty
+- id: dil-pin-1-is-on-the-right-instead-of-the-left
+  type: bug
+  what: A DIL straddling the strips numbers down the right column, putting pin 1 top-right; the convention
+    is pin 1 top-left
+  spec: docs/specs/footprint-geometry.md
+  files:
+  - src/parts/library.js
+  test:
+    command:
+    - node
+    - tests/parts/test_footprint.mjs
+    criterion: 'tests/parts/test_footprint.mjs passes: at rot 90 pin 1 is the top-left pin and numbering
+      descends the left column'
+    runs: 1
+  trial:
+    file: .proofs/dil-pin-1-is-on-the-right-instead-of-the-left.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:50:26.137'
+    commit: 4ed7f43-dirty
+  fix:
+    file: .proofs/dil-pin-1-is-on-the-right-instead-of-the-left.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:53:57.455'
+    commit: 4ed7f43-dirty
+- id: outlines-are-hand-sized-per-shape-instead-of-derived-from-the-pins
+  type: bug
+  what: 'Each body shape carries its own hand-written size and they are wrong: a 2-hole electrolytic draws
+    an 8.1mm circle for a part about 5mm across'
+  spec: docs/specs/footprint-geometry.md
+  files:
+  - src/render/svg.js
+  - src/parts/library.js
+  test:
+    command:
+    - node
+    - tests/parts/test_footprint.mjs
+    criterion: 'tests/parts/test_footprint.mjs passes: every outline is the pin extent grown by exactly
+      1.27mm on each side'
+    runs: 1
+  trial:
+    file: .proofs/outlines-are-hand-sized-per-shape-instead-of-derived-from-the-pins.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:50:26.266'
+    commit: 4ed7f43-dirty
+  fix:
+    file: .proofs/outlines-are-hand-sized-per-shape-instead-of-derived-from-the-pins.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:53:57.583'
+    commit: 4ed7f43-dirty

@@ -1,0 +1,22 @@
+$ node tests/parts/test_footprint.mjs
+FAIL  PIN 1 IS THE TOP-LEFT PIN OF A STRADDLING DIL
+      pin 1 is at the top-left corner: expected [7,4], got [10,4]
+FAIL  ...and back up the right column
+      the second column is to the right: expected truthy, got falsy
+FAIL  pin 1 and the last pin stay opposite each other at every width
+      width 3: 3 holes apart: expected 3, got -3
+FAIL  SILK_MARGIN is half a hole pitch
+      margin: expected 1.27, got undefined
+FAIL  AN OUTLINE IS THE PIN EXTENT GROWN BY 0.05 INCH
+      R.footprintBox is not a function
+FAIL  a one-pin part gets a box exactly one hole across
+      R.footprintBox is not a function
+FAIL  TWO PARTS ON ADJACENT HOLES DO NOT OVERLAP
+      R.footprintBox is not a function
+FAIL  A 2-HOLE ELECTROLYTIC IS NO LONGER 8 MM ACROSS
+      R.footprintBox is not a function
+FAIL  every drawn body sits inside its footprint box
+      R.footprintBox is not a function
+FAIL  the 0603 keeps its real size rather than filling its box
+      R.footprintBox is not a function
+footprint: 2/12 checks passed

@@ -18,7 +18,7 @@ import { resolvePins } from '../model/rotate.js';
 import { nets as deriveNets, wireRunList } from '../net/derive.js';
 import { drc } from '../net/drc.js';
 import { effectiveBreaks } from '../model/breaks.js';
-import { getPart, sideOf } from '../parts/library.js';
+import { getPart, getPart as defaultGetPart, sideOf } from '../parts/library.js';
 
 export const THEMES = {
   light: {
@@ -119,10 +119,58 @@ export function cutList(project) {
 const SILK_STROKE_MM = 0.22;
 const SILK_FILL_OPACITY = 0.16;
 
+// A device outline is the extent of its PINS, grown by 0.05 inch on every side.
+//
+// 0.05 in is half the hole pitch, which is why it is the right number rather
+// than a taste: an outline always stops exactly halfway to the next hole, so it
+// can never reach a neighbouring pin and two parts on adjacent holes can never
+// overlap outlines.
+//
+// This replaces the per-shape sizes that each part used to carry — bodyLen,
+// radius, width, depth — which were guesses and were wrong. A 2-hole
+// electrolytic drew an 8.1 mm circle for a part about 5 mm across, because its
+// radius grew with the lead span.
+export const SILK_MARGIN_MM = PITCH_MM / 2;
+
+// The same box from already-resolved millimetre points, which is what the
+// renderer has to hand — and which is already mirrored for the underside view,
+// so the outline follows the pins there too.
+export function footprintBoxFromPoints(pts) {
+  const xs = pts.map((p) => p.x);
+  const ys = pts.map((p) => p.y);
+  return {
+    x: Math.min(...xs) - SILK_MARGIN_MM,
+    y: Math.min(...ys) - SILK_MARGIN_MM,
+    w: Math.max(...xs) - Math.min(...xs) + SILK_MARGIN_MM * 2,
+    h: Math.max(...ys) - Math.min(...ys) + SILK_MARGIN_MM * 2,
+  };
+}
+
+// { x, y, w, h } in millimetres. A single-pin part gets a box one hole square:
+// its pin extent is a point, and a point grown by half a pitch each way is a
+// hole — the right answer rather than a special case.
+export function footprintBox(placement, getPart = null) {
+  const pins = resolvePins([placement], getPart ?? defaultGetPart);
+  const xs = pins.map((p) => holeToMm(p.col, p.row).x);
+  const ys = pins.map((p) => holeToMm(p.col, p.row).y);
+  const x0 = Math.min(...xs) - SILK_MARGIN_MM;
+  const y0 = Math.min(...ys) - SILK_MARGIN_MM;
+  return {
+    x: x0,
+    y: y0,
+    w: Math.max(...xs) - Math.min(...xs) + SILK_MARGIN_MM * 2,
+    h: Math.max(...ys) - Math.min(...ys) + SILK_MARGIN_MM * 2,
+  };
+}
+
 const silk = (c) => `fill="${c.silkFill}" fill-opacity="${SILK_FILL_OPACITY}"`
   + ` stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"`;
 
-function bodyFor(part, pts, c) {
+// `box` is the footprint: pin extent grown by half a pitch. Every shape is drawn
+// inside it, so no shape carries its own size any more — with one deliberate
+// exception, the 0603, which really is smaller than its footprint and is drawn
+// at its true 1.6 x 0.8 mm.
+function bodyFor(part, pts, c, box) {
   const shape = part.body?.shape ?? 'blob';
   const a = pts[0];
   const b = pts[pts.length - 1];
@@ -132,11 +180,15 @@ function bodyFor(part, pts, c) {
   const dy = b.y - a.y;
   const len = Math.hypot(dx, dy);
   const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+  const cx = box.x + box.w / 2;
+  const cy = box.y + box.h / 2;
 
   switch (shape) {
     case 'axial': {
-      const bw = (part.body.bodyWidth ?? 0.42) * PITCH_MM * 2;
-      const bl = Math.max(len - 1.2 * PITCH_MM, PITCH_MM * 0.8);
+      // The box's short side is the body's width; the long side is inset by a
+      // margin at each end so the leads show.
+      const bw = Math.min(box.w, box.h);
+      const bl = Math.max(len - PITCH_MM * 0.9, PITCH_MM * 0.7);
       // The cathode band, in the outline colour. On a translucent body a
       // light-on-dark mark would be invisible.
       const bar = part.body.polarised
@@ -150,38 +202,42 @@ function bodyFor(part, pts, c) {
     }
     case 'can':
     case 'blob': {
-      const r = (part.body.radius ?? 1.0) * PITCH_MM * 0.5 + len / 2;
+      // A round part is sized by the LONGER side of its box, not the shorter.
+      // A radial capacitor's can covers both leads, so its diameter is set by
+      // the lead pitch: 2 holes of pitch is 5.08 mm between leads, which is a
+      // 10 mm can, not a 5 mm one. Inscribing in the short side would draw a
+      // 2.54 mm disc that does not even reach its own pins.
+      //
+      // It follows that a round body can exceed its courtyard across the short
+      // axis. That is what a big capacitor actually does on a board.
+      const r = Math.max(box.w, box.h) / 2;
       const mark = part.body.polarised
-        ? `<text x="${n(mx - r * 0.5)}" y="${n(my + r * 0.28)}" font-size="${n(r * 0.8)}"`
+        ? `<text x="${n(cx - r * 0.5)}" y="${n(cy + r * 0.3)}" font-size="${n(r * 0.9)}"`
           + ` fill="${c.silk}" text-anchor="middle" font-family="sans-serif">+</text>`
         : '';
-      return `<circle data-kind="part-body" cx="${n(mx)}" cy="${n(my)}" r="${n(r)}"`
+      return `<circle data-kind="part-body" cx="${n(cx)}" cy="${n(cy)}" r="${n(r)}"`
         + ` ${silk(c)}/>${mark}`;
     }
     case 'd-package': {
-      const r = (part.body.radius ?? 1.1) * PITCH_MM;
-      return `<g transform="translate(${n(mx)} ${n(my)}) rotate(${n(angle)})">`
-        + `<path data-kind="part-body" d="M ${n(-r)} ${n(-r * 0.55)} A ${n(r)} ${n(r)} 0 1 0`
-        + ` ${n(-r)} ${n(r * 0.55)} Z" ${silk(c)}/></g>`;
+      // A TO-92: a circle with one side flattened. The flat is the face the
+      // legend is printed on, and it is how you tell which way round it goes.
+      const r = Math.max(box.w, box.h) / 2;
+      const flat = r * 0.62;
+      return `<g transform="translate(${n(cx)} ${n(cy)}) rotate(${n(angle)})">`
+        + `<path data-kind="part-body"`
+        + ` d="M ${n(-flat)} ${n(-r)} A ${n(r)} ${n(r)} 0 1 0 ${n(-flat)} ${n(r)} Z"`
+        + ` ${silk(c)}/></g>`;
     }
     case 'tab': {
-      const w = (part.body.width ?? 3.2) * PITCH_MM * 0.5;
-      const d = (part.body.depth ?? 1.6) * PITCH_MM * 0.5;
-      return `<g transform="translate(${n(mx)} ${n(my)}) rotate(${n(angle)})">`
-        + `<rect data-kind="part-body" x="${n(-w / 2)}" y="${n(-d)}" width="${n(w)}"`
-        + ` height="${n(d * 1.1)}" rx="${n(PITCH_MM * 0.15)}" ${silk(c)}/>`
+      return `<rect data-kind="part-body" x="${n(box.x)}" y="${n(box.y)}"`
+        + ` width="${n(box.w)}" height="${n(box.h)}" rx="${n(PITCH_MM * 0.15)}" ${silk(c)}/>`
         // the mounting-tab line, which is how you tell a TO-220's orientation
-        + `<line x1="${n(-w / 2)}" y1="${n(-d * 0.66)}" x2="${n(w / 2)}"`
-        + ` y2="${n(-d * 0.66)}" stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"/></g>`;
+        + `<line x1="${n(box.x)}" y1="${n(box.y + box.h * 0.28)}"`
+        + ` x2="${n(box.x + box.w)}" y2="${n(box.y + box.h * 0.28)}"`
+        + ` stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"/>`;
     }
     case 'dip': {
-      const xs = pts.map((p) => p.x);
-      const ys = pts.map((p) => p.y);
-      const pad = PITCH_MM * 0.42;
-      const x0 = Math.min(...xs) - pad;
-      const y0 = Math.min(...ys) - pad;
-      const w = Math.max(...xs) - Math.min(...xs) + pad * 2;
-      const h = Math.max(...ys) - Math.min(...ys) + pad * 2;
+      const { x: x0, y: y0, w, h } = box;
       // The notch at the pin-1 end and a ring on pin 1 itself: the two marks a
       // real DIL silkscreen carries.
       const horiz = w >= h;
@@ -199,9 +255,13 @@ function bodyFor(part, pts, c) {
         + ` fill="none" stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"/>`;
     }
     case 'header': {
-      return pts.map((p) => `<rect data-kind="part-body" x="${n(p.x - PITCH_MM * 0.4)}"`
-        + ` y="${n(p.y - PITCH_MM * 0.4)}" width="${n(PITCH_MM * 0.8)}"`
-        + ` height="${n(PITCH_MM * 0.8)}" ${silk(c)}/>`).join('');
+      // The shroud is the whole box; each way gets a square inside it.
+      const ways = pts.map((p) => `<rect x="${n(p.x - PITCH_MM * 0.32)}"`
+        + ` y="${n(p.y - PITCH_MM * 0.32)}" width="${n(PITCH_MM * 0.64)}"`
+        + ` height="${n(PITCH_MM * 0.64)}" fill="none" stroke="${c.silk}"`
+        + ` stroke-width="${SILK_STROKE_MM}"/>`).join('');
+      return `<rect data-kind="part-body" x="${n(box.x)}" y="${n(box.y)}"`
+        + ` width="${n(box.w)}" height="${n(box.h)}" ${silk(c)}/>${ways}`;
     }
     case 'hole': {
       return `<circle data-kind="part-body" cx="${n(a.x)}" cy="${n(a.y)}"`
@@ -431,7 +491,7 @@ export function renderBoard(project, opts = {}) {
         out.push(`<line x1="${n(pts[0].x)}" y1="${n(pts[0].y)}" x2="${n(pts[1].x)}"`
           + ` y2="${n(pts[1].y)}" stroke="${c.lead}" stroke-width="${n(PITCH_MM * 0.14)}"/>`);
       }
-      out.push(bodyFor(part, pts, c));
+      out.push(bodyFor(part, pts, c, footprintBoxFromPoints(pts)));
       if (L.labels) {
         out.push(`<text data-kind="part-label" data-ref="${esc(pl.ref)}"`
           + ` x="${n(pts[0].x)}" y="${n(Math.min(...pts.map((p) => p.y)) - PITCH_MM * 0.5)}"`

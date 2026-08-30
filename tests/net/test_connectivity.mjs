@@ -104,7 +104,10 @@ s.check('a DIP has two rows of pins 0.3 inch apart', () => {
   );
   eq(pins.length, 14, 'DIP-14 pin count');
   eq(pins[0], { ref: 'U1', pin: '1', col: 0, row: 0, electrical: true, kind: 'component' }, 'pin 1');
-  eq(pins.find((p) => p.pin === '14').row, 3, 'pin 14 row is 3 holes away');
+  // The second row is at -width, so that rotating to straddle the strips puts
+  // pin 1 top-LEFT. See docs/specs/footprint-geometry.md.
+  eq(pins.find((p) => p.pin === '14').row, -3, 'pin 14 row is 3 holes away');
+  eq(Math.abs(pins.find((p) => p.pin === '14').row - pins[0].row), 3, '0.3 inch apart');
 });
 
 // -------------------------------------------------------------------- nets

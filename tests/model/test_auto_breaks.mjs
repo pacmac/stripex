@@ -52,7 +52,9 @@ s.check('pin 1 and the last pin stay opposite each other at any width', () => {
     const p1 = pins.find((p) => p.pin === '1');
     const p14 = pins.find((p) => p.pin === '14');
     eq(p1.col, p14.col, `width ${width}: pin 1 and 14 share a column`);
-    eq(p14.row - p1.row, width, `width ${width}: and are ${width} apart`);
+    // Negative because the second row sits at -width, which is what puts pin 1
+    // top-left once the package is turned to straddle the strips.
+    eq(Math.abs(p14.row - p1.row), width, `width ${width}: and are ${width} apart`);
   }
 });
 
