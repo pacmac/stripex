@@ -876,3 +876,35 @@
     failures: 0
     at: '2026-08-30T10:44:21.078'
     commit: e96df7f-dirty
+- id: point-to-point-is-not-in-the-parts-palette
+  type: new
+  what: The parts palette has no point to point entry, so it exists only as the Wire tool and reads as
+    a mode of the wire link rather than its own thing
+  spec: docs/specs/point-to-point-in-palette.md
+  files:
+  - src/parts/library.js
+  - src/model/board.js
+  - src/model/edit.js
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/parts/test_point_to_point_part.mjs
+    criterion: 'tests/parts/test_point_to_point_part.mjs passes: the library has a point-to-point entry
+      that arms the wire tool and cannot be placed as a part'
+    runs: 1
+  trial:
+    file: .proofs/point-to-point-is-not-in-the-parts-palette.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:48:42.912'
+    commit: 17ffa94-dirty
+  fix:
+    file: .proofs/point-to-point-is-not-in-the-parts-palette.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:50:22.200'
+    commit: 17ffa94-dirty

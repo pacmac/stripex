@@ -41,7 +41,7 @@ function swatches(field, current, effective, label) {
       <button class="sw sw-clear${current ? '' : ' is-on'}" data-swatch="${field}"
         data-hex="" title="Default">&times;</button></div>`;
 }
-import { partList, getPart, defaultRotOf } from '/src/parts/library.js';
+import { partList, getPart, defaultRotOf, placesWith } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
 const STORE_KEY = 'stripex.project';
@@ -438,6 +438,16 @@ function paintInspectorFrom() {
     el.innerHTML = `
       <div class="field"><span>Wire</span>
         <input data-wedit="ref" value="${escapeHtml(w.ref)}" style="width:90px"></div>
+      <div class="field"><span>Value</span>
+        <input data-wedit="value" value="${escapeHtml(w.value ?? '')}"
+          placeholder="GND, +5V" style="width:90px"></div>
+      <div class="field"><span>Label colour</span>
+        <span class="sw-now" style="background:${w.silk ?? THEME_SILK[state.theme]}"></span></div>
+      <div class="swatches">${PALETTE_16.map((cc) =>
+    `<button class="sw${w.silk === cc.hex ? ' is-on' : ''}" data-wswatch="silk"
+        data-hex="${cc.hex}" style="background:${cc.hex}" title="${cc.name}"></button>`).join('')}
+        <button class="sw sw-clear${w.silk ? '' : ' is-on'}" data-wswatch="silk"
+          data-hex="" title="Default">&times;</button></div>
       <div class="field"><span>Colour</span>
         <span class="sw-now" style="background:${wireColour(w)}" title="in use"></span></div>
       <div class="swatches" data-for="wire-colour">${PALETTE_16.map((cc) =>
@@ -462,12 +472,14 @@ function paintInspectorFrom() {
         const j = state.project.wires.findIndex((x) => x.ref === state.selection?.ref);
         if (j < 0) return;
         const { wire, error } = applyWireEdit(
-          state.project.wires[j], 'colour', e.currentTarget.dataset.hex,
+          state.project.wires[j], e.currentTarget.dataset.wswatch,
+          e.currentTarget.dataset.hex,
         );
         if (error) { $('#editError').textContent = error; return; }
         state.project.wires[j] = wire;
         inspectorShape = null;
-        commit(`${wire.ref} colour ${e.currentTarget.dataset.hex || 'default'}`);
+        commit(`${wire.ref} ${e.currentTarget.dataset.wswatch} `
+          + `${e.currentTarget.dataset.hex || 'default'}`);
       });
     }
 
@@ -869,11 +881,14 @@ function boot() {
     const part = evt.target.closest('[data-part]');
     if (part) {
       state.part = part.dataset.part;
+      const chosen = getPart(state.part);
       // Arm the rotation the part asks for. A wire link declares 90 because a
       // link along a strip joins a segment to itself and does nothing.
-      state.rot = defaultRotOf(getPart(state.part));
+      state.rot = defaultRotOf(chosen);
       buildPalette();
-      setTool('place');
+      // Point to point arms the WIRE tool: it is not placed, it is drawn between
+      // two holes. That one field is what lets it sit in the same palette list.
+      setTool(placesWith(chosen) === 'wire' ? 'wire' : 'place');
       return;
     }
 

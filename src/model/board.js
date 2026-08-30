@@ -4,7 +4,7 @@
 // save and on anything arriving over HTTP, and a validator that throws turns a
 // recoverable "this file is wrong here" into a dead editor.
 
-import { hasPart, getPart, pinsOf } from '../parts/library.js';
+import { hasPart, getPart, pinsOf, isWireOnly } from '../parts/library.js';
 import { isRotation } from './rotate.js';
 import { columnLabel } from './labels.js';
 
@@ -83,6 +83,14 @@ export function validateProject(project) {
     const where = `placements[${i}]`;
     claim(pl?.ref, where);
     if (!hasPart(pl?.part)) { bad('unknown-part', `${where} uses unknown part ${pl?.part}`); continue; }
+    if (isWireOnly(getPart(pl.part))) {
+      // It has no pins, so it would resolve to no geometry and be invisible
+      // rather than reported. This is the only place that can catch it.
+      bad('not-a-placement',
+        `${where} uses ${getPart(pl.part).name}, which is a wire and belongs in wires[], `
+        + 'not a placement');
+      continue;
+    }
     if (!isHole(pl.at)) { bad('bad-anchor', `${where}.at is not a hole`); continue; }
     if (!isRotation(pl.rot ?? 0)) bad('bad-rotation', `${where}.rot is ${pl.rot}, want 0/90/180/270`);
     const part = getPart(pl.part);

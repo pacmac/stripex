@@ -112,6 +112,23 @@ export function applyWireEdit(wire, field, value) {
     next.ref = ref;
     return { wire: next, error: null };
   }
+  if (field === 'value') {
+    // A name for the run — GND, +5V — drawn beside the ID.
+    next.value = String(value ?? '');
+    return { wire: next, error: null };
+  }
+  if (field === 'silk') {
+    // The colour of the ID TEXT, not of the wire. The pads are coloured by
+    // length and that is load-bearing — it says which pre-cut wire to take from
+    // the drawer — so silk acts on the one part of a wire that is silkscreen.
+    const v = String(value ?? '').trim();
+    if (!v) { delete next.silk; return { wire: next, error: null }; }
+    if (!/^#[0-9a-fA-F]{6}$/.test(v)) {
+      return { wire, error: 'a label colour must be a #rrggbb value' };
+    }
+    next.silk = v.toLowerCase();
+    return { wire: next, error: null };
+  }
   if (field === 'colour') {
     const v = String(value ?? '').trim();
     if (!v) { delete next.colour; return { wire: next, error: null }; }

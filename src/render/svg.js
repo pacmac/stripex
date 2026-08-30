@@ -470,12 +470,24 @@ export function renderBoard(project, opts = {}) {
           + ` fill="${ink}" stroke="${c.wireCasing}"`
           + ` stroke-width="${n(SILK_STROKE_MM * 0.7)}"/>`);
         if (L.labels) {
+          // The ID takes the wire's silk colour when it has one. Silk is the
+          // LABEL colour: the pads are already coloured by length, and that
+          // colour says which pre-cut wire to take from the drawer.
+          const labelInk = wire.silk ?? c.ink;
           out.push(`<text data-kind="wire-label" data-ref="${esc(wire.ref)}"`
             + ` data-end="${end}" x="${n(mx(pt.x))}"`
             + ` y="${n(pt.y - PAD_R_MM - PITCH_MM * 0.18)}"`
-            + ` font-size="${n(PITCH_MM * 0.6)}" fill="${c.ink}" text-anchor="middle"`
+            + ` font-size="${n(PITCH_MM * 0.6)}" fill="${labelInk}" text-anchor="middle"`
             + ` font-family="sans-serif" pointer-events="none"`
             + ` font-weight="600">${esc(wire.ref)}</text>`);
+          if (wire.value) {
+            out.push(`<text data-kind="wire-value" data-ref="${esc(wire.ref)}"`
+              + ` data-end="${end}" x="${n(mx(pt.x))}"`
+              + ` y="${n(pt.y + PAD_R_MM + PITCH_MM * 0.52)}"`
+              + ` font-size="${n(PITCH_MM * 0.5)}" fill="${labelInk}" text-anchor="middle"`
+              + ' font-family="sans-serif" pointer-events="none"'
+              + `>${esc(wire.value)}</text>`);
+          }
         }
       }
     }
