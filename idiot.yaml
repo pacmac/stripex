@@ -1398,3 +1398,108 @@
     failures: 0
     at: '2026-08-30T14:28:36.534'
     commit: 7359442-dirty
+- id: there-is-no-headless-way-to-build-a-board
+  type: new
+  what: "Every mutation lives inside onBoardClick in app.js \u2014 placements.push, wires.push, breaks.push\
+    \ are inline with selection and status text \u2014 so a netlist builder has no addPart() to call and\
+    \ must duplicate the logic, drive the DOM, or hand-write JSON."
+  spec: docs/specs/architecture-for-netlist.md
+  files:
+  - public/app.js
+  test:
+    command: null
+    criterion: src/model/ops.js exports pure project->project addPart/removePart/movePart/addWire/removeWire/setBreak/clearBreak,
+      and app.js calls them instead of mutating inline
+    runs: 1
+  trial: null
+  fix: null
+- id: the-model-asks-the-renderer-what-a-net-is
+  type: bug
+  what: netsFor, findingsFor, runList and cutList are exported from src/render/svg.js, so app.js and the
+    server import connectivity from the module whose job is to produce an SVG string.
+  spec: docs/specs/architecture-for-netlist.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  - src/server/index.js
+  test:
+    command: null
+    criterion: the four query functions live in a model module, svg.js imports them, and the 38 existing
+      suites pass unchanged
+    runs: 1
+  trial: null
+  fix: null
+- id: app-js-is-a-third-of-the-codebase
+  type: new
+  what: 'public/app.js is 1379 of 4611 lines and holds four separable things: state and persistence, every
+    mutation, every panel painter, and all event wiring.'
+  spec: docs/specs/architecture-for-netlist.md
+  files:
+  - public/app.js
+  test:
+    command: null
+    criterion: state, painters and tools are separate modules and no single editor file exceeds about
+      400 lines
+    runs: 1
+  trial: null
+  fix: null
+- id: providesegmentnet-writes-a-global-nothing-reads
+  type: bug
+  what: provideSegmentNet() in src/model/nets.js sets globalThis.__stripexSegmentNet__ and nothing anywhere
+    reads it.
+  spec: docs/specs/architecture-for-netlist.md
+  files:
+  - src/model/nets.js
+  test:
+    command: null
+    criterion: the export and the global are gone and every suite still passes
+    runs: 1
+  trial: null
+  fix: null
+- id: drc-is-one-function-not-a-list-of-rules
+  type: new
+  what: "drc() is a single 209-line function with comment-separated sections, so a new check \u2014 netlist\
+    \ conformance among them \u2014 is another branch inside it rather than a new file."
+  spec: docs/specs/architecture-for-netlist.md
+  files:
+  - src/net/drc.js
+  test:
+    command: null
+    criterion: rules are separate functions in a list that drc() runs, and each existing finding still
+      comes out with the same code and severity
+    runs: 1
+  trial: null
+  fix: null
+- id: the-device-catalogue-is-unreachable-and-its-one-entry-is-guesswork
+  type: new
+  what: Nothing imports devices.js, so no device can be placed from the editor; its only entry is a TMC2209
+    whose pin names were guessed and flagged with a whole-device boolean. There is no XIAO and no JST
+    connector.
+  spec: docs/specs/named-components.md
+  files:
+  - src/parts/devices.js
+  - src/parts/library.js
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/parts/test_devices.mjs
+    criterion: '28/28 checks: every device names exactly the pins its footprint resolves to, the XIAO
+      and TMC2209 match their sourced pinouts, unverifiedPins is a list of real pin names, and JST XH
+      comes 2 to 8 way in two distinct bodies'
+    runs: 1
+  trial:
+    file: .proofs/the-device-catalogue-is-unreachable-and-its-one-entry-is-guesswork.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T14:41:35.572'
+    commit: d148a80-dirty
+  fix:
+    file: .proofs/the-device-catalogue-is-unreachable-and-its-one-entry-is-guesswork.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T14:46:10.929'
+    commit: d148a80-dirty

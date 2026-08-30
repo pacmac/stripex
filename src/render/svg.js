@@ -216,7 +216,7 @@ const silk = (c) => `fill="${c.silkFill}" fill-opacity="${SILK_FILL_OPACITY}"`
 // `box` is the footprint: pin extent grown by half a pitch. Every shape is drawn
 // inside it, so no shape carries its own size — the 0603 was the last exception
 // and is now drawn as its land as well, across the two holes it bridges.
-function bodyFor(part, pts, c, box) {
+function bodyFor(part, pts, c, box, pl = {}) {
   const shape = part.body?.shape ?? 'blob';
   const a = pts[0];
   const b = pts[pts.length - 1];
@@ -298,6 +298,43 @@ function bodyFor(part, pts, c, box) {
         + ` stroke-width="${SILK_STROKE_MM}"/>`).join('');
       return `<rect data-kind="part-body" x="${n(box.x)}" y="${n(box.y)}"`
         + ` width="${n(box.w)}" height="${n(box.h)}" ${silk(c)}/>${ways}`;
+    }
+    case 'jst': {
+      // A shrouded, keyed connector. The SHROUD is the box; the RAMP is the
+      // locking tab on the mating face, and it is the only thing in this drawing
+      // that says which way round the connector goes — which is why Peter asked
+      // for a shape of its own rather than the pin header's plain box.
+      //
+      // STRAIGHT: the cable comes up out of the board, so the shroud sits over
+      // the pins and the ramp faces you — drawn along the shroud's far edge.
+      // RIGHT ANGLE: the cable leaves sideways, so the body lies over the board
+      // to ONE SIDE of the pin row, and that offset is the difference you can
+      // see at a glance.
+      const right = pl.angle === 'right';
+      const w = box.w;
+      // Deep enough to read as a shroud rather than a line. The right-angle body
+      // is deeper because it is lying down.
+      const d = right ? PITCH_MM * 1.9 : PITCH_MM * 1.15;
+      const x0 = box.x;
+      // Straight: centred on the pins. Right angle: hanging off one side of them,
+      // with a strip still over the pin row so the two are visibly one part.
+      const y0 = right ? a.y - PITCH_MM * 0.45 : a.y - d / 2;
+      const ramp = right
+        // on the far edge, where the cable leaves
+        ? `<rect data-kind="jst-ramp" x="${n(x0 + w * 0.3)}" y="${n(y0 + d - PITCH_MM * 0.34)}"`
+          + ` width="${n(w * 0.4)}" height="${n(PITCH_MM * 0.34)}"`
+          + ` fill="${c.silk}" fill-opacity="0.45"/>`
+        // A straight one mates upwards, so its latch faces you. Drawn as a tab
+        // standing PROUD of the shroud, which is what the latch does and what
+        // makes it legible: inside the box it was lost behind the pads, which
+        // sit on the same row.
+        : `<rect data-kind="jst-ramp" x="${n(x0 + w * 0.32)}"`
+          + ` y="${n(y0 - PITCH_MM * 0.26)}"`
+          + ` width="${n(w * 0.36)}" height="${n(PITCH_MM * 0.3)}"`
+          + ` rx="${n(PITCH_MM * 0.08)}" fill="${c.silk}" fill-opacity="0.55"`
+          + ` stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"/>`;
+      return `<rect data-kind="part-body" x="${n(x0)}" y="${n(y0)}" width="${n(w)}"`
+        + ` height="${n(d)}" rx="${n(PITCH_MM * 0.14)}" ${silk(c)}/>${ramp}`;
     }
     case 'hole': {
       return `<circle data-kind="part-body" cx="${n(a.x)}" cy="${n(a.y)}"`
@@ -681,8 +718,11 @@ export function renderBoard(project, opts = {}) {
       const bodyInk = isWireColoured(part)
         ? linkColour(pl, part)
         : silkOf(pl, part, c.silk);
+      // The placement goes in too: a shrouded connector is drawn differently
+      // straight and right-angle, and which it is belongs to the placement, not
+      // to the footprint they share.
       out.push(bodyFor(part, pts, { ...c, silk: bodyInk, silkFill: bodyInk },
-        footprintBoxFromPoints(pts)));
+        footprintBoxFromPoints(pts), pl));
       if (L.labels) {
         out.push(`<text data-kind="part-label" data-ref="${esc(pl.ref)}"`
           + ` x="${n(pts[0].x)}" y="${n(Math.min(...pts.map((p) => p.y)) - PITCH_MM * 0.5)}"`

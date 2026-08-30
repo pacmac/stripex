@@ -36,6 +36,7 @@ import {
   TOOL_AFTER_ESCAPE, wireColour, silkOf, linkColour, wireLengthHoles,
   COLOUR_CODE, PALETTE_16,
 } from '/src/render/colours.js';
+import { deviceList, getDevice, placementFor } from '/src/parts/devices.js';
 
 // The theme's silk colour, for seeding the colour input when a part has none of
 // its own. A colour input cannot show "unset", so it shows what is being used.
@@ -100,6 +101,9 @@ const state = {
   project: load() ?? makeProject({ cols: 25, rows: 20 }),
   tool: 'select',
   part: 'res-axial',
+  // The armed DEVICE, or null for a generic part. It arms its base part
+  // alongside itself, so everything that asks "what is armed" still works.
+  device: null,
   span: 4,
   width: 3,
   cut: 'gap',
@@ -811,14 +815,24 @@ function onBoardClick(evt) {
     case 'place': {
       if (!hole) return;
       const part = getPart(state.part);
-      const pl = {
-        ref: nextPartRef(p, state.part),
-        part: state.part,
-        at: { col: hole.col, row: hole.row },
-        rot: state.rot,
-      };
-      if (part.parametric) pl.span = state.span;
-      if (part.defaultWidth != null) pl.width = state.width;
+      // A DEVICE BUILDS ITS OWN PLACEMENT, because its span, width, silk and pin
+      // names are the device's and not the panel's. placementFor copies them on,
+      // so the board that results owes the catalogue nothing.
+      let pl;
+      if (state.device) {
+        pl = placementFor(state.device, { col: hole.col, row: hole.row }, state.rot,
+          nextPartRef(p, getDevice(state.device).base));
+        if (!pl) return say('that device is not in the catalogue');
+      } else {
+        pl = {
+          ref: nextPartRef(p, state.part),
+          part: state.part,
+          at: { col: hole.col, row: hole.row },
+          rot: state.rot,
+        };
+        if (part.parametric) pl.span = state.span;
+        if (part.defaultWidth != null) pl.width = state.width;
+      }
       p.placements.push(pl);
       state.selection = { kind: 'part', ref: pl.ref };
 
@@ -1041,14 +1055,24 @@ function paintCards() {
 }
 
 function paintLibrary() {
-  const all = partList();
+  // Devices sit in the SAME list as the generic parts, grouped by the same
+  // categories — a XIAO under Modules, a JST beside the pin header. A separate
+  // "devices" list would be a second place to look for a component, and the
+  // question you are asking is "what am I placing", not "is it a preset".
+  const all = [...partList(), ...deviceList().map((d) => ({
+    id: d.id, name: d.name, category: d.category, kind: 'component',
+    isDevice: true, unverifiedPins: d.unverifiedPins,
+  }))];
   const groups = groupParts(filterParts(all, state.search), CATEGORIES);
   const part = getPart(state.part);
+  const armedDevice = state.device ? getDevice(state.device) : null;
 
   // A part's parameters appear directly beneath IT, not in the panel. That is
   // the whole complaint: span belongs to the resistor, not to the sidebar.
   const paramsHtml = (p) => {
-    if (p.id !== state.part) return '';
+    // A device has no parameters to offer: its span and width came with it.
+    if (p.isDevice) return '';
+    if (p.id !== state.part || state.device) return '';
     const fields = paramsFor(getPart(p.id));
     if (!fields.length) return '';
     return `<div class="part-params">${fields.map((f) => `
@@ -1063,11 +1087,22 @@ function paintLibrary() {
     ${groups.map((g) => `
       <div class="lib-group">${escapeHtml(g.name)}</div>
       ${g.parts.map((p) => `
-        <button data-part="${p.id}" class="${p.id === state.part ? 'is-on' : ''}">
-          ${escapeHtml(p.name)}${p.kind === 'link' ? '<span class="kind">link</span>' : ''}
+        <button ${p.isDevice ? `data-device="${p.id}"` : `data-part="${p.id}"`}
+          class="${(p.isDevice ? p.id === state.device : p.id === state.part && !state.device)
+            ? 'is-on' : ''}">
+          ${escapeHtml(p.name)}${p.kind === 'link' ? '<span class="kind">link</span>' : ''}${
+  p.unverifiedPins?.length ? '<span class="kind warn">?</span>' : ''}
         </button>${paramsHtml(p)}`).join('')}`).join('')
     || '<p class="empty">Nothing matches.</p>'}
-    <p class="hint">${part ? escapeHtml(partHint(part)) : ''}</p>
+    ${armedDevice?.unverifiedPins?.length ? `<p class="hint" style="color:var(--warning)">
+      ${escapeHtml(armedDevice.unverifiedPins.join(', '))}
+      ${armedDevice.unverifiedPins.length === 1 ? 'is a pin whose name could' : 'are pins whose names could'}
+      not be sourced. Check ${armedDevice.unverifiedPins.length === 1 ? 'it' : 'them'}
+      against the module before you wire to ${armedDevice.unverifiedPins.length === 1 ? 'it' : 'them'}.</p>` : ''}
+    <p class="hint">${armedDevice
+    ? escapeHtml(`${armedDevice.name}: ${armedDevice.pins.length} pins, named. `
+      + 'Its size and pin names come with it.')
+    : (part ? escapeHtml(partHint(part)) : '')}</p>
     <p class="hint">These are the settings for the <b>next</b> part you place.
       To change one already on the board, select it and use <b>Focus</b>.</p>`;
 
@@ -1187,9 +1222,25 @@ function boot() {
     const tool = evt.target.closest('.tool');
     if (tool) return setTool(tool.dataset.tool);
 
+    // A device arms the same way a part does, and arms its BASE part with it,
+    // so everything downstream that asks "what is armed" keeps working. Clearing
+    // state.device is what un-arms it — see the part branch below.
+    const device = evt.target.closest('[data-device]');
+    if (device) {
+      const d = getDevice(device.dataset.device);
+      if (!d) return;
+      state.device = d.id;
+      state.part = d.base;
+      state.rot = defaultRotOf(getPart(d.base));
+      buildPalette();
+      paintLibrary();
+      return setTool('place');
+    }
+
     const part = evt.target.closest('[data-part]');
     if (part) {
       state.part = part.dataset.part;
+      state.device = null;              // a generic part is not a device
       const chosen = getPart(state.part);
       // Arm the rotation the part asks for. A wire link declares 90 because a
       // link along a strip joins a segment to itself and does nothing.
