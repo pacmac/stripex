@@ -3139,3 +3139,57 @@
     failures: 0
     at: '2026-08-31T18:37:12.559'
     commit: e4ce89b-dirty
+- id: the-component-preview-shows-an-unbuildable-placement
+  type: bug
+  what: 'The footprint preview places every device at rot 0, so a DIP''s pins run ALONG the strips and
+    every pin shorts to its neighbour. It is not a picture of the component, it is a picture of a mistake,
+    and it is the one thing on the page a person is meant to trust. Peter: ''the DIP is mis-orientated,
+    it is default placed in the wrong direction with the strips being inline with the pins instead of
+    across them.'''
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: a DIP previews with its pins across the strips and the cuts its package requires
+    runs: 1
+  trial:
+    file: .proofs/the-component-preview-shows-an-unbuildable-placement.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T19:01:59.843'
+    commit: d3578ea-dirty
+  fix: null
+- id: the-component-editor-is-a-dumped-form
+  type: bug
+  what: 'Every field on one grid with invented labels, no hierarchy and no link to the drawing. Peter,
+    listing them: pin 1 is not shown, a pin cannot be selected with its field highlighted, the drawing
+    shows neither numbers nor readable names, and ''the entire layout at the top is atrocious, looks like
+    you just dumped all the fields on the page''. Also found: the footprint select shows internal ids,
+    Span and Width ignore the spanLabel and widthLabel the library provides per part, silk is a full-width
+    bar, the source field truncates, category headings are raw internal words, there is no search in a
+    list that is 90 percent JST, and a quarter of the page is empty while the drawing is squeezed.'
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: every pad carries its number with pin 1 marked, selection is linked both ways, the pin
+      table splits where the package turns, the fields carry the library's own labels, and the catalogue
+      can be searched
+    runs: 1
+  trial:
+    file: .proofs/the-component-editor-is-a-dumped-form.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T19:02:38.544'
+    commit: d3578ea-dirty
+  fix: null

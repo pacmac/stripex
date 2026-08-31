@@ -264,17 +264,37 @@
   </header>
   <div class="components">
     <aside class="devlist">
-      <button id="devNew" class="linky">+ new component</button>
+      <div class="devsearch">
+        <input id="devSearch" type="search" placeholder="Search components"
+          aria-label="Search components">
+        <button id="devNew" class="linky">+ New</button>
+      </div>
       <div id="devList"></div>
     </aside>
+
+    <!-- THE DATASHEET. A manufacturer's page is a package drawing with numbered
+         pins beside a pin table, and that is exactly this content. The drawing
+         is the hero and the table is its index; they are one instrument, linked
+         by selection in both directions. -->
     <div class="devpane">
-      <div id="devEdit"></div>
-      <div class="devfoot">
-        <button id="devSave">Save</button>
-        <button id="devRevert" class="linky" hidden>back to stock</button>
-        <span id="devStatus" class="devstatus"></span>
+      <header class="devhead">
+        <div class="devtitle">
+          <h3 id="devName">Choose a component</h3>
+          <p id="devSpec" class="devspec"></p>
+        </div>
+        <div class="devactions">
+          <span id="devStatus" class="devstatus" role="status"></span>
+          <button id="devRevert" class="linky" hidden>Back to stock</button>
+          <button id="devSave" class="primary">Save</button>
+        </div>
+      </header>
+      <div class="devbody">
+        <figure id="devPreview" class="devpreview">
+          <figcaption>As it sits on the board</figcaption>
+          <div id="devDrawing" class="devdrawing"></div>
+        </figure>
+        <div id="devEdit" class="devedit"></div>
       </div>
-      <div id="devPreview" class="devpreview"></div>
     </div>
   </div>
 </section>

@@ -203,6 +203,107 @@ s.check('and the board is still there when the screen closes', async () => {
   eq(r.errs, [], 'with no page errors');
 });
 
+// ------------------------------------------------- the datasheet rebuild
+// Peter: "so many issues with that I dont know where to start ... this page
+// needs sooooooo much work." What follows is his list, made checkable.
+
+s.check('A DIP PREVIEWS THE WAY IT GOES ON STRIPBOARD', async () => {
+  // The worst of them: every device was drawn at rot 0, so a DIP's pins ran
+  // ALONG the strips and every pin shorted to its neighbour. The one picture on
+  // the page a person is meant to trust was a picture of a mistake.
+  needBrowser();
+  const r = await onScreen(async (page) => {
+    await page.locator('#devList [data-device="tmc2209"]').click();
+    await page.waitForTimeout(500);
+    return {
+      rows: await page.evaluate(() => new Set([...document.querySelectorAll(
+        '#devPreview [data-kind="pad"]')].map((el) => el.getAttribute('cy') ?? el.getAttribute('y'))).size),
+      cuts: await page.locator('#devPreview [data-kind="break"]').count(),
+    };
+  });
+  // Pins across the strips means many distinct rows, not two.
+  ok(r.rows >= 8, `its pins sit on ${r.rows} different strips, not along two`);
+  ok(r.cuts >= 1, `and the cuts the package requires are drawn: ${r.cuts}`);
+});
+
+s.check('EVERY PAD CARRIES ITS NUMBER, AND PIN 1 IS MARKED', async () => {
+  needBrowser();
+  const r = await onScreen(async (page) => {
+    await page.locator('#devList [data-device="tmc2209"]').click();
+    await page.waitForTimeout(500);
+    return {
+      badges: await page.locator('#devPreview [data-pin-badge]').count(),
+      first: await page.locator('#devPreview [data-pin-badge="1"][data-first="true"]').count(),
+      labels: await page.locator('#devPreview [data-pin-badge]').allInnerTexts(),
+    };
+  });
+  eq(r.badges, 16, 'sixteen numbered pads');
+  eq(r.first, 1, 'and pin 1 is the one marked first');
+  ok(r.labels.includes('16'), `numbered through to the last: ${r.labels.join(',')}`);
+});
+
+s.check('SELECTING A PIN LIGHTS IT IN BOTH PLACES', async () => {
+  // "I cannot select a pin and the related field is highlighted."
+  needBrowser();
+  const r = await onScreen(async (page) => {
+    await page.locator('#devList [data-device="tmc2209"]').click();
+    await page.waitForTimeout(500);
+    // From the table to the drawing.
+    await page.locator('#devEdit [data-pin-index="4"]').focus();
+    await page.waitForTimeout(200);
+    const litByField = await page.locator('#devPreview [data-pin-badge="5"][data-lit="true"]').count();
+    // And from the drawing to the table.
+    await page.locator('#devPreview [data-pin-badge="9"]').click();
+    await page.waitForTimeout(200);
+    const focused = await page.evaluate(() =>
+      document.activeElement?.getAttribute('data-pin-index'));
+    return { litByField, focused };
+  });
+  eq(r.litByField, 1, 'focusing pin 5 lights pad 5');
+  eq(r.focused, '8', 'and clicking pad 9 focuses the ninth name');
+});
+
+s.check('THE PIN TABLE BREAKS WHERE THE PACKAGE BREAKS', async () => {
+  // A DIP runs down one side and back up the other. Eight across put pin 8 and
+  // pin 9 — opposite ends of the chip — side by side.
+  needBrowser();
+  const r = await onScreen(async (page) => {
+    await page.locator('#devList [data-device="tmc2209"]').click();
+    await page.waitForTimeout(500);
+    return { sides: await page.locator('#devEdit [data-pin-side]').count() };
+  });
+  ok(r.sides >= 2, `the two sides of the package are separated: ${r.sides}`);
+});
+
+s.check('THE FIELDS ARE LABELLED THE WAY THE LIBRARY LABELS THEM', async () => {
+  // The library hands over spanLabel "pins per side" and widthLabel "body width
+  // in holes (3 = 0.3 in)" per part, and the first version wrote Span and Width.
+  needBrowser();
+  const r = await onScreen(async (page) => {
+    await page.locator('#devList [data-device="tmc2209"]').click();
+    await page.waitForTimeout(500);
+    return {
+      text: await page.locator('#devEdit').innerText(),
+      footprints: await page.locator('#devEdit [data-field="base"] option').allInnerTexts(),
+    };
+  });
+  ok(/pins per side/i.test(r.text), `span is labelled as the library labels it: ${r.text.slice(0, 200)}`);
+  ok(r.footprints.some((t) => /DIP \/ IC socket/.test(t)),
+    `and a footprint is offered by its real name: ${r.footprints.join(' | ')}`);
+});
+
+s.check('and the catalogue can be searched', async () => {
+  needBrowser();
+  const r = await onScreen(async (page) => {
+    const before = await page.locator('#devList [data-device]').count();
+    await page.locator('#devSearch').fill('xiao');
+    await page.waitForTimeout(300);
+    return { before, after: await page.locator('#devList [data-device]').count() };
+  });
+  ok(r.before > r.after, `it filters: ${r.before} down to ${r.after}`);
+  eq(r.after, 1, 'to the one that matches');
+});
+
 const okAll = await s.run();
 if (browser) await browser.close();
 if (server) { mod?.closeLive?.(); server.close(); }

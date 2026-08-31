@@ -19,6 +19,13 @@
   --wire: #1f6feb;
   --radius: 7px;
   --bar-h: 46px;
+  /* The two faces, named once. The chrome is the system sans it has always
+     been; DATA is mono — pin numbers, ids, footprint names — because a pin
+     table is data and every datasheet in the world sets one that way. Both are
+     stacks the machine already has: this app is served from a box on the same
+     desk and has no business fetching a font. */
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   /* The fade at the edge of a list that has more below it. Dark ink on a light
      ground here; see the dark theme for why it inverts rather than darkens. */
   --scroll-shade: rgba(0, 0, 0, 0.22);
@@ -528,9 +535,15 @@ main {
   border: 1px solid rgba(128, 128, 128, 0.45);
 }
 
-/* THE COMPONENT EDITOR, over the board rather than beside it. A device has
-   sixteen pin names, a footprint and a preview, and none of that fits in a
-   panel; editing a component is also not something done while laying one out. */
+/* THE COMPONENT EDITOR, laid out as a datasheet.
+
+   A manufacturer's page is a package drawing with numbered pins beside a pin
+   table, and that is exactly this content. So the drawing is the hero and the
+   table is its index, both visible at once and linked by selection — not a form
+   with a picture underneath it, which is what this was.
+
+   The data is set in mono, because a pin table is data and every datasheet in
+   the world sets one that way. Colour comes from the board already on screen. */
 .screen {
   position: absolute;
   inset: 0;
@@ -545,113 +558,239 @@ main {
    beats it — so `.screen { display: flex }` left this covering the whole app,
    invisible and still swallowing every click on the toolbar underneath. */
 .screen[hidden] { display: none; }
+
 .screen-head {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 9px 16px;
   border-bottom: 1px solid var(--line);
   flex: 0 0 auto;
 }
-.screen-head h2 { margin: 0; font-size: 15px; }
+.screen-head h2 { margin: 0; font-size: 15px; letter-spacing: -0.01em; }
 .screen-sub { color: var(--ink-dim); font-size: 11px; }
 .screen-sub code { font-size: 11px; }
 
 .components { display: flex; flex: 1 1 auto; min-height: 0; }
+
+/* ---------------------------------------------------------- the catalogue */
 .devlist {
-  width: 230px;
+  width: 244px;
   flex: 0 0 auto;
   border-right: 1px solid var(--line);
   overflow-y: auto;
-  padding: 8px;
+  padding: 0 0 12px;
+  background: var(--panel);
 }
+.devsearch {
+  position: sticky;
+  top: 0;
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.devsearch input { flex: 1 1 auto; min-width: 0; }
 .devgroup {
-  font-size: 10px;
+  font: 600 10px/1 var(--ui);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--ink-dim);
-  margin: 10px 0 3px;
+  margin: 14px 10px 4px;
 }
 .devrow {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 1px;
-  width: 100%;
+  width: calc(100% - 12px);
+  margin: 0 6px;
   text-align: left;
-  padding: 5px 7px;
+  padding: 6px 8px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 6px;
   background: none;
   color: var(--ink);
   cursor: pointer;
 }
 .devrow:hover { background: var(--panel-2); }
-.devrow.is-on { background: var(--panel-2); outline: 1px solid var(--accent); }
+.devrow.is-on {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
 .devname { font-weight: 600; }
-.devmeta { font-size: 10px; color: var(--ink-dim); }
+.devmeta { font-size: 10.5px; color: var(--ink-dim); }
+.devpins { font-family: var(--mono); }
 
-.devpane {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: grid;
-  grid-template-rows: 1fr auto minmax(180px, 34%);
-  overflow: hidden;
-}
-#devEdit { overflow-y: auto; padding: 12px 14px; }
-.devfields {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 8px 14px;
-}
-.devfield { display: flex; flex-direction: column; gap: 2px; }
-.devfield > span { font-size: 11px; color: var(--ink-dim); }
-.devfield input, .devfield select { width: 100%; }
+/* ------------------------------------------------------------ the sheet */
+.devpane { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 
-/* The pin names, numbered, because that is the field this project keeps getting
-   wrong and the number is how you check it against the part. */
-.devpins {
-  margin-top: 14px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 4px 10px;
-}
-.devpins .devgroup { grid-column: 1 / -1; }
-.devpin { display: flex; align-items: center; gap: 6px; }
-.devpinno {
-  width: 22px;
-  text-align: right;
-  font-size: 11px;
-  color: var(--ink-dim);
+.devhead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid var(--line);
   flex: 0 0 auto;
 }
-.devpin input { min-width: 0; }
-.devpin[data-unverified="true"] input {
-  border-color: var(--warning, #b8860b);
+.devtitle h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
 }
-.devwarn {
-  color: var(--warning, #b8860b);
-  font-weight: 700;
-  cursor: help;
+.devspec {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: var(--ink-dim);
+}
+.devspec .mono { font-family: var(--mono); }
+.devspec b { color: var(--accent); font-weight: 600; }
+.devactions { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
+.devstatus { font-size: 11.5px; color: var(--ink-dim); max-width: 34ch; }
+button.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+  font-weight: 600;
+  padding: 6px 16px;
 }
 
-.devfoot {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 14px;
-  border-top: 1px solid var(--line);
+/* The drawing and the table, side by side. The drawing gets the room because it
+   is the thing being judged. */
+.devbody {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(320px, 44%) 1fr;
 }
-.devstatus { font-size: 11px; color: var(--ink-dim); }
+@media (max-width: 1100px) { .devbody { grid-template-columns: 1fr; overflow-y: auto; } }
+
 .devpreview {
-  border-top: 1px solid var(--line);
-  padding: 10px;
-  overflow: auto;
+  margin: 0;
+  border-right: 1px solid var(--line);
+  background: var(--stage);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.devpreview figcaption {
+  font: 600 10px/1 var(--ui);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  padding: 10px 14px 0;
+}
+.devdrawing {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 12px 18px 18px;
 }
-.devpreview svg { max-height: 100%; }
+.devdrawing svg { max-height: 100%; max-width: 100%; }
+
+/* THE NUMBERS, laid over the pads the renderer drew. A datasheet numbers the
+   pins on the outline; that is how you check a part against the one in your
+   hand. Pin 1 is filled rather than merely square, because at this size a
+   square pad is invisible — which is what Peter saw. */
+.devbadges { position: absolute; inset: 12px 18px 18px; pointer-events: none; }
+.devbadge {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 8px;
+  border: 1px solid var(--ink-dim);
+  background: var(--panel);
+  color: var(--ink-dim);
+  font: 600 9.5px/1 var(--mono);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.devbadge:hover { border-color: var(--ink); color: var(--ink); }
+.devbadge[data-first="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.devbadge[data-lit="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  transform: translate(-50%, -50%) scale(1.35);
+  z-index: 2;
+}
+
+/* ------------------------------------------------------------- the table */
+.devedit { overflow-y: auto; padding: 14px 20px 24px; }
+.devsection {
+  margin: 0 0 8px;
+  font: 600 10px/1 var(--ui);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+}
+.devsides { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px; }
+.devsidelabel {
+  font-size: 10.5px;
+  color: var(--ink-dim);
+  padding-bottom: 5px;
+  margin-bottom: 5px;
+  border-bottom: 1px solid var(--line);
+}
+.devpin {
+  align-items: center;
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 4px;
+  margin: 0 -4px;
+  border-radius: 5px;
+}
+.devpin[data-lit="true"] { background: color-mix(in srgb, var(--accent) 15%, transparent); }
+.devpinno {
+  text-align: right;
+  font: 500 11px/1 var(--mono);
+  color: var(--ink-dim);
+}
+.devpinno.is-first {
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 3px;
+  padding: 2px 0;
+  text-align: center;
+}
+.devpin input { min-width: 0; font-family: var(--mono); }
+.devpin[data-unverified="true"] input { border-color: var(--warning); }
+.devwarn { color: var(--warning); font-size: 10px; font-weight: 600; }
+
+.devpackage { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); }
+.devfields { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px 16px; }
+ /* align-items: stretch, because the base `label` rule is an inline-flex row
+   with align-items: center and only its `display` was being overridden. Every
+   field's contents were centred in its column, which is why an input showed
+   "SilentStepStick v2.0 boarc" in a cell with room to spare. */
+.devfield {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  min-width: 0;
+}
+.devfield.devwide { grid-column: 1 / -1; }
+.devlabel { font-size: 11px; color: var(--ink-dim); }
+.devhint { font-size: 10px; color: var(--ink-dim); opacity: 0.85; }
+.devcolour input[type="color"] { width: 54px; height: 26px; padding: 1px; }
 
 /* The Rules card. A rule is a sentence you agree to, so the row carries its own
    explanation rather than a tooltip nobody hovers — and a rule that is OFF is

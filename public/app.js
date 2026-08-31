@@ -766,22 +766,40 @@ async function refreshDevices() {
   const { ok, body } = await api('/api/devices');
   if (!ok) return say('could not read the component catalogue');
   devCatalogue = body.devices ?? [];
+  paintDeviceList();
+  return devCatalogue;
+}
+
+// The catalogue, grouped and searchable. Fourteen of the sixteen entries are
+// JST variants, so without a search the list is a wall of one connector.
+function paintDeviceList() {
+  const q = ($('#devSearch')?.value ?? '').trim().toLowerCase();
+  const shown = q
+    ? devCatalogue.filter((d) => `${d.name} ${d.id} ${d.category}`.toLowerCase().includes(q))
+    : devCatalogue;
+
   // Grouped the way the palette groups parts, so a component is where you
-  // already look for it.
+  // already look for it — and under the same headings a person reads there,
+  // rather than the internal word.
   const byCat = new Map();
-  for (const d of devCatalogue) {
-    if (!byCat.has(d.category)) byCat.set(d.category, []);
-    byCat.get(d.category).push(d);
+  for (const d of shown) {
+    const cat = CATEGORIES.find((c) => c.id === d.category)?.name ?? d.category ?? 'Other';
+    if (!byCat.has(cat)) byCat.set(cat, []);
+    byCat.get(cat).push(d);
+  }
+  if (!shown.length) {
+    $('#devList').innerHTML = `<p class="empty">Nothing matches ${escapeHtml(q)}.</p>`;
+    return;
   }
   $('#devList').innerHTML = [...byCat].map(([cat, list]) => `
-    <div class="devgroup">${escapeHtml(cat ?? 'other')}</div>
+    <div class="devgroup">${escapeHtml(cat)}</div>
     ${list.map((d) => `
       <button class="devrow${devEditing?.id === d.id ? ' is-on' : ''}" data-device="${escapeHtml(d.id)}">
         <span class="devname">${escapeHtml(d.name)}</span>
-        <span class="devmeta">${d.pins} pin${d.pins === 1 ? '' : 's'}${
-  d.builtIn ? '' : ' · yours'}${d.unverifiedPins?.length ? ' · ?' : ''}</span>
+        <span class="devmeta"><span class="devpins">${d.pins}</span> pin${d.pins === 1 ? '' : 's'}${
+  d.builtIn ? '' : ' · <b>yours</b>'}${
+  d.unverifiedPins?.length ? ' · <span class="devwarn">unverified</span>' : ''}</span>
       </button>`).join('')}`).join('');
-  return devCatalogue;
 }
 
 async function chooseDevice(id) {
@@ -789,6 +807,8 @@ async function chooseDevice(id) {
   if (!ok) return say(body?.error ?? 'could not read that component');
   devEditing = body.device;
   devIsNew = false;
+  // A pin lit on the last component means nothing on this one.
+  devLitPin = null;
   paintDeviceEditor(body.builtIn);
   await refreshDevices();
 }
@@ -827,76 +847,197 @@ function paintDeviceEditor(builtIn) {
   });
   const unsure = new Set(d.unverifiedPins ?? []);
 
-  const bases = partList().filter((p) => p.kind === 'component').map((p) => p.id);
-  const field = (name, label, value, type = 'text') => `
-    <label class="devfield"><span>${label}</span>
-      <input data-field="${name}" type="${type}" value="${escapeHtml(value ?? '')}"></label>`;
+  // THE LABELS ARE THE LIBRARY'S, NOT MINE. It hands over spanLabel "pins per
+  // side" for a DIL, "ways" for a connector and "lead pitch in holes" for an
+  // axial part, and widthLabel "body width in holes (3 = 0.3 in)". The first
+  // version of this screen wrote "Span" and "Width" over the top of all of it.
+  let basePart = null;
+  try { basePart = getPart(d.base); } catch { /* an unknown base is reported on save */ }
+  const bases = partList().filter((p) => p.kind === 'component');
+
+  const field = (name, label, value, type = 'text', hint = '') => `
+    <label class="devfield"><span class="devlabel">${escapeHtml(label)}</span>
+      <input data-field="${name}" type="${type}" value="${escapeHtml(value ?? '')}"
+        ${type === 'number' ? 'min="1" step="1"' : ''}>
+      ${hint ? `<span class="devhint">${escapeHtml(hint)}</span>` : ''}</label>`;
+
+  // WHERE THE PACKAGE TURNS. A DIL runs down one side and back up the other, so
+  // the table is split there with the turn named. Eight across put pin 8 and
+  // pin 9 — opposite ends of the chip — side by side, which is the opposite of
+  // what the numbering means.
+  const perSide = basePart?.parametric === 'span' && d.width != null && want > 2
+    ? Math.ceil(want / 2)
+    : want;
+  const sideRows = (from, to, label) => `
+    <div class="devside" data-pin-side="${escapeHtml(label)}">
+      <div class="devsidelabel">${escapeHtml(label)}</div>
+      ${pins.slice(from, to).map((p, i) => {
+    const n0 = from + i;
+    return `
+        <label class="devpin"${unsure.has(p) ? ' data-unverified="true"' : ''}
+          data-pin-row="${n0 + 1}">
+          <span class="devpinno${n0 === 0 ? ' is-first' : ''}">${n0 + 1}</span>
+          <input data-pin-index="${n0}" value="${escapeHtml(p)}" spellcheck="false">
+          ${unsure.has(p) ? '<span class="devwarn" title="not verified against the part">unverified</span>' : ''}
+        </label>`;
+  }).join('')}
+    </div>`;
 
   el.innerHTML = `
-    <div class="devfields">
-      ${devIsNew ? field('id', 'Id', d.id) : `<label class="devfield"><span>Id</span>
-        <input data-field="id" value="${escapeHtml(d.id)}" disabled></label>`}
-      ${field('name', 'Name', d.name)}
-      <label class="devfield"><span>Footprint</span>
-        <select data-field="base">${bases.map((b) => `<option value="${b}"${
-  b === d.base ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('')}</select></label>
-      ${field('span', 'Span', d.span, 'number')}
-      ${field('width', 'Width', d.width, 'number')}
-      ${field('refPrefix', 'Ref prefix', d.refPrefix)}
-      <label class="devfield"><span>Silk</span>
-        <input data-field="silk" type="color" value="${escapeHtml(d.silk ?? '#2f9e44')}"></label>
-      ${field('pinSource', 'Where the names came from', d.pinSource)}
-    </div>
-    <div class="devpins">
-      <div class="devgroup">Pins — ${want} on this footprint</div>
-      ${pins.map((p, i) => `
-        <label class="devpin"${unsure.has(p) ? ' data-unverified="true"' : ''}>
-          <span class="devpinno">${i + 1}</span>
-          <input data-pin-index="${i}" value="${escapeHtml(p)}">
-          ${unsure.has(p) ? '<span class="devwarn" title="not verified against the part">?</span>' : ''}
-        </label>`).join('')}
-    </div>`;
+    <section class="devpinning">
+      <h4 class="devsection">Pins</h4>
+      <div class="devsides">
+        ${perSide < want
+    ? sideRows(0, perSide, 'Pin 1 side') + sideRows(perSide, want, 'The far side')
+    : sideRows(0, want, `All ${want}`)}
+      </div>
+    </section>
+
+    <section class="devpackage">
+      <h4 class="devsection">Package</h4>
+      <div class="devfields">
+        ${devIsNew
+    ? field('id', 'Id', d.id, 'text', 'lower case, no spaces')
+    : ''}
+        ${field('name', 'Name', d.name)}
+        <label class="devfield"><span class="devlabel">Footprint</span>
+          <select data-field="base">${bases.map((b) => `<option value="${escapeHtml(b.id)}"${
+  b.id === d.base ? ' selected' : ''}>${escapeHtml(b.name)}</option>`).join('')}</select>
+          <span class="devhint">the shape it solders into</span></label>
+        ${basePart?.parametric === 'span'
+    ? field('span', capitalise(basePart.spanLabel ?? 'span'), d.span, 'number')
+    : ''}
+        ${basePart?.defaultWidth != null
+    ? field('width', capitalise(basePart.widthLabel ?? 'width'), d.width, 'number')
+    : ''}
+        ${field('refPrefix', 'Reference letter', d.refPrefix, 'text', 'U1, R1, J1 …')}
+        <label class="devfield"><span class="devlabel">Silkscreen</span>
+          <span class="devcolour"><input data-field="silk" type="color"
+            value="${escapeHtml(d.silk ?? '#2f9e44')}"></span></label>
+        <label class="devfield devwide"><span class="devlabel">Where the pin names came from</span>
+          <input data-field="pinSource" value="${escapeHtml(d.pinSource ?? '')}"
+            placeholder="a datasheet, the silkscreen, a board file …">
+          <span class="devhint">a name nobody can check is a name nobody should trust</span></label>
+      </div>
+    </section>`;
+
+  // The header carries the identity: the name big, and the id, footprint and pin
+  // count as one spec line. The id used to be a disabled text input, which looks
+  // like a field you may edit and is not.
+  $('#devName').textContent = d.name || (devIsNew ? 'New component' : d.id);
+  $('#devSpec').innerHTML = [
+    `<span class="mono">${escapeHtml(d.id || '—')}</span>`,
+    escapeHtml(basePart?.name ?? d.base ?? ''),
+    `${want} pin${want === 1 ? '' : 's'}`,
+    builtIn === false ? '<b>yours</b>' : 'stock',
+    unsure.size ? `<span class="devwarn">${unsure.size} unverified</span>` : '',
+  ].filter(Boolean).join(' · ');
 
   $('#devRevert').hidden = builtIn !== false;
   $('#devStatus').textContent = '';
   paintDevicePreview();
 }
 
-// The footprint on a scrap of board, drawn by the same renderer the board uses.
-// A preview from a second drawing path would be a second thing to keep in step.
+const capitalise = (s) => String(s ?? '').charAt(0).toUpperCase() + String(s ?? '').slice(1);
+
+// THE DRAWING, AS THE COMPONENT ACTUALLY SITS ON A BOARD.
+//
+// Drawn by the same renderer the board uses, because a preview from a second
+// drawing path would be a second thing to keep in step.
+//
+// ROTATED, WHICH IS THE WHOLE POINT. Every device used to be previewed at rot 0,
+// so a DIP's pins ran ALONG the strips and every pin shorted to its neighbour.
+// Peter: "the DIP is mis-orientated ... with the strips being inline with the
+// pins instead of across them." A multi-pin package goes across the strips or it
+// does not work, so that is how it is shown — with the cuts the package itself
+// declares, which is what makes this a stripboard footprint rather than a
+// generic one.
 function paintDevicePreview() {
-  const el = $('#devPreview');
+  const el = $('#devDrawing');
   if (!el || !devEditing) return;
   const d = devEditing;
-  // ROOM FOR THE WHOLE FOOTPRINT. A DIL's second pin row is at dy = -width, so
-  // a chip placed near the top has half of itself above the board — which the
-  // drawing extent now faithfully draws, hanging in space. Sit it below its own
-  // width instead.
+  const span = d.span ?? 4;
   const width = d.width ?? 3;
-  const cols = Math.max(10, (d.span ?? 4) + 6);
-  const rows = Math.max(10, width + 8);
+
+  // At rot 90 the pins run down the board, so the board needs room for the span
+  // vertically and the width across, with a margin of strips either side.
+  const cols = Math.max(9, width + 6);
+  const rows = Math.max(9, span + 6);
   const pl = {
     ref: `${d.refPrefix ?? 'U'}1`,
     part: d.base,
-    at: { col: 3, row: width + 3 },
-    rot: 0,
+    at: { col: 3, row: 3 },
+    rot: 90,
   };
   if (d.span != null) pl.span = d.span;
   if (d.width != null) pl.width = d.width;
   if (d.silk) pl.silk = d.silk;
   if (d.pins?.length) pl.pinNames = [...d.pins];
   if (d.unverifiedPins?.length) pl.unverifiedPins = [...d.unverifiedPins];
-  // BUILT, NOT MUTATED. It is a scratch project that never leaves this function,
-  // and pushing into it would still have been the editor changing a project in
-  // place — which nothing here does, and which a check correctly caught.
+  // Built, not mutated: a scratch project that never leaves this function, and
+  // nothing in this editor changes a project in place.
   const p = { ...makeProject({ cols, rows, name: 'preview' }), placements: [pl] };
   try {
     el.innerHTML = renderBoard(p, {
       theme: state.theme,
-      layers: { ...DEFAULT_LAYERS, pinNames: true, netNames: false, drc: false },
+      layers: { ...DEFAULT_LAYERS, pinNames: false, netNames: false, drc: false, labels: false },
     });
   } catch (e) {
     el.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+    return;
+  }
+  numberThePads();
+}
+
+// EVERY PAD CARRIES ITS NUMBER, laid over the drawing rather than drawn into it.
+//
+// A datasheet numbers the pins on the package outline; that is how you check a
+// part against the thing in your hand. The renderer's job is the board, so the
+// numbers are an overlay positioned from the pads it already marks — no second
+// geometry, and the renderer keeps its one job.
+//
+// PIN 1 IS FILLED, not merely square. Peter: "in the image pin 1 is not shown."
+// The renderer does draw it square, and at preview size that is invisible.
+function numberThePads() {
+  const host = $('#devDrawing');
+  const svg = host?.querySelector('svg');
+  if (!svg) return;
+  const pads = [...svg.querySelectorAll('[data-kind="pad"]')];
+  if (!pads.length) return;
+
+  const box = svg.getBoundingClientRect();
+  const layer = document.createElement('div');
+  layer.className = 'devbadges';
+  for (const [i, pad] of pads.entries()) {
+    const r = pad.getBoundingClientRect();
+    const b = document.createElement('button');
+    b.className = 'devbadge';
+    b.type = 'button';
+    b.dataset.pinBadge = String(i + 1);
+    if (i === 0) b.dataset.first = 'true';
+    b.textContent = String(i + 1);
+    b.title = `Pin ${i + 1}${devEditing?.pins?.[i] ? ` — ${devEditing.pins[i]}` : ''}`;
+    b.style.left = `${((r.left + r.width / 2) - box.left) / box.width * 100}%`;
+    b.style.top = `${((r.top + r.height / 2) - box.top) / box.height * 100}%`;
+    layer.appendChild(b);
+  }
+  host.appendChild(layer);
+  if (devLitPin) lightPin(devLitPin);
+}
+
+// The drawing and the table are ONE INSTRUMENT. Peter: "I cannot select a pin
+// and the related field is highlighted." Either direction, because somebody
+// holding the part starts at the drawing and somebody checking a netlist starts
+// at the table.
+let devLitPin = null;
+
+function lightPin(n) {
+  devLitPin = n;
+  for (const b of document.querySelectorAll('#devDrawing [data-pin-badge]')) {
+    b.dataset.lit = String(Number(b.dataset.pinBadge) === n);
+  }
+  for (const row of document.querySelectorAll('#devEdit [data-pin-row]')) {
+    row.dataset.lit = String(Number(row.dataset.pinRow) === n);
   }
 }
 
@@ -2143,6 +2284,21 @@ function boot() {
     const row = e.target.closest('[data-device]');
     if (row) chooseDevice(row.dataset.device);
   });
+  $('#devSearch').addEventListener('input', paintDeviceList);
+
+  // FROM THE TABLE TO THE DRAWING: focus a pin name and its pad lights.
+  $('#devEdit').addEventListener('focusin', (e) => {
+    const row = e.target.closest('[data-pin-row]');
+    if (row) lightPin(Number(row.dataset.pinRow));
+  });
+  // AND FROM THE DRAWING TO THE TABLE: click a pad and its name takes focus.
+  $('#devDrawing').addEventListener('click', (e) => {
+    const badge = e.target.closest('[data-pin-badge]');
+    if (!badge) return;
+    const n = Number(badge.dataset.pinBadge);
+    lightPin(n);
+    $(`#devEdit [data-pin-index="${n - 1}"]`)?.focus();
+  });
   // The preview follows what is typed, so a wrong span or footprint shows
   // itself before it is saved rather than after.
   $('#devEdit').addEventListener('input', () => {
@@ -2154,7 +2310,7 @@ function boot() {
     // A different footprint has a different number of pins, so the name list
     // has to be rebuilt rather than left the wrong length.
     if (e.target.dataset.field === 'base' || e.target.dataset.field === 'span'
-      || e.target.dataset.field === 'width') paintDeviceEditor($('#devRevert').hidden);
+      || e.target.dataset.field === 'width') paintDeviceEditor(!$('#devRevert').hidden ? false : null);
     else paintDevicePreview();
   });
 
