@@ -3162,7 +3162,13 @@
     failures: 1
     at: '2026-08-31T19:01:59.843'
     commit: d3578ea-dirty
-  fix: null
+  fix:
+    file: .proofs/the-component-preview-shows-an-unbuildable-placement.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T19:10:10.908'
+    commit: b3120cb-dirty
 - id: the-component-editor-is-a-dumped-form
   type: bug
   what: 'Every field on one grid with invented labels, no hierarchy and no link to the drawing. Peter,
@@ -3192,4 +3198,10 @@
     failures: 1
     at: '2026-08-31T19:02:38.544'
     commit: d3578ea-dirty
-  fix: null
+  fix:
+    file: .proofs/the-component-editor-is-a-dumped-form.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T19:10:41.970'
+    commit: b3120cb-dirty
