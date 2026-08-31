@@ -324,6 +324,210 @@ s.check('AND NAMES THEM, WHICH IS THE OTHER HALF OF WHAT HE ASKED FOR', async ()
   eq(r.sides, 16, 'and each placed on a side of the package');
 });
 
+s.check('THE NUMBER AND THE NAME SIT INSIDE THE SILKSCREEN', async () => {
+  // Peter, correcting me twice: "inside the component silk screen not outside
+  // it", and then the layout itself —
+  //
+  //     | pin number name            name number pin |
+  //
+  // The bars are the package outline. From each pad you read INWARD: the number
+  // first, then the name, both inside the body. That is how an IC datasheet
+  // prints them, and it is what "justified towards the centre" meant.
+  needBrowser();
+  const r = await onScreen(async (page) => {
+    await page.locator('#devList [data-device="tmc2209"]').click();
+    await page.waitForTimeout(500);
+    return page.evaluate(() => {
+      const box = (el) => {
+        const b = el.getBoundingClientRect();
+        return { left: b.left, right: b.right, mid: (b.left + b.right) / 2 };
+      };
+      const body = box(document.querySelector('#devPreview [data-kind="part-body"]'));
+      const pad = (n) => box([...document.querySelectorAll('#devPreview [data-kind="pad"]')][n - 1]);
+      const at = (sel) => box(document.querySelector(sel));
+      return {
+        body,
+        pad1: pad(1),
+        pad16: pad(16),
+        no1: at('[data-pin-badge="1"]'),
+        name1: at('[data-pin-name="1"]'),
+        no16: at('[data-pin-badge="16"]'),
+        name16: at('[data-pin-name="16"]'),
+      };
+    });
+  });
+  // INSIDE the outline, not beyond it.
+  ok(r.no1.left >= r.body.left - 1 && r.name1.right <= r.body.right + 1,
+    `pin 1's callout is within the body: ${r.no1.left} .. ${r.name1.right} in ${r.body.left}..${r.body.right}`);
+  ok(r.no16.right <= r.body.right + 1 && r.name16.left >= r.body.left - 1,
+    `and so is pin 16's: ${r.name16.left} .. ${r.no16.right}`);
+
+  // Reading inward from each pad: number, then name.
+  ok(r.pad1.mid < r.no1.mid && r.no1.mid < r.name1.mid,
+    `left side reads pad, number, name: ${r.pad1.mid} < ${r.no1.mid} < ${r.name1.mid}`);
+  ok(r.pad16.mid > r.no16.mid && r.no16.mid > r.name16.mid,
+    `right side reads name, number, pad: ${r.name16.mid} < ${r.no16.mid} < ${r.pad16.mid}`);
+});
+
+s.check('THE PACKAGE SITS CENTRED ON ITS SCRAP OF BOARD', async () => {
+  // The board size was guessed from span and width, so a DIP ended up two
+  // strips from the left edge and hard against the right, and a single-row JST
+  // sat in the left third with three dead columns beside it. Derive the size
+  // from where the pins actually land and the margin is one hole all round by
+  // construction.
+  needBrowser();
+  const { bad } = await onScreen(async (page) => {
+    const out = [];
+    for (const id of ['tmc2209', 'xiao', 'jst-xh-3-right', 'jst-xh-8-straight']) {
+      if (!await page.locator(`#devList [data-device="${id}"]`).count()) continue;
+      await page.locator(`#devList [data-device="${id}"]`).click();
+      await page.waitForTimeout(400);
+      const m = await page.evaluate(() => {
+        const b = (e) => e.getBoundingClientRect();
+        const sub = b(document.querySelector('#devPreview [data-kind="substrate"]'));
+        const pads = [...document.querySelectorAll('#devPreview [data-kind="pad"]')].map(b);
+        const hole = sub.width / Math.max(1, Math.round(sub.width / (pads[0].width * 1.5)));
+        return {
+          l: Math.min(...pads.map((p) => p.left)) - sub.left,
+          r: sub.right - Math.max(...pads.map((p) => p.right)),
+          t: Math.min(...pads.map((p) => p.top)) - sub.top,
+          b: sub.bottom - Math.max(...pads.map((p) => p.bottom)),
+          hole,
+        };
+      });
+      // Equal to within a third of a hole — this is centring, not a rounding rule.
+      const tol = m.hole / 3;
+      if (Math.abs(m.l - m.r) > tol) out.push(`${id}: left ${m.l.toFixed(0)} vs right ${m.r.toFixed(0)}`);
+      if (Math.abs(m.t - m.b) > tol) out.push(`${id}: top ${m.t.toFixed(0)} vs bottom ${m.b.toFixed(0)}`);
+    }
+    return { bad: out };
+  });
+  ok(bad.length === 0, `the package is centred — ${bad.join('; ') || 'all centred'}`);
+});
+
+s.check('A NAME THAT IS ONLY THE PIN NUMBER IS NOT PRINTED TWICE', async () => {
+  // A JST's pin names ARE 1, 2, 3, 4 — the connector has no function of its own
+  // — so the callout read "1 1", the badge and then the same digit again.
+  needBrowser();
+  const r = await onScreen(async (page) => {
+    await page.locator('#devList [data-device="jst-xh-4-right"]').click();
+    await page.waitForTimeout(400);
+    return page.evaluate(() => ({
+      doubled: [...document.querySelectorAll('.devcallout')]
+        .map((c) => [c.querySelector('.devbadge')?.textContent.trim(),
+          c.querySelector('.devpinname')?.textContent.trim()])
+        .filter(([n, name]) => name && name === n)
+        .map(([n]) => n),
+      painted: [...document.querySelectorAll('.devpinname')]
+        .filter((e) => !e.textContent.trim() && e.getBoundingClientRect().width > 0).length,
+    }));
+  });
+  ok(r.doubled.length === 0, `no callout repeats its own number: ${r.doubled.join(',') || 'none'}`);
+  // And the field it would have been printed on goes with it — an empty chip is
+  // a blank label painted on the silk, which reads as a leader line to nothing.
+  ok(r.painted === 0, `and no empty name chip is painted: ${r.painted}`);
+});
+
+s.check('A PIN NAME READS AGAINST THE SILKSCREEN IT IS PRINTED ON', async () => {
+  // The names sit on the package's own silk, with copper and holes showing
+  // through behind them, and they were set in ink-dim — which on the green wash
+  // is the pale smear in the screenshot. Contrast is measurable, so measure it
+  // rather than calling it a matter of taste: WCAG AA for body text is 4.5:1.
+  needBrowser();
+  const r = await onScreen(async (page) => {
+    await page.locator('#devList [data-device="tmc2209"]').click();
+    await page.waitForTimeout(500);
+    return page.evaluate(() => {
+      const rgb = (s) => s.match(/[\d.]+/g).slice(0, 3).map(Number);
+      const lum = ([r, g, b]) => {
+        const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+      };
+      const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+      const el = document.querySelector('.devpinname');
+      const silkEl = document.querySelector('#devPreview [data-kind="part-body"]');
+      const fill = silkEl.getAttribute('fill') ?? getComputedStyle(silkEl).fill;
+      const silk = fill.startsWith('#') ? hex(fill) : rgb(fill);
+      // If the name carries its own opaque chip, that is what it is read against.
+      const bgc = getComputedStyle(el).backgroundColor;
+      const opaque = bgc && !/rgba\(0, 0, 0, 0\)|transparent/.test(bgc);
+      const back = opaque ? rgb(bgc) : silk;
+      const a = lum(rgb(getComputedStyle(el).color));
+      const b = lum(back);
+      return { ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) };
+    });
+  });
+  ok(r.ratio >= 4.5, `a pin name reads against what is behind it: ${r.ratio.toFixed(2)}:1`);
+});
+
+s.check('EVERY PAD OF EVERY DEVICE LANDS ON THE BOARD', async () => {
+  // The preview is the one picture on this page a person is meant to trust, so a
+  // pad drawn beyond the substrate is the same class of lie as a DIP previewed
+  // along the strips: it shows a placement that cannot be built.
+  //
+  // A dual-row package's pin columns are `width` holes apart, so they need
+  // width + 1 columns of board before any margin at all — and the preview asked
+  // for width + 2, which is one short of that plus a margin either side.
+  needBrowser();
+  // onScreen spreads what the body returns into an object, so hand it a named
+  // field rather than a bare array.
+  const { bad } = await onScreen(async (page) => {
+    const out = [];
+    for (const id of ['tmc2209', 'xiao', 'jst-xh-3-right', 'jst-xh-8-straight']) {
+      if (!await page.locator(`#devList [data-device="${id}"]`).count()) continue;
+      await page.locator(`#devList [data-device="${id}"]`).click();
+      await page.waitForTimeout(400);
+      const off = await page.evaluate(() => {
+        const b = (e) => e.getBoundingClientRect();
+        const sub = b(document.querySelector('#devPreview [data-kind="substrate"]'));
+        return [...document.querySelectorAll('#devPreview [data-kind="pad"]')]
+          .map((p, i) => [i + 1, b(p)])
+          .filter(([, r]) => r.left < sub.left - 1 || r.right > sub.right + 1
+            || r.top < sub.top - 1 || r.bottom > sub.bottom + 1)
+          .map(([n]) => n);
+      });
+      if (off.length) out.push(`${id}: pins ${off.join(',')}`);
+    }
+    return { bad: out };
+  });
+  ok(bad.length === 0, `no pad hangs off the board — ${bad.join('; ') || 'all on'}`);
+});
+
+s.check('THE DRAWING FILLS ITS PANE AND THE CALLOUTS ARE LEGIBLE', async () => {
+  // Peter, looking at the screenshot: "font too small and poor alignment."
+  //
+  // Both come from one cause. The preview board carried a six-hole margin and
+  // the SVG did not fill its pane, so most of the linear scale went on empty
+  // stripboard: the package came out 5 holes wide inside a 310px drawing, which
+  // leaves a 7px name and two columns that touch in the middle.
+  needBrowser();
+  const r = await onScreen(async (page) => {
+    await page.locator('#devList [data-device="tmc2209"]').click();
+    await page.waitForTimeout(500);
+    return page.evaluate(() => {
+      const b = (el) => el.getBoundingClientRect();
+      const pane = b(document.querySelector('#devDrawing'));
+      const body = b(document.querySelector('#devPreview [data-kind="part-body"]'));
+      const name = document.querySelector('[data-pin-name="1"]');
+      const lefts = [...document.querySelectorAll('.devcallout[data-side="left"]')].map(b);
+      const rights = [...document.querySelectorAll('.devcallout[data-side="right"]')].map(b);
+      return {
+        pane: { w: pane.width, h: pane.height },
+        body: { w: body.width, h: body.height },
+        font: parseFloat(getComputedStyle(name).fontSize),
+        gap: Math.min(...rights.map((rr) => rr.left)) - Math.max(...lefts.map((l) => l.right)),
+      };
+    });
+  });
+  // The PACKAGE is the subject, not the scrap of board it is sitting on — and
+  // the package's width is what decides whether two columns of names fit inside
+  // it. That is the number to hold, not the substrate's.
+  const used = r.body.w / r.pane.w;
+  ok(used >= 0.55, `the package fills its pane: ${(used * 100).toFixed(0)}% of ${r.pane.w.toFixed(0)}px wide`);
+  ok(r.font >= 12, `a pin name is readable: ${r.font}px`);
+  ok(r.gap > 6, `the two callout columns do not touch: ${r.gap.toFixed(1)}px between them`);
+});
+
 const okAll = await s.run();
 if (browser) await browser.close();
 if (server) { mod?.closeLive?.(); server.close(); }

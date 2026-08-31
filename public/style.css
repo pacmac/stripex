@@ -691,10 +691,14 @@ button.primary {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Room either side for the pin callouts, which live outside the board. */
-  padding: 12px 74px 18px;
+  /* The callouts live INSIDE the package now, so the drawing wants the room
+     instead — a bigger board is a more legible one. */
+  padding: 10px 16px 16px;
 }
-.devdrawing svg { max-height: 100%; max-width: 100%; }
+/* Fill the pane rather than merely fit inside it — max-* can only shrink, so
+   the drawing sat at its intrinsic size with a third of the pane unused. The
+   viewBox letterboxes it, so this scales without distorting. */
+.devdrawing svg { width: 100%; height: 100%; display: block; align-self: stretch; }
 
 /* THE NUMBERS, laid over the pads the renderer drew. A datasheet numbers the
    pins on the outline; that is how you check a part against the one in your
@@ -702,16 +706,14 @@ button.primary {
    square pad is invisible — which is what Peter saw. */
 .devbadges { position: absolute; pointer-events: none; }
 .devbadge {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  min-width: 15px;
-  height: 15px;
-  padding: 0 3px;
-  border-radius: 8px;
+  min-width: 21px;
+  height: 19px;
+  padding: 0 4px;
+  border-radius: 10px;
   border: 1px solid var(--ink-dim);
   background: var(--panel);
   color: var(--ink-dim);
-  font: 600 9.5px/1 var(--mono);
+  font: 600 12px/1 var(--mono);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -727,18 +729,44 @@ button.primary {
    margin and leads them to the pin; the renderer's own layer put them beside
    the pads and inward, which ran two columns together into one smear. Out here
    each name has the whole margin. */
-.devpinname {
+/* The callout row: two cells against the board's edge, ordered so the number is
+   always the one touching it. */
+.devcallout {
   position: absolute;
   transform: translateY(-50%);
-  font: 500 10px/1 var(--mono);
-  color: var(--ink-dim);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  pointer-events: none;
+}
+.devcallout[data-side="left"] { margin-left: 11px; }
+.devcallout[data-side="right"] { margin-right: 11px; flex-direction: row; }
+.devcallout[data-side="right"] .devpinname { text-align: right; }
+.devcallout .devbadge { position: static; transform: none; pointer-events: auto; }
+.devcallout[data-lit="true"] { z-index: 2; }
+
+/* A NAME PRINTED ON ITS OWN FIELD, not straight onto the silk.
+ *
+ * It was ink-dim over the green wash with copper and holes showing through
+ * behind it — 1.67:1, which is the pale smear in the screenshot. A datasheet
+ * gets away with printing the name on the package because the package is opaque
+ * ink on plastic; ours is a translucent silk layer over a stripboard, so the
+ * name needs a field of its own or it is read against whatever happens to be
+ * underneath that particular pin. */
+.devpinname {
+  min-width: 4.5ch;
+  font: 600 12.5px/1 var(--mono);
+  color: var(--ink);
+  background: var(--panel);
   white-space: nowrap;
   pointer-events: none;
-  padding: 1px 3px;
+  padding: 3px 4px;
   border-radius: 3px;
 }
-.devpinname[data-side="left"] { margin-right: 10px; text-align: right; }
-.devpinname[data-side="right"] { margin-left: 10px; }
+/* A connector whose names are just its numbers prints no name at all, and the
+   field goes with it — an empty chip is a leader line to nothing. */
+.devpinname:empty { display: none; }
+
 .devpinname[data-lit="true"] {
   color: var(--accent-ink);
   background: var(--accent);
@@ -749,8 +777,6 @@ button.primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);
-  transform: translate(-50%, -50%) scale(1.35);
-  z-index: 2;
 }
 
 /* ------------------------------------------------------------- the table */

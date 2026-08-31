@@ -6,6 +6,7 @@
 // rather than recomputing layout — one description of where things are.
 
 import { renderBoard, DEFAULT_LAYERS } from '/src/render/svg.js';
+import { PITCH_MM } from '/src/model/geometry.js';
 import { findingsFor, netsFor, runList } from '/src/model/views.js';
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
 import { rotatePlacement, resolvePins } from '/src/model/rotate.js';
@@ -959,14 +960,25 @@ function paintDevicePreview() {
   const span = d.span ?? 4;
   const width = d.width ?? 3;
 
-  // At rot 90 the pins run down the board, so the board needs room for the span
-  // vertically and the width across, with a margin of strips either side.
-  const cols = Math.max(9, width + 6);
-  const rows = Math.max(9, span + 6);
+  // THE BOARD IS DERIVED FROM WHERE THE PINS LAND, not guessed from span and
+  // width.
+  //
+  // Guessing got it wrong twice in one sitting. `width + 2` put the whole far
+  // side of every DIP off the substrate, because a dual-row package's two pin
+  // columns are `width` holes APART and so need width + 1 columns before any
+  // margin. `width + 3` fixed that and left the package two strips from one
+  // edge and hard against the other, and a single-row JST in the left third
+  // with three dead columns beside it — dead board is scale not spent on the
+  // part, which is what put the names at 7px in the first place.
+  //
+  // resolvePins already knows the answer: it is the same function the renderer
+  // and the DRC use to say where a placement's pins are. Ask it, then wrap the
+  // result in one strip of margin. That is right for a DIP, a single-row
+  // connector and anything added later, without this function knowing which.
   const pl = {
     ref: `${d.refPrefix ?? 'U'}1`,
     part: d.base,
-    at: { col: 3, row: 3 },
+    at: { col: 1, row: 1 },
     rot: 90,
   };
   if (d.span != null) pl.span = d.span;
@@ -974,6 +986,16 @@ function paintDevicePreview() {
   if (d.silk) pl.silk = d.silk;
   if (d.pins?.length) pl.pinNames = [...d.pins];
   if (d.unverifiedPins?.length) pl.unverifiedPins = [...d.unverifiedPins];
+
+  const at1 = resolvePins([pl], getPart);
+  const cs = at1.map((p) => p.col);
+  const rs = at1.map((p) => p.row);
+  // Shift so the top-left pin lands one strip in from the corner, then make the
+  // board that block plus the same strip on the far side.
+  pl.at = { col: 1 + (1 - Math.min(...cs)), row: 1 + (1 - Math.min(...rs)) };
+  const cols = Math.max(...cs) - Math.min(...cs) + 3;
+  const rows = Math.max(...rs) - Math.min(...rs) + 3;
+
   // Built, not mutated: a scratch project that never leaves this function, and
   // nothing in this editor changes a project in place.
   const p = { ...makeProject({ cols, rows, name: 'preview' }), placements: [pl] };
@@ -986,7 +1008,30 @@ function paintDevicePreview() {
     el.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
     return;
   }
+  cropToWhatIsDrawn(el.querySelector('svg'));
   numberThePads();
+}
+
+// CROP THE PREVIEW TO WHAT IS ACTUALLY ON IT.
+//
+// renderBoard reserves 3.2 holes either side for a net name that has been pushed
+// off the edge, and keeps the reserve permanently so a board does not resize
+// under the pointer when somebody types a name. That is right for the board and
+// wrong here: this preview turns the net-name layer off, so nothing can ever be
+// drawn there, and the reserve was eating 46% of the drawing's width — which is
+// the whole of why the pin names came out at 7px.
+//
+// Cropping is done here rather than in the renderer on purpose. Tying the gutter
+// to the layer would make the real board reflow the moment net names are hidden,
+// which is the exact jump that comment exists to prevent.
+function cropToWhatIsDrawn(svg) {
+  if (!svg?.getBBox) return;
+  let box;
+  try { box = svg.getBBox(); } catch { return; }   // not laid out yet
+  if (!(box.width > 0 && box.height > 0)) return;
+  const pad = PITCH_MM * 0.35;                      // enough that the edge is not flush
+  svg.setAttribute('viewBox',
+    `${box.x - pad} ${box.y - pad} ${box.width + pad * 2} ${box.height + pad * 2}`);
 }
 
 // EVERY PAD CARRIES ITS NUMBER, laid over the drawing rather than drawn into it.
@@ -1029,37 +1074,56 @@ function numberThePads() {
 
   for (const [i, pad] of pads.entries()) {
     const c = centres[i];
-    const left = `${(c.x - box.left) / box.width * 100}%`;
     const top = `${(c.y - box.top) / box.height * 100}%`;
-
-    const b = document.createElement('button');
-    b.className = 'devbadge';
-    b.type = 'button';
-    b.dataset.pinBadge = String(i + 1);
-    if (i === 0) b.dataset.first = 'true';
-    b.textContent = String(i + 1);
-    b.title = `Pin ${i + 1}${devEditing?.pins?.[i] ? ` — ${devEditing.pins[i]}` : ''}`;
-    b.style.left = left;
-    b.style.top = top;
-    layer.appendChild(b);
-
-    const name = devEditing?.pins?.[i];
-    if (!name) continue;
-    // IN THE MARGIN, NOT ON THE BOARD. A datasheet puts its callouts outside the
-    // package outline and leads them in; placed beside the pad, a name lies over
-    // the copper and the holes and becomes the same unreadable smear it was
-    // before, just further out. Anchored to the DRAWING's edge they also line up
-    // into two columns, which is how a pin callout list is meant to read.
+    // A single-column part has no two sides, so everything goes right.
     const side = centres.length > 2 && c.x < midX - 1 ? 'left' : 'right';
-    const t = document.createElement('span');
-    t.className = 'devpinname';
-    t.dataset.pinName = String(i + 1);
-    t.dataset.side = side;
-    t.textContent = name;
-    if (side === 'left') t.style.right = '100%';
-    else t.style.left = '100%';
-    t.style.top = top;
-    layer.appendChild(t);
+
+    // ONE CALLOUT PER PIN, IN THE MARGIN, JUSTIFIED TOWARD THE BOARD.
+    //
+    // Peter: "the pin number or name should be shown right and left justified
+    // towards the centre instead on over the pin. closest to the pin will be the
+    // pin number, the next col will be pin name."
+    //
+    // So nothing sits over the pad. The row is flush against the drawing's edge
+    // and its two cells are ordered by which side it is on: number innermost,
+    // name outboard of it. A flex row does the justification, so neither column
+    // has to know how wide "16" is against "1".
+    // INSIDE THE OUTLINE, reading inward from the pad. Anchored to the pad's own
+    // edge rather than the drawing's, so the two cells grow toward the middle of
+    // the package and the number is always the one touching the pad.
+    const padPct = (c.x - box.left) / box.width * 100;
+    const row = document.createElement('div');
+    row.className = 'devcallout';
+    row.dataset.side = side;
+    row.style.top = top;
+    if (side === 'left') row.style.left = `${padPct}%`;
+    else row.style.right = `${100 - padPct}%`;
+
+    const num = document.createElement('button');
+    num.className = 'devbadge';
+    num.type = 'button';
+    num.dataset.pinBadge = String(i + 1);
+    if (i === 0) num.dataset.first = 'true';
+    num.textContent = String(i + 1);
+    num.title = `Pin ${i + 1}${devEditing?.pins?.[i] ? ` — ${devEditing.pins[i]}` : ''}`;
+
+    const name = document.createElement('span');
+    name.className = 'devpinname';
+    name.dataset.pinName = String(i + 1);
+    name.dataset.side = side;
+    // A JST's pin names ARE 1, 2, 3, 4 — "the connector's own numbering, a JST
+    // pin has no function of its own" — so printing the name beside the badge
+    // rendered every callout as "1 1". A name that only repeats the number
+    // carries nothing the badge has not already said.
+    const given = devEditing?.pins?.[i] ?? '';
+    name.textContent = given === String(i + 1) ? '' : given;
+
+    // Reading inward from the pad: number, then name. On the left that is the
+    // document order; on the right it is reversed, so the number still ends up
+    // against the pad. Peter's own diagram:
+    //     | pin number name            name number pin |
+    if (side === 'left') { row.append(num, name); } else { row.append(name, num); }
+    layer.appendChild(row);
   }
   host.appendChild(layer);
   if (devLitPin) lightPin(devLitPin);

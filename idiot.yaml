@@ -3230,4 +3230,240 @@
     failures: 1
     at: '2026-08-31T20:55:12.298'
     commit: 48da59e-dirty
-  fix: null
+  fix:
+    file: .proofs/the-drawing-numbers-its-pads-but-does-not-name-them.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T20:59:30.673'
+    commit: 5b8e08a-dirty
+- id: the-pin-number-sits-on-the-pad-instead-of-in-the-margin
+  type: bug
+  what: 'The number badge is drawn over the pad and only the name is in the margin. Peter: ''the pin number
+    or name should be shown right and left justified towards the centre instead on over the pin. closest
+    to the pin will be the pin number, the next col will be pin name.'' Both belong in the margin, in
+    two columns justified toward the board, with the number adjacent to its pad and the name outboard
+    of it.'
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: 'the number and the name sit INSIDE the silkscreen outline, reading inward from each pad:
+      number first, then name'
+    runs: 1
+  trial:
+    file: .proofs/the-pin-number-sits-on-the-pad-instead-of-in-the-margin.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:04:37.325'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/the-pin-number-sits-on-the-pad-instead-of-in-the-margin.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:09:32.210'
+    commit: 5b8e08a-dirty
+  voided:
+  - trial:
+      file: .proofs/the-pin-number-sits-on-the-pad-instead-of-in-the-margin.trial.txt
+      exit: 1
+      runs: 1
+      failures: 1
+      at: '2026-08-31T21:01:43.277'
+      commit: 5b8e08a-dirty
+    fix: null
+    why: 'Peter corrected the requirement twice: inside the silkscreen, not outside it, and the order
+      reads pin, number, name inward from each pad'
+    at: '2026-08-31T21:03:53.592'
+    was:
+      files:
+      - public/app.js
+      - public/style.css
+      spec: docs/specs/component-editor-rebuild.md
+- id: the-preview-spends-its-scale-on-empty-stripboard
+  type: bug
+  what: the component drawing is padded with a 6-hole margin and does not fill its pane, so the pin callouts
+    render at 7px and the two columns collide across the middle
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: the package body fills at least 55% of the drawing pane's width, pin names are at least
+      12px, and the two callout columns keep a gap
+    runs: 1
+  trial:
+    file: .proofs/the-preview-spends-its-scale-on-empty-stripboard.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:16:49.379'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/the-preview-spends-its-scale-on-empty-stripboard.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:17:31.501'
+    commit: 5b8e08a-dirty
+  voided:
+  - trial:
+      file: .proofs/the-preview-spends-its-scale-on-empty-stripboard.trial.txt
+      exit: 1
+      runs: 1
+      failures: 1
+      at: '2026-08-31T21:10:32.861'
+      commit: 5b8e08a-dirty
+    fix: null
+    why: 'the substrate is the wrong thing to measure: the package body legitimately overhangs the board,
+      and it is the package''s width that decides whether two columns of names fit'
+    at: '2026-08-31T21:16:07.378'
+    was:
+      files:
+      - public/app.js
+      - public/style.css
+      spec: docs/specs/component-editor-rebuild.md
+- id: the-preview-hangs-half-a-dual-row-package-off-the-board
+  type: bug
+  what: the preview board is one column too narrow, so every DIP and module has its whole far side of
+    pins sitting off the substrate
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: no pad of any previewed device is drawn outside the substrate
+    runs: 1
+  trial:
+    file: .proofs/the-preview-hangs-half-a-dual-row-package-off-the-board.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:21:20.277'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/the-preview-hangs-half-a-dual-row-package-off-the-board.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:22:04.294'
+    commit: 5b8e08a-dirty
+- id: pin-names-are-printed-in-dim-ink-over-the-silkscreen
+  type: bug
+  what: the pin names in the preview are drawn in ink-dim over green silk with copper and holes behind
+    them, which is too little contrast to read
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: a pin name's contrast against the silk it is printed on is at least WCAG AA 4.5:1
+    runs: 1
+  trial:
+    file: .proofs/pin-names-are-printed-in-dim-ink-over-the-silkscreen.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:23:38.465'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/pin-names-are-printed-in-dim-ink-over-the-silkscreen.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:24:38.334'
+    commit: 5b8e08a-dirty
+- id: the-preview-guesses-its-board-size-instead-of-deriving-it
+  type: bug
+  what: the preview board size is guessed from span and width, so the package sits off-centre with dead
+    strips on one side
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: every previewed package has equal board margin left/right and top/bottom
+    runs: 1
+  trial:
+    file: .proofs/the-preview-guesses-its-board-size-instead-of-deriving-it.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:26:59.752'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/the-preview-guesses-its-board-size-instead-of-deriving-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:30:05.483'
+    commit: 5b8e08a-dirty
+- id: a-jst-prints-its-pin-number-twice
+  type: bug
+  what: "a JST's pin names ARE its pin numbers, so the callout reads '1 1' \u2014 the name chip repeats\
+    \ the badge beside it"
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: no callout prints a name identical to the pin number already on its badge
+    runs: 1
+  trial:
+    file: .proofs/a-jst-prints-its-pin-number-twice.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:27:50.908'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/a-jst-prints-its-pin-number-twice.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:30:52.696'
+    commit: 5b8e08a-dirty
+- id: an-empty-pin-name-still-paints-its-chip
+  type: bug
+  what: suppressing a name that only repeats the pin number leaves an empty panel-coloured chip painted
+    on the silk beside every badge
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: no empty pin-name chip is painted beside a badge
+    runs: 1
+  trial:
+    file: .proofs/an-empty-pin-name-still-paints-its-chip.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:32:22.343'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/an-empty-pin-name-still-paints-its-chip.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:33:16.705'
+    commit: 5b8e08a-dirty

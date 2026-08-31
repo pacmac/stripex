@@ -1,0 +1,2 @@
+$ node tests/browser/test_components_screen.mjs
+components-screen: 18/18 checks passed
