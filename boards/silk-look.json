@@ -1,0 +1,79 @@
+{
+  "schema": "stripex/1",
+  "name": "silk look",
+  "board": {
+    "cols": 22,
+    "rows": 16,
+    "pattern": "strip"
+  },
+  "breaks": [],
+  "placements": [
+    {
+      "ref": "J1",
+      "part": "jst-xh",
+      "at": {
+        "col": 2,
+        "row": 2
+      },
+      "rot": 0,
+      "device": "jst-xh-3-right",
+      "span": 3,
+      "angle": "right",
+      "pinNames": [
+        "1",
+        "2",
+        "3"
+      ],
+      "pinSource": "the connector's own numbering — a JST pin has no function of its own"
+    },
+    {
+      "ref": "J2",
+      "part": "jst-xh",
+      "at": {
+        "col": 2,
+        "row": 8
+      },
+      "rot": 0,
+      "device": "jst-xh-3-straight",
+      "span": 3,
+      "angle": "straight",
+      "pinNames": [
+        "1",
+        "2",
+        "3"
+      ],
+      "pinSource": "the connector's own numbering — a JST pin has no function of its own"
+    },
+    {
+      "ref": "U1",
+      "part": "dip",
+      "at": {
+        "col": 12,
+        "row": 2
+      },
+      "rot": 0,
+      "span": 4,
+      "width": 3
+    },
+    {
+      "ref": "J3",
+      "part": "header",
+      "at": {
+        "col": 12,
+        "row": 9
+      },
+      "rot": 0,
+      "span": 4
+    },
+    {
+      "ref": "Q1",
+      "part": "to92",
+      "at": {
+        "col": 12,
+        "row": 12
+      },
+      "rot": 0
+    }
+  ],
+  "wires": []
+}

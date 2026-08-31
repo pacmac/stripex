@@ -1,0 +1,2 @@
+$ node tests/render/test_extents.mjs
+extents: 8/8 checks passed

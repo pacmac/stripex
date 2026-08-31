@@ -41,11 +41,27 @@ function render(placements, cols = 20, rows = 12) {
 // ------------------------------------------------- the drawing must fit
 
 s.check('A BODY OVER THE TOP EDGE IS INSIDE THE DRAWING', () => {
-  // A right-angle JST on row 0. Its housing lies 9.2 mm past the pin row, so at
-  // rot 180 it reaches above the board and there was simply no canvas there.
-  const vb = viewBoxOf(render([D.placementFor('jst-xh-3-right', { col: 4, row: 0 }, 180, 'J1')]));
+  // A right-angle JST on row 0: at rot 180 its housing reaches above the board
+  // and there was simply no canvas there.
+  //
+  // CONTAINMENT, NOT A DEPTH. This asserted y <= -6, a threshold tuned to a
+  // projection of 9.2 mm that Peter then measured at 6.8 — so correcting the
+  // connector broke a check that was testing the old wrong number rather than
+  // the requirement. The requirement is that the housing is drawn.
+  const svg = render([D.placementFor('jst-xh-3-right', { col: 4, row: 0 }, 180, 'J1')]);
+  const vb = viewBoxOf(svg);
   ok(vb.y < 0, `the drawing starts above the board: y=${vb.y.toFixed(2)}`);
-  ok(vb.y <= -6, `and by enough to hold the housing: y=${vb.y.toFixed(2)}`);
+
+  const g = /<g transform="translate\((-?[0-9.]+) (-?[0-9.]+)\) rotate\((-?[0-9.]+)\)">([\s\S]*?)<\/g>/.exec(svg);
+  ok(g, 'the body is drawn in a rotated group');
+  const [tx, ty, deg] = g.slice(1, 4).map(Number);
+  const rad = (deg * Math.PI) / 180;
+  const m = /<rect [^>]*x="(-?[0-9.]+)" y="(-?[0-9.]+)" width="([0-9.]+)" height="([0-9.]+)"/.exec(g[4]);
+  const [x, y, w, h] = m.slice(1).map(Number);
+  const ys = [[x, y], [x + w, y], [x, y + h], [x + w, y + h]]
+    .map(([px, py]) => ty + px * Math.sin(rad) + py * Math.cos(rad));
+  ok(Math.min(...ys) >= vb.y - 0.01,
+    `the housing's top ${Math.min(...ys).toFixed(2)} is inside the drawing at ${vb.y.toFixed(2)}`);
 });
 
 s.check('and one over the bottom edge is too', () => {

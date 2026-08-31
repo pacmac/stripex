@@ -386,7 +386,21 @@ async function openBoard(slug, { keepDraft = null } = {}) {
   state.selection = null;
   history.reset(state.project);
   localStorage.setItem(OPEN_KEY, slug);
-  persist();
+  // OPENING A BOARD IS NOT AN EDIT, and this line is where that kept going
+  // wrong. persist() ends in scheduleSave(): before the editor is ready that
+  // sets savePending, and the boot flush in connectBoards then sends it — so a
+  // browser that merely LOOKED at a board wrote its own copy back over whatever
+  // the server had.
+  //
+  // Peter reported it twice. The first fix removed the unconditional
+  // scheduleSave() from connectBoards and left this one, which was enough to put
+  // the symptom back: his Yagi V5 Control Board lost the name he had given it to
+  // a screenshot run, because the browser had fetched the board before the
+  // rename and wrote its stale copy afterwards.
+  //
+  // persistDraftOnly writes the localStorage cache and nothing else, which is
+  // exactly what looking at a board should cost.
+  persistDraftOnly();
   await refreshBoards();
   paintCards();
   draw(`opened ${project.name ?? slug}`);

@@ -28,8 +28,20 @@ const PITCH = G.PITCH_MM;
 // From the JST drawing, cross-checked against KiCad's fab outlines.
 const END_MM = 2.45;          // housing past each end pin — (B - A) / 2
 const VERTICAL_DEEP = 5.75;   // across the pin row
-const RIGHT_DEEP = 11.5;
-const RIGHT_OVER_BOARD = 9.2; // of that depth, the part lying over the board
+
+// THE RIGHT ANGLE IS PETER'S MEASUREMENT, NOT THE FOOTPRINT LIBRARY'S.
+//
+// 2026-08-31: "the length of the JST right angle connecors is still wrong. I
+// just measured them at about 6.8mm i.e 2.7 x pitch ... and the pins of the JST
+// are in line with the right edge and not offset by 2.54mm as per your design."
+//
+// KiCad's horizontal fab outline gave 9.2 mm projecting over the board and
+// 2.3 mm sitting behind the pin row. Both are wrong for the part he actually
+// has. A caliper on the real component outranks any drawing of one, which is
+// the same rule that keeps NC3 and NC4 unverified in the catalogue.
+const RIGHT_OVER_BOARD = 6.8; // the shroud, projecting from the pin row
+const RIGHT_BEHIND = 0;       // nothing behind the pins: they are at its edge
+const RIGHT_DEEP = RIGHT_OVER_BOARD + RIGHT_BEHIND;
 const NEAR = (a, b, tol, what) => ok(Math.abs(a - b) <= tol,
   `${what}: ${a.toFixed(2)} vs ${b.toFixed(2)} (tolerance ${tol})`);
 
@@ -91,14 +103,23 @@ s.check('and it is the depth on the drawing', () => {
 
 // ------------------------------------------------- the one that matters
 
-s.check('A RIGHT ANGLE LIES 9.2 mm OVER THE BOARD, PAST ITS PINS', () => {
-  // The number a layout has to respect: about 3.6 strips of board that are
-  // underneath the connector. Drawing 1.45 said they were free.
+s.check('A RIGHT ANGLE LIES 6.8 mm OVER THE BOARD, PAST ITS PINS', () => {
+  // The number a layout has to respect: about 2.7 strips of board that are
+  // underneath the connector. Drawing 1.45 said they were free; 9.2 said nearly
+  // a strip more was covered than really is.
   const b = bodyOf('jst-xh-3-right');
   // The rect is drawn about the pin row at y = 0 inside a rotated group.
   const overBoard = b.y + b.h;
   NEAR(overBoard, RIGHT_OVER_BOARD, 0.3, 'body reaching over the board from the pin row');
-  ok(overBoard / PITCH > 3, `which is ${(overBoard / PITCH).toFixed(1)} strips`);
+  NEAR(overBoard / PITCH, 2.7, 0.15, 'which in strips is');
+});
+
+s.check('AND NOTHING OF IT SITS BEHIND THE PIN ROW', () => {
+  // Peter: "the pins of the JST are in line with the right edge and not offset
+  // by 2.54mm as per your design." The pins are at the shroud's edge, so a
+  // right-angle connector on the last row does not hang over the far side.
+  const b = bodyOf('jst-xh-3-right');
+  NEAR(-b.y, RIGHT_BEHIND, 0.2, 'body behind the pin row');
 });
 
 s.check('and a vertical body is NOT centred on the pin row', () => {

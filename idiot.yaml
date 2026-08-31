@@ -2869,7 +2869,13 @@
     failures: 1
     at: '2026-08-31T09:13:15.475'
     commit: 8a72b5c-dirty
-  fix: null
+  fix:
+    file: .proofs/the-drawing-is-clipped-to-the-board-so-bodies-hang-off-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T09:14:56.806'
+    commit: 8b7669e-dirty
 - id: an-smt-land-is-drawn-with-one-round-pad-and-one-square
   type: bug
   what: 'Pads are drawn square for pin 1 and round for the rest, which marks pin 1 on a DIL or a connector.
@@ -2893,4 +2899,77 @@
     failures: 1
     at: '2026-08-31T09:13:15.900'
     commit: 8a72b5c-dirty
+  fix:
+    file: .proofs/an-smt-land-is-drawn-with-one-round-pad-and-one-square.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T09:14:57.174'
+    commit: 8b7669e-dirty
+- id: a-net-with-two-different-names-is-not-reported-by-check
+  type: bug
+  what: netLabelProblems() detects a net carrying two different names and nothing calls it. On the Yagi
+    V5 Control Board it returns 'one net is called both 0V and CLK' and GET /api/boards/:slug/check reports
+    0 errors and 7 warnings, none of them that. The merged findings include the DRC, checkRules and disabled
+    rules but not the label conflicts, so the one check that reads a board's own names is dead code.
+  spec: docs/specs/every-net-name-is-editable.md
+  files:
+  - src/server/index.js
+  - public/app.js
+  test:
+    command: null
+    criterion: a net carrying two different names is reported in the findings, by the API and in the Checks
+      tab
+    runs: 1
+  trial: null
+  fix: null
+- id: the-right-angle-jst-is-too-long-and-sits-behind-its-pins
+  type: bug
+  what: 'Peter measured his actual right-angle JST XH: the shroud projects about 6.6-7mm over the board
+    (2.7 x pitch), and its pins are IN LINE with the shroud''s edge. stripex draws the projection at 9.2mm
+    (3.62 pitch) and puts 2.3mm of body behind the pin row, both taken from the KiCad horizontal fab outline.
+    The part in his hand beats the footprint library.'
+  spec: docs/specs/jst-real-dimensions.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_jst_dimensions.mjs
+    criterion: a right-angle JST projects 6.8mm (2.7 strips) over the board from its pin row, is 6.8mm
+      deep in total, and has nothing behind the pin row
+    runs: 1
+  trial:
+    file: .proofs/the-right-angle-jst-is-too-long-and-sits-behind-its-pins.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T09:36:15.531'
+    commit: 8b7669e-dirty
+  fix: null
+- id: opening-a-board-writes-it-back-to-the-server
+  type: bug
+  what: "A fresh browser that opens a board issues a PUT with no interaction at all \u2014 measured with\
+    \ a request listener: goto, wait, close, and 'PUT /api/boards/jst-check' is sent. That is the defect\
+    \ Peter reported as 'even if I make no changes and refresh the page, it seems it saves it overwriting\
+    \ any beckend changes', reintroduced by the keepDraft branch added on 2026-08-31 that calls scheduleSave()\
+    \ when it keeps work. It overwrote the name of his Yagi V5 Control Board back to a previous value\
+    \ while it was only being screenshotted."
+  spec: docs/specs/live-board-feed.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_open_writes_nothing.mjs
+    criterion: opening a board in a fresh browser sends no non-GET request and leaves the board's version
+      and name unchanged, while a real edit still saves
+    runs: 1
+  trial:
+    file: .proofs/opening-a-board-writes-it-back-to-the-server.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T09:42:56.878'
+    commit: 8b7669e-dirty
   fix: null

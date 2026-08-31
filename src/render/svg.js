@@ -197,8 +197,19 @@ const silk = (c) => `fill="${c.silkFill}" fill-opacity="${SILK_FILL_OPACITY}"`
 const JST_END_MM = 2.45;        // housing past each end pin, (B - A) / 2
 const JST_BACK_MM = 2.35;       // behind the pin row, vertical
 const JST_FRONT_MM = 3.40;      // in front of it — the mating face
-const JST_RA_BACK_MM = 2.30;    // behind the pin row, right angle
-const JST_RA_FRONT_MM = 9.20;   // over the board, right angle
+// THE RIGHT ANGLE IS MEASURED, NOT READ OFF A DRAWING.
+//
+// Peter, 2026-08-31, with calipers on the part he actually has: "the length of
+// the JST right angle connecors is still wrong. I just measured them at about
+// 6.8mm i.e 2.7 x pitch ... and the pins of the JST are in line with the right
+// edge and not offset by 2.54mm as per your design."
+//
+// KiCad's horizontal fab outline said 9.2 mm projecting and 2.3 mm behind the
+// pin row. Both wrong for this component. The vertical numbers above come from
+// the same source and have NOT been measured — if they matter to a layout, they
+// are worth a caliper too.
+const JST_RA_BACK_MM = 0;       // the pins sit at the shroud's edge
+const JST_RA_FRONT_MM = 6.80;   // over the board, right angle — 2.7 strips
 // The straight part's latch is drawn standing proud of the shroud, so it is what
 // reaches furthest on that side. Named here because the extent has to know.
 const JST_RAMP_PROUD_MM = PITCH_MM * 0.26;
