@@ -3205,3 +3205,29 @@
     failures: 0
     at: '2026-08-31T19:10:41.970'
     commit: b3120cb-dirty
+- id: the-drawing-numbers-its-pads-but-does-not-name-them
+  type: bug
+  what: 'Peter asked for numbers AND names on the footprint drawing: ''the image does not show pin numbers
+    nor names''. The rebuild added numbered badges and turned the renderer''s pin-name layer off, because
+    at preview size the names smeared into DIRSTEPNC3NC4SPREADMS2. So the drawing carries 16 numbers and
+    0 names, and half the complaint stands: you still cannot read the part without looking away to the
+    table.'
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: every pad on the drawing carries its name as well as its number, each placed on a side
+      of the package
+    runs: 1
+  trial:
+    file: .proofs/the-drawing-numbers-its-pads-but-does-not-name-them.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T20:55:12.298'
+    commit: 48da59e-dirty
+  fix: null

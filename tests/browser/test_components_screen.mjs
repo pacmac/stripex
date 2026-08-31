@@ -304,6 +304,26 @@ s.check('and the catalogue can be searched', async () => {
   eq(r.after, 1, 'to the one that matches');
 });
 
+s.check('AND NAMES THEM, WHICH IS THE OTHER HALF OF WHAT HE ASKED FOR', async () => {
+  // "the image does not show pin numbers nor names". The rebuild answered the
+  // numbers and dropped the names, because at preview size the renderer's own
+  // pin-name layer smeared them into DIRSTEPNC3NC4SPREADMS2. A name placed
+  // OUTBOARD of the package has room, so it reads like a datasheet callout.
+  needBrowser();
+  const r = await onScreen(async (page) => {
+    await page.locator('#devList [data-device="tmc2209"]').click();
+    await page.waitForTimeout(500);
+    return {
+      names: await page.locator('#devPreview [data-pin-name]').allInnerTexts(),
+      sides: await page.locator('#devPreview [data-pin-name][data-side]').count(),
+    };
+  });
+  eq(r.names.length, 16, 'every pad is named');
+  ok(r.names.includes('DIR') && r.names.includes('VM'),
+    `with the real names: ${r.names.join(' ')}`);
+  eq(r.sides, 16, 'and each placed on a side of the package');
+});
+
 const okAll = await s.run();
 if (browser) await browser.close();
 if (server) { mod?.closeLive?.(); server.close(); }

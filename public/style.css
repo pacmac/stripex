@@ -691,7 +691,8 @@ button.primary {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 18px 18px;
+  /* Room either side for the pin callouts, which live outside the board. */
+  padding: 12px 74px 18px;
 }
 .devdrawing svg { max-height: 100%; max-width: 100%; }
 
@@ -699,7 +700,7 @@ button.primary {
    pins on the outline; that is how you check a part against the one in your
    hand. Pin 1 is filled rather than merely square, because at this size a
    square pad is invisible — which is what Peter saw. */
-.devbadges { position: absolute; inset: 12px 18px 18px; pointer-events: none; }
+.devbadges { position: absolute; pointer-events: none; }
 .devbadge {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -722,6 +723,28 @@ button.primary {
   border-color: var(--ink);
   color: var(--bg);
 }
+/* THE NAME, OUTBOARD OF THE PACKAGE. A datasheet puts its callouts in the
+   margin and leads them to the pin; the renderer's own layer put them beside
+   the pads and inward, which ran two columns together into one smear. Out here
+   each name has the whole margin. */
+.devpinname {
+  position: absolute;
+  transform: translateY(-50%);
+  font: 500 10px/1 var(--mono);
+  color: var(--ink-dim);
+  white-space: nowrap;
+  pointer-events: none;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+.devpinname[data-side="left"] { margin-right: 10px; text-align: right; }
+.devpinname[data-side="right"] { margin-left: 10px; }
+.devpinname[data-lit="true"] {
+  color: var(--accent-ink);
+  background: var(--accent);
+  font-weight: 700;
+}
+
 .devbadge[data-lit="true"] {
   background: var(--accent);
   border-color: var(--accent);

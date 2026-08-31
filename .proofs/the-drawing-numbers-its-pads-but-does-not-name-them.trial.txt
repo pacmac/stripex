@@ -1,0 +1,4 @@
+$ node tests/browser/test_components_screen.mjs
+FAIL  AND NAMES THEM, WHICH IS THE OTHER HALF OF WHAT HE ASKED FOR
+      every pad is named: expected 16, got 0
+components-screen: 14/15 checks passed

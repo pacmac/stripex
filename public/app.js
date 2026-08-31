@@ -1006,10 +1006,32 @@ function numberThePads() {
   if (!pads.length) return;
 
   const box = svg.getBoundingClientRect();
+  const hostBox = host.getBoundingClientRect();
   const layer = document.createElement('div');
   layer.className = 'devbadges';
-  for (const [i, pad] of pads.entries()) {
+  // THE OVERLAY IS THE DRAWING'S OWN BOX, not the padded area around it. That is
+  // what lets a name say "outside this edge" and mean the margin, and it makes
+  // every percentage below line up with the pad it came from.
+  layer.style.left = `${box.left - hostBox.left}px`;
+  layer.style.top = `${box.top - hostBox.top}px`;
+  layer.style.width = `${box.width}px`;
+  layer.style.height = `${box.height}px`;
+
+  // The middle of the package, so a pad knows which way is OUT. The renderer's
+  // own pin-name layer draws names beside the pads and inward, which at this
+  // size ran two columns of them together into DIRSTEPNC3NC4SPREADMS2. A name
+  // placed outboard has the whole margin to itself.
+  const centres = pads.map((pad) => {
     const r = pad.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  });
+  const midX = (Math.min(...centres.map((c) => c.x)) + Math.max(...centres.map((c) => c.x))) / 2;
+
+  for (const [i, pad] of pads.entries()) {
+    const c = centres[i];
+    const left = `${(c.x - box.left) / box.width * 100}%`;
+    const top = `${(c.y - box.top) / box.height * 100}%`;
+
     const b = document.createElement('button');
     b.className = 'devbadge';
     b.type = 'button';
@@ -1017,9 +1039,27 @@ function numberThePads() {
     if (i === 0) b.dataset.first = 'true';
     b.textContent = String(i + 1);
     b.title = `Pin ${i + 1}${devEditing?.pins?.[i] ? ` — ${devEditing.pins[i]}` : ''}`;
-    b.style.left = `${((r.left + r.width / 2) - box.left) / box.width * 100}%`;
-    b.style.top = `${((r.top + r.height / 2) - box.top) / box.height * 100}%`;
+    b.style.left = left;
+    b.style.top = top;
     layer.appendChild(b);
+
+    const name = devEditing?.pins?.[i];
+    if (!name) continue;
+    // IN THE MARGIN, NOT ON THE BOARD. A datasheet puts its callouts outside the
+    // package outline and leads them in; placed beside the pad, a name lies over
+    // the copper and the holes and becomes the same unreadable smear it was
+    // before, just further out. Anchored to the DRAWING's edge they also line up
+    // into two columns, which is how a pin callout list is meant to read.
+    const side = centres.length > 2 && c.x < midX - 1 ? 'left' : 'right';
+    const t = document.createElement('span');
+    t.className = 'devpinname';
+    t.dataset.pinName = String(i + 1);
+    t.dataset.side = side;
+    t.textContent = name;
+    if (side === 'left') t.style.right = '100%';
+    else t.style.left = '100%';
+    t.style.top = top;
+    layer.appendChild(t);
   }
   host.appendChild(layer);
   if (devLitPin) lightPin(devLitPin);
@@ -1035,6 +1075,9 @@ function lightPin(n) {
   devLitPin = n;
   for (const b of document.querySelectorAll('#devDrawing [data-pin-badge]')) {
     b.dataset.lit = String(Number(b.dataset.pinBadge) === n);
+  }
+  for (const t of document.querySelectorAll('#devDrawing [data-pin-name]')) {
+    t.dataset.lit = String(Number(t.dataset.pinName) === n);
   }
   for (const row of document.querySelectorAll('#devEdit [data-pin-row]')) {
     row.dataset.lit = String(Number(row.dataset.pinRow) === n);
