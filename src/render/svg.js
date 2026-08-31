@@ -132,6 +132,11 @@ export const PAD_R_MM = PITCH_MM * 0.34;
 // adjacent holes still show a quarter-millimetre of daylight. The two radii
 // being equal before was a coincidence, not a relationship, and PAD_R_MM is
 // also the break marker and the DRC ring.
+// How far silkscreen is kept back from a pad. A fabricator's silk-to-pad
+// clearance is around 0.15-0.2 mm; this is drawn a little wider so the break in
+// the line reads as deliberate at the sizes a board is looked at.
+export const SILK_PAD_CLEARANCE_MM = PITCH_MM * 0.1;
+
 export const PEN_PAD_R_MM = PITCH_MM * 0.45;
 
 // Two characters at 0.62 em is 1.32 mm, which fits inside 2.29 mm with room
@@ -665,6 +670,9 @@ export function renderBoard(project, opts = {}) {
   const vy = Math.min(0, ext.y);
   const vw = Math.max(w + gutter * 2, ext.x + ext.w - vx, ext.w);
   const vh = Math.max(h, ext.y + ext.h - vy);
+  // Definitions gathered while drawing and emitted in one <defs> at the end —
+  // the silkscreen clearance masks, one per placement.
+  const defs = [];
   const out = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg"`
     + ` viewBox="${n(vx)} ${n(vy)} ${n(Math.max(vw, w + gutter * 2))} ${n(vh)}"`
@@ -930,11 +938,50 @@ export function renderBoard(project, opts = {}) {
       const bodyInk = isWireColoured(part)
         ? linkColour(pl, part)
         : silkOf(pl, part, c.silk);
+      // SILKSCREEN IS CLIPPED BACK FROM THE PADS.
+      //
+      // Peter: "is it possible for the silk screen outline not to cut through
+      // the device's own pads as it is confusing ... break the outline where it
+      // crosses a pad - yes."
+      //
+      // On a right-angle JST the pins sit at the shroud's edge — which is where
+      // they really are — so the outline ran through the middle of all three
+      // pads, measured at 0.00 mm from every centre. Any part whose body edge
+      // meets its pin row does this, and correcting a footprint to the truth
+      // makes it MORE likely rather than less.
+      //
+      // It is also what a fabricator does: no ink on a pad, because ink on a pad
+      // spoils the joint. So the whole body goes through a mask — outline, wash,
+      // polarity mark and latch together — rather than the outline being special
+      // cased. A mask and not arithmetic: the bodies are rects, circles, rotated
+      // groups and paths, and working out where each shape's edge crosses each
+      // pad would be a second geometry engine that has to agree with the first.
+      //
+      // One mask per PLACEMENT, or a connector would clear holes in its
+      // neighbour's silkscreen as well as its own.
+      // The mask goes in DEFS, not here. Inline, it put a full-size white rect
+      // between the part group's opening tag and its body, which is both wrong
+      // in structure — a definition is not content — and enough to make three
+      // suites that read the first rect of a part group measure the mask
+      // instead of the component.
+      const maskId = `silk-${esc(pl.ref)}`;
+      defs.push(`<mask id="${maskId}" maskUnits="userSpaceOnUse"`
+        + ` x="${n(vx)}" y="${n(vy)}" width="${n(vw)}" height="${n(vh)}">`
+        + `<rect x="${n(vx)}" y="${n(vy)}" width="${n(vw)}"`
+        + ` height="${n(vh)}" fill="white"/>`
+        + pts.map((p) => `<circle cx="${n(p.x)}" cy="${n(p.y)}"`
+          + ` r="${n(PAD_R_MM + SILK_PAD_CLEARANCE_MM)}" fill="black"/>`).join('')
+        + '</mask>');
       // The placement goes in too: a shrouded connector is drawn differently
       // straight and right-angle, and which it is belongs to the placement, not
       // to the footprint they share.
+      out.push(`<g mask="url(#${maskId})">`);
       out.push(bodyFor(part, pts, { ...c, silk: bodyInk, silkFill: bodyInk },
         footprintBoxFromPoints(pts), pl));
+      // OUTSIDE THE MASK from here: the ref and value are text beside the part,
+      // not silkscreen over a pad, and a label that vanished where it crossed
+      // one would be a new way of being unreadable.
+      out.push('</g>');
       if (L.labels) {
         out.push(`<text data-kind="part-label" data-ref="${esc(pl.ref)}"`
           + ` x="${n(pts[0].x)}" y="${n(Math.min(...pts.map((p) => p.y)) - PITCH_MM * 0.5)}"`
@@ -1217,5 +1264,8 @@ export function renderBoard(project, opts = {}) {
   }
 
   out.push('</svg>');
+  // Straight after the <svg> tag, so a mask is defined before anything that
+  // references it — and so a part group holds only what it draws.
+  if (defs.length) out.splice(1, 0, `<defs>${defs.join('')}</defs>`);
   return out.join('\n');
 }

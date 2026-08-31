@@ -58,14 +58,21 @@ function withLinks() {
   p.placements.push({ ref: 'L2', part: 'wire-link', span: 5, at: { col: 1, row: 4 }, rot: 0 });
   return p;
 }
-const bodyOf = (svg, ref) => {
-  const chunk = svg.slice(svg.indexOf(`data-ref="${ref}"`));
-  return els(chunk.slice(0, chunk.indexOf('</g>')), 'part-body')[0];
+// EVERYTHING ONE PART DRAWS, up to wherever the next part starts.
+//
+// This used to cut at the first `</g>`, which assumed a part group contains no
+// nested group. It never did for a JST — its body has always been drawn in a
+// rotated group of its own — and now nothing does, because each body is wrapped
+// in the group carrying its silkscreen clearance mask. Cutting at the next part
+// is the thing that was actually meant.
+const groupOf = (svg, ref) => {
+  const from = svg.indexOf(`data-ref="${ref}"`);
+  const rest = svg.slice(from);
+  const next = rest.indexOf('<g data-kind="part"', 1);
+  return next > 0 ? rest.slice(0, next) : rest;
 };
-const padsOf = (svg, ref) => {
-  const chunk = svg.slice(svg.indexOf(`data-ref="${ref}"`));
-  return els(chunk.slice(0, chunk.indexOf('</g>')), 'pad');
-};
+const bodyOf = (svg, ref) => els(groupOf(svg, ref), 'part-body')[0];
+const padsOf = (svg, ref) => els(groupOf(svg, ref), 'pad');
 
 s.check('A LINK IS NO LONGER BLACK — IT TAKES THE COLOUR FOR ITS SPAN', () => {
   const svg = R.renderBoard(withLinks(), {});

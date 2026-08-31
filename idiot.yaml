@@ -2972,4 +2972,36 @@
     failures: 1
     at: '2026-08-31T09:42:56.878'
     commit: 8b7669e-dirty
+  fix:
+    file: .proofs/opening-a-board-writes-it-back-to-the-server.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T09:44:31.730'
+    commit: 20e934a-dirty
+- id: the-silkscreen-outline-runs-through-its-own-pads
+  type: bug
+  what: "A body outline is drawn as a plain rect with no regard for the pads inside it, so its edge runs\
+    \ across them. On a right-angle JST the pins sit at the shroud's edge and the measured distance from\
+    \ every pad centre to the nearest outline edge is 0.00mm \u2014 the line bisects each pad. Peter:\
+    \ 'is it possible for the silk screen outline not to cut through the device's own pads as it is confusing.'\
+    \ A real silkscreen is clipped back from pads for exactly this reason."
+  spec: docs/specs/silkscreen-components.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_silk_clearance.mjs
+    criterion: a body is drawn through a mask with a hole at every one of its own pads with clearance,
+      one mask per placement, the pads themselves untouched and outside the wrapper, and every part still
+      renders at every rotation
+    runs: 1
+  trial:
+    file: .proofs/the-silkscreen-outline-runs-through-its-own-pads.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T09:48:25.988'
+    commit: 20e934a-dirty
   fix: null

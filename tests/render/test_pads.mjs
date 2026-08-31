@@ -112,8 +112,12 @@ s.check('A DIL HAS NO NOTCH — THE SQUARE PAD SAYS WHICH END IS PIN 1', () => {
   // gone and pin 1 is the square pad on every part alike, so the notch became a
   // second way of saying the same thing, on one part only.
   const svg = R.renderBoard(project([dip]), {});
+  // Everything the part draws, not "up to the first </g>": a body is wrapped in
+  // the group carrying its silkscreen clearance mask, so the first close tag is
+  // that wrapper's and the pads come after it.
   const chunk = svg.slice(svg.indexOf('data-ref="U1"'));
-  const group = chunk.slice(0, chunk.indexOf('</g>'));
+  const next = chunk.indexOf('<g data-kind="part"', 1);
+  const group = next > 0 ? chunk.slice(0, next) : chunk;
   ok(!group.includes('<path'), 'no path element in the DIL group');
   ok(group.includes('data-kind="part-body"'), 'the body is still drawn');
   const first = pads(group).filter((el) => attr(el, 'data-first') === 'true');
