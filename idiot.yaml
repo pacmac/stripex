@@ -3037,4 +3037,35 @@
     failures: 1
     at: '2026-08-31T10:31:08.368'
     commit: ff459da-dirty
+  fix:
+    file: .proofs/the-device-catalogue-is-code-so-only-i-can-change-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T10:35:10.384'
+    commit: ccb4678-dirty
+- id: there-is-no-screen-for-editing-a-component
+  type: new
+  what: "The device catalogue is data now and can be changed over HTTP, but there is nothing in the editor\
+    \ that does it \u2014 Peter would have to curl. He asked for a component editor SCREEN."
+  spec: docs/specs/component-editor.md
+  files:
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: a Components screen lists every device, shows a chosen one's pins with the unverified ones
+      flagged and a footprint preview, saves an edit, reverts to stock, refuses an invalid edit on screen,
+      and lets a new component be made and placed
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-screen-for-editing-a-component.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T11:37:34.152'
+    commit: ccb4678-dirty
   fix: null

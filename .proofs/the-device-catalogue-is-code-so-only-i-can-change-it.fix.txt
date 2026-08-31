@@ -1,0 +1,2 @@
+$ node tests/parts/test_device_store.mjs
+device-store: 9/9 checks passed

@@ -8,7 +8,7 @@
 import { renderBoard, DEFAULT_LAYERS } from '/src/render/svg.js';
 import { findingsFor, netsFor, runList } from '/src/model/views.js';
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
-import { rotatePlacement } from '/src/model/rotate.js';
+import { rotatePlacement, resolvePins } from '/src/model/rotate.js';
 import { requiredBreaks, ownerOf, effectiveBreaks } from '/src/model/breaks.js';
 import { cursorFor } from '/src/render/cursors.js';
 import {
@@ -49,7 +49,9 @@ import {
   wireColour, silkOf, linkColour, wireLengthHoles,
   COLOUR_CODE, PALETTE_16,
 } from '/src/render/colours.js';
-import { deviceList, getDevice, placementFor } from '/src/parts/devices.js';
+import {
+  deviceList, getDevice, placementFor, installDevices,
+} from '/src/parts/devices.js';
 
 // The theme's silk colour, for seeding the colour input when a part has none of
 // its own. A colour input cannot show "unset", so it shows what is being used.
@@ -774,6 +776,235 @@ function wireNetlistBox() {
     state.project = next;
     commit('netlist updated');
   });
+}
+
+// ------------------------------------------------------- the component editor
+//
+// Peter: "next task is a component editor screen." Every component problem this
+// week needed ME to edit source — the JST body was wrong twice, NC3 and NC4 are
+// two names only his silkscreen can settle, and his SMT parts want a 1206 land
+// the library does not have. He is the one holding the part.
+//
+// OVER THE BOARD, NOT BESIDE IT. A device has sixteen pin names, a footprint and
+// a preview, and none of that fits in a panel next to a board. The board is left
+// untouched underneath: this screen hides, it does not replace.
+
+// What is being edited. `null` means nothing chosen; a device with no id is a
+// new one that has not been saved.
+let devEditing = null;
+let devIsNew = false;
+let devCatalogue = [];
+
+async function openComponents() {
+  $('#componentsScreen').hidden = false;
+  await refreshDevices();
+  if (!devEditing && devCatalogue.length) await chooseDevice(devCatalogue[0].id);
+}
+
+function closeComponents() {
+  $('#componentsScreen').hidden = true;
+  // The catalogue may have moved, and the palette lists devices.
+  paintCards();
+  draw('');
+}
+
+async function refreshDevices() {
+  const { ok, body } = await api('/api/devices');
+  if (!ok) return say('could not read the component catalogue');
+  devCatalogue = body.devices ?? [];
+  // Grouped the way the palette groups parts, so a component is where you
+  // already look for it.
+  const byCat = new Map();
+  for (const d of devCatalogue) {
+    if (!byCat.has(d.category)) byCat.set(d.category, []);
+    byCat.get(d.category).push(d);
+  }
+  $('#devList').innerHTML = [...byCat].map(([cat, list]) => `
+    <div class="devgroup">${escapeHtml(cat ?? 'other')}</div>
+    ${list.map((d) => `
+      <button class="devrow${devEditing?.id === d.id ? ' is-on' : ''}" data-device="${escapeHtml(d.id)}">
+        <span class="devname">${escapeHtml(d.name)}</span>
+        <span class="devmeta">${d.pins} pin${d.pins === 1 ? '' : 's'}${
+  d.builtIn ? '' : ' · yours'}${d.unverifiedPins?.length ? ' · ?' : ''}</span>
+      </button>`).join('')}`).join('');
+  return devCatalogue;
+}
+
+async function chooseDevice(id) {
+  const { ok, body } = await api(`/api/devices/${encodeURIComponent(id)}`);
+  if (!ok) return say(body?.error ?? 'could not read that component');
+  devEditing = body.device;
+  devIsNew = false;
+  paintDeviceEditor(body.builtIn);
+  await refreshDevices();
+}
+
+function newDevice() {
+  devEditing = {
+    id: '', name: '', category: 'module', base: 'dip', span: 4, width: 3,
+    refPrefix: 'U', pins: [], pinSource: '',
+  };
+  devIsNew = true;
+  paintDeviceEditor(false);
+}
+
+// The pin count a footprint really has, so the name list is the right length
+// without the person counting. Derived rather than typed: a caller who has to
+// count pins is a caller about to get one wrong.
+function pinCountFor(device) {
+  const probe = { ref: 'X1', part: device.base, at: { col: 0, row: 0 }, rot: 0 };
+  if (device.span != null) probe.span = device.span;
+  if (device.width != null) probe.width = device.width;
+  try { return resolvePins([probe], getPart).length; } catch { return 0; }
+}
+
+function paintDeviceEditor(builtIn) {
+  const el = $('#devEdit');
+  if (!devEditing) { el.innerHTML = '<p class="empty">Choose a component.</p>'; return; }
+  const d = devEditing;
+  const want = pinCountFor(d);
+  // A PIN WITH NO NAME IS NUMBERED, so a new component is valid the moment it
+  // is made and a footprint that grows does not become invalid. It is also the
+  // library's own convention: a header and a JST are named by number, because a
+  // connector's pins have no function of their own.
+  const pins = Array.from({ length: want }, (_, i) => {
+    const given = d.pins?.[i];
+    return given && String(given).trim() ? given : String(i + 1);
+  });
+  const unsure = new Set(d.unverifiedPins ?? []);
+
+  const bases = partList().filter((p) => p.kind === 'component').map((p) => p.id);
+  const field = (name, label, value, type = 'text') => `
+    <label class="devfield"><span>${label}</span>
+      <input data-field="${name}" type="${type}" value="${escapeHtml(value ?? '')}"></label>`;
+
+  el.innerHTML = `
+    <div class="devfields">
+      ${devIsNew ? field('id', 'Id', d.id) : `<label class="devfield"><span>Id</span>
+        <input data-field="id" value="${escapeHtml(d.id)}" disabled></label>`}
+      ${field('name', 'Name', d.name)}
+      <label class="devfield"><span>Footprint</span>
+        <select data-field="base">${bases.map((b) => `<option value="${b}"${
+  b === d.base ? ' selected' : ''}>${escapeHtml(b)}</option>`).join('')}</select></label>
+      ${field('span', 'Span', d.span, 'number')}
+      ${field('width', 'Width', d.width, 'number')}
+      ${field('refPrefix', 'Ref prefix', d.refPrefix)}
+      <label class="devfield"><span>Silk</span>
+        <input data-field="silk" type="color" value="${escapeHtml(d.silk ?? '#2f9e44')}"></label>
+      ${field('pinSource', 'Where the names came from', d.pinSource)}
+    </div>
+    <div class="devpins">
+      <div class="devgroup">Pins — ${want} on this footprint</div>
+      ${pins.map((p, i) => `
+        <label class="devpin"${unsure.has(p) ? ' data-unverified="true"' : ''}>
+          <span class="devpinno">${i + 1}</span>
+          <input data-pin-index="${i}" value="${escapeHtml(p)}">
+          ${unsure.has(p) ? '<span class="devwarn" title="not verified against the part">?</span>' : ''}
+        </label>`).join('')}
+    </div>`;
+
+  $('#devRevert').hidden = builtIn !== false;
+  $('#devStatus').textContent = '';
+  paintDevicePreview();
+}
+
+// The footprint on a scrap of board, drawn by the same renderer the board uses.
+// A preview from a second drawing path would be a second thing to keep in step.
+function paintDevicePreview() {
+  const el = $('#devPreview');
+  if (!el || !devEditing) return;
+  const d = devEditing;
+  // ROOM FOR THE WHOLE FOOTPRINT. A DIL's second pin row is at dy = -width, so
+  // a chip placed near the top has half of itself above the board — which the
+  // drawing extent now faithfully draws, hanging in space. Sit it below its own
+  // width instead.
+  const width = d.width ?? 3;
+  const cols = Math.max(10, (d.span ?? 4) + 6);
+  const rows = Math.max(10, width + 8);
+  const pl = {
+    ref: `${d.refPrefix ?? 'U'}1`,
+    part: d.base,
+    at: { col: 3, row: width + 3 },
+    rot: 0,
+  };
+  if (d.span != null) pl.span = d.span;
+  if (d.width != null) pl.width = d.width;
+  if (d.silk) pl.silk = d.silk;
+  if (d.pins?.length) pl.pinNames = [...d.pins];
+  if (d.unverifiedPins?.length) pl.unverifiedPins = [...d.unverifiedPins];
+  // BUILT, NOT MUTATED. It is a scratch project that never leaves this function,
+  // and pushing into it would still have been the editor changing a project in
+  // place — which nothing here does, and which a check correctly caught.
+  const p = { ...makeProject({ cols, rows, name: 'preview' }), placements: [pl] };
+  try {
+    el.innerHTML = renderBoard(p, {
+      theme: state.theme,
+      layers: { ...DEFAULT_LAYERS, pinNames: true, netNames: false, drc: false },
+    });
+  } catch (e) {
+    el.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+// Read the form back into the device being edited.
+function readDeviceForm() {
+  const d = { ...devEditing };
+  for (const input of $('#devEdit').querySelectorAll('[data-field]')) {
+    const key = input.dataset.field;
+    const raw = input.value;
+    if (key === 'span' || key === 'width') d[key] = raw === '' ? null : Number(raw);
+    else d[key] = raw;
+  }
+  d.pins = [...$('#devEdit').querySelectorAll('[data-pin-index]')].map((i) => i.value.trim());
+  // A name the person has just typed is better sourced than anything I put in
+  // the catalogue, so it stops being flagged — the same rule setPinNames uses.
+  d.unverifiedPins = (devEditing.unverifiedPins ?? [])
+    .filter((name) => d.pins.includes(name) && devEditing.pins?.[d.pins.indexOf(name)] === name);
+  return d;
+}
+
+async function saveDevice() {
+  const d = readDeviceForm();
+  if (!d.id) { $('#devStatus').textContent = 'give it an id first'; return; }
+  const { ok, body } = await api(`/api/devices/${encodeURIComponent(d.id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ device: d }),
+  });
+  // REFUSED, NOT SWALLOWED. The catalogue validates at the door and the reason
+  // has to reach whoever typed it — a save that quietly did nothing would be
+  // worse than one that failed loudly.
+  if (!ok) { $('#devStatus').textContent = body?.error ?? 'that component was refused'; return; }
+  devEditing = body.device;
+  devIsNew = false;
+  $('#devStatus').textContent = `saved ${d.id}`;
+  installDevices(await fetchStoredDevices());
+  paintDeviceEditor(body.builtIn);
+  await refreshDevices();
+}
+
+async function revertDevice() {
+  if (!devEditing?.id) return;
+  const { ok, body } = await api(`/api/devices/${encodeURIComponent(devEditing.id)}`, { method: 'DELETE' });
+  if (!ok) { $('#devStatus').textContent = body?.error ?? 'nothing stored to undo'; return; }
+  devEditing = body.device;
+  $('#devStatus').textContent = `${body.id} is back to stock`;
+  installDevices(await fetchStoredDevices());
+  paintDeviceEditor(body.builtIn);
+  await refreshDevices();
+}
+
+// The catalogue as this browser should hold it: the full merged set, so the
+// palette and anything that places a part agree with the server.
+async function fetchStoredDevices() {
+  const { ok, body } = await api('/api/devices');
+  if (!ok) return [];
+  const full = [];
+  for (const d of body.devices ?? []) {
+    if (d.builtIn) continue;
+    const one = await api(`/api/devices/${encodeURIComponent(d.id)}`);
+    if (one.ok) full.push(one.body.device);
+  }
+  return full;
 }
 
 function paintNets() {
@@ -1948,6 +2179,31 @@ function boot() {
     if (state.openCard === 'board') $('[data-cardbody="board"]')?.scrollIntoView({ block: 'nearest' });
   });
 
+  // ------------------------------------------------- the component editor
+  $('#components').addEventListener('click', () => { openComponents(); });
+  $('#devBack').addEventListener('click', closeComponents);
+  $('#devNew').addEventListener('click', newDevice);
+  $('#devSave').addEventListener('click', () => { saveDevice(); });
+  $('#devRevert').addEventListener('click', () => { revertDevice(); });
+  $('#devList').addEventListener('click', (e) => {
+    const row = e.target.closest('[data-device]');
+    if (row) chooseDevice(row.dataset.device);
+  });
+  // The preview follows what is typed, so a wrong span or footprint shows
+  // itself before it is saved rather than after.
+  $('#devEdit').addEventListener('input', () => {
+    devEditing = readDeviceForm();
+    paintDevicePreview();
+  });
+  $('#devEdit').addEventListener('change', (e) => {
+    devEditing = readDeviceForm();
+    // A different footprint has a different number of pins, so the name list
+    // has to be rebuilt rather than left the wrong length.
+    if (e.target.dataset.field === 'base' || e.target.dataset.field === 'span'
+      || e.target.dataset.field === 'width') paintDeviceEditor($('#devRevert').hidden);
+    else paintDevicePreview();
+  });
+
   $('#theme').addEventListener('click', () => {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
     document.documentElement.dataset.theme = state.theme;
@@ -2155,6 +2411,12 @@ function applyFromFeed(msg) {
 
 async function connectBoards() {
   try {
+    // THE CATALOGUE FIRST, before a board is drawn. A board may hold a device
+    // Peter defined, and the palette lists devices — both need the stored set
+    // installed over the built-ins, or a component he added would be missing
+    // from his own editor.
+    try { installDevices(await fetchStoredDevices()); }
+    catch { /* the built-ins stand; the server being down is reported below */ }
     await decideWhichBoard();
     connectLive();
   } finally {

@@ -63,6 +63,12 @@
       <rect x="3" y="4" width="18" height="16" rx="2"/>
       <path d="M3 9h18"/><path d="M8 4v16"/>
     </g>
+    <!-- A chip with its legs: the component catalogue. -->
+    <g id="i-chip" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <rect x="7" y="7" width="10" height="10" rx="1"/>
+      <path d="M10 7V4M14 7V4M10 20v-3M14 20v-3M7 10H4M7 14H4M20 10h-3M20 14h-3"/>
+    </g>
 
     <!-- The six tools. Each is the thing it does to the board, not an
          abstraction of it: a pointer, a chip, a knife, a wire, a compass of
@@ -215,6 +221,11 @@
     <button id="export" class="iconbtn" title="Export the board as an SVG"
       aria-label="Export as SVG">
       <svg class="ico" viewBox="0 0 24 24"><use href="#i-export"/></svg></button>
+    <!-- The catalogue is data now, and this is where it is edited. Not a card
+         in the left panel: a sixteen-pin name list does not fit in one. -->
+    <button id="components" class="iconbtn" title="Add or correct a component"
+      aria-label="Components">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-chip"/></svg></button>
   </div>
 </header>
 
@@ -235,6 +246,35 @@
     <div id="tabBodies"></div>
   </aside>
 </main>
+
+<!-- THE COMPONENT EDITOR, over the board rather than beside it.
+     A device has sixteen pin names, a footprint and a preview; none of that
+     fits in a panel next to a board, and editing a component is not something
+     done while laying one out. The board is left exactly as it was underneath,
+     which is why this hides rather than replaces. -->
+<section class="screen" id="componentsScreen" hidden>
+  <header class="screen-head">
+    <button id="devBack" class="linky">&#8592; back to the board</button>
+    <h2>Components</h2>
+    <span class="screen-sub">The built-in ones are stock. Anything you change is
+      kept in <code>devices.json</code> and can be put back.</span>
+  </header>
+  <div class="components">
+    <aside class="devlist">
+      <button id="devNew" class="linky">+ new component</button>
+      <div id="devList"></div>
+    </aside>
+    <div class="devpane">
+      <div id="devEdit"></div>
+      <div class="devfoot">
+        <button id="devSave">Save</button>
+        <button id="devRevert" class="linky" hidden>back to stock</button>
+        <span id="devStatus" class="devstatus"></span>
+      </div>
+      <div id="devPreview" class="devpreview"></div>
+    </div>
+  </div>
+</section>
 
 <script type="module" src="/app.js"></script>
 </body>
