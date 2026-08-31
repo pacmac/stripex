@@ -78,25 +78,26 @@ import {
 } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
-const STORE_KEY = 'stripex.project';
-// Which board on the server this browser had open. The board itself lives on the
-// server now; this is only the bookmark.
-const OPEN_KEY = 'stripex.openBoard';
-// Whether this browser holds an edit the server has not got.
+
+// THE BROWSER KEEPS NO COPY OF THE BOARD.
 //
-// THE QUESTION IS "UNSAVED WORK", NOT "DIFFERENT BYTES". A draft differs from
-// the server the moment anybody else edits the file, so comparing bytes told a
-// user who had typed nothing that his copy differed — on every load, for ever,
-// while showing him his own stale board. Three times I told Peter his wires were
-// there and three times he reloaded into a board without them.
-const DIRTY_KEY = 'stripex.dirty';
-const isDirty = () => localStorage.getItem(DIRTY_KEY) === '1';
-const setDirty = (on) => {
-  try {
-    if (on) localStorage.setItem(DIRTY_KEY, '1');
-    else localStorage.removeItem(DIRTY_KEY);
-  } catch { /* storage full is reported by persist */ }
-};
+// There was a `stripex.project` here holding a whole board, and a
+// `stripex.dirty` flag beside it, and that copy was treated as authoritative on
+// load. All three of Peter's name reversions were the same shape: a stale copy
+// written back over the server. Once because opening a board saved it, once
+// because that was only half fixed, and once because a branch adopted the
+// server's fresh version token and then wrote old content, so the guard that
+// existed to stop exactly this could not fire.
+//
+// What it bought was the work done in the 400 ms between an edit and its save.
+// A cache that is only ever read at boot is not a cache; it is a second source
+// of truth, and this one lost three arguments with the first.
+//
+// Peter, 2026-08-31: "STILL BROKEN: the draft cache itself - fix it".
+//
+// Which board this tab is looking at stays, because that is the browser's own
+// business and not the server's — a bookmark, not a copy.
+const OPEN_KEY = 'stripex.openBoard';
 
 // Repairs found on the last load, shown as a banner. Not a console warning:
 // load() used to return null on any problem, hand the user an empty board, and
@@ -134,14 +135,11 @@ const LAYER_ROWS = [
   ['drc', 'Check markers', '#d1242f'],
 ];
 
-// Was there anything in this browser at all? A blank board the editor made for
-// itself is NOT a draft: treating it as one made a clean browser refuse to open
-// the board it was bookmarked to, report that its copy differed, and draw an
-// empty grid over a file full of work.
-const storedDraft = load();
-
 const state = {
-  project: storedDraft ?? makeProject({ cols: 25, rows: 20 }),
+  // An empty board until the server says otherwise. Nothing here pretends to be
+  // a document: what used to sit in this slot was the cached copy, which is how
+  // a stale board got on screen and then written back over the real one.
+  project: load() ?? makeProject({ cols: 25, rows: 20 }),
   tool: 'select',
   part: 'res-axial',
   // The armed DEVICE, or null for a generic part. It arms its base part
@@ -196,54 +194,35 @@ function loadLayers() {
 
 // ------------------------------------------------------------------ persistence
 
+// WHAT TO DRAW BEFORE THE SERVER HAS ANSWERED: an empty board of the default
+// size, and nothing pretending to be a document. It used to be the cached copy,
+// which is how a stale board got on screen and then written back.
 function load() {
-  const { project, repairs } = loadProject(localStorage.getItem(STORE_KEY));
-  loadRepairs = repairs;
-  if (project) return project;
-
-  // Nothing readable. Fall back to the newest snapshot BEFORE giving up — that
-  // is what the history is for.
-  const [snapshot] = readHistory(localStorage);
-  if (snapshot?.project) {
-    loadRepairs = [...repairs, {
-      code: 'from-history',
-      message: `the stored board could not be read, so the snapshot from `
-        + `${new Date(snapshot.at).toLocaleString()} was opened instead`,
-    }];
-    return snapshot.project;
-  }
   return null;
 }
 
 // Returns whether it actually wrote. The old version swallowed a quota error in
 // an empty catch, so once storage filled every later edit was silently not
 // saved and you found out on reload.
+// An edit happened: snapshot it for Restore, and send it to the server, which is
+// the only place the board lives.
+//
+// THE SNAPSHOT HISTORY IS NOT A CACHE. It is an archive, read only when Restore
+// is pressed, never treated as the current board and never written back on its
+// own — which is why it stays while the draft copy goes.
 function persist() {
-  let ok = true;
-  try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(state.project));
-  } catch (e) {
-    ok = false;
-    banner(`NOT SAVED — browser storage is full (${e.name}). Use Save to `
-      + 'download this board before doing anything else.', 'error');
-  }
-  // History second, and never at the board's expense: pushSnapshot drops its own
-  // oldest entries until it fits rather than touching the board.
   try { pushSnapshot(localStorage, state.project); } catch { /* history is expendable */ }
-  // And to the server, where the board actually lives. localStorage is now a
-  // DRAFT CACHE: it survives the server being down, so you can keep drawing.
   scheduleSave();
-  return ok;
+  return true;
 }
 
 // The localStorage copy, and nothing else. Its job is now narrow and honest: it
 // draws the board while the server is unreachable. It is a cache, not a second
 // source of truth — which is what it had quietly become.
-function persistDraftOnly() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(state.project)); }
-  catch { /* persist() reports a full store */ }
-  setDirty(false);
-}
+// Nothing to do any more: there is no draft to write. Kept as a no-op for one
+// release rather than chased through every call site in the same change that
+// removes the cache, so the diff says one thing.
+function persistDraftOnly() {}
 
 // ------------------------------------------------------------- the server
 
@@ -337,56 +316,20 @@ async function saveToServer() {
   }
 }
 
-// `keepDraft` is how the reload path says "there is work in this browser that
-// the server has not got". See connectBoards.
-async function openBoard(slug, { keepDraft = null } = {}) {
+// Open a board: the server's copy, and only ever the server's copy.
+//
+// There was a `keepDraft` branch here that installed the browser's own project
+// instead, on the grounds that it might hold unsaved work. It reverted Peter's
+// board name three times, because a draft's name is always stale and the branch
+// adopted the server's version token before writing old content — so the guard
+// built to stop exactly that could not fire.
+//
+// With no cache there is no second copy to prefer, no question to ask, and
+// nothing to reconcile. An edit is 400 ms from the server; that is the whole
+// window this used to protect.
+async function openBoard(slug) {
   const { ok, body } = await api(`/api/boards/${slug}`);
   if (!ok) return say(body?.error ?? 'could not open that board');
-
-  // WORK IN THIS BROWSER IS NEVER SILENTLY REPLACED — AND NEVER TURNED INTO A
-  // QUESTION EITHER.
-  //
-  // This installed the server's copy and persisted it, so a draft that the
-  // server had not got was destroyed on reload — which is what happened to
-  // Peter: his saves had been refused as stale after the file changed under
-  // him, his work was only in localStorage, and reloading threw it away.
-  //
-  // The fix for that asked him instead, in four sentences, on every reload with
-  // unsaved work: "yours is what you are looking at ... make any edit to save
-  // yours, or open the board again to take the server's and lose yours." Peter,
-  // 2026-08-30: "get rid of this". He is right. It was the last survivor of the
-  // draft reconciliation he had already called convoluted and confusing, and it
-  // asked a question that answers itself: the unsaved work is the newer thing,
-  // so it is what gets written.
-  //
-  // THE DRAFT OWNS WHAT YOU DREW. THE SERVER OWNS WHAT THE BOARD IS CALLED.
-  //
-  // This said "safe because the write is guarded" and it was not. It adopts the
-  // version this fetch returned and then saves the browser's own project — so
-  // the guard cannot fire, because the token is fresh and the content is old.
-  // That is the same mistake that lost Peter two spot cuts a day earlier, made
-  // again somewhere else, and it reverted his board's name three times.
-  //
-  // A RENAME IS NOT COPPER. The editor never edits `name` except through
-  // renameBoard, which goes straight to the server, so a draft's name is only
-  // ever stale — it cannot be the newer of the two and has no business
-  // overriding one. The draft supplies the placements, wires, cuts and labels;
-  // the server supplies what the thing is called.
-  if (keepDraft) {
-    state.project = { ...state.project, name: body.project?.name ?? state.project.name };
-    state.slug = slug;
-    state.version = body.version;
-    state.conflict = null;
-    state.selection = null;
-    history.reset(state.project);
-    localStorage.setItem(OPEN_KEY, slug);
-    paintCards();
-    draw('kept the work in this browser and sent it to the server');
-    // scheduleSave defers itself until boot is finished — it sets savePending
-    // and connectBoards flushes it — so this is a request, not a race.
-    scheduleSave();
-    return;
-  }
 
   const { project, repairs } = loadProject(JSON.stringify(body.project));
   if (!project) return say('that board could not be read');
@@ -482,9 +425,6 @@ const history = makeUndo(state.project);
 
 function commit(label) {
   history.commit(state.project);
-  // An edit. From here this browser holds something the server has not, until a
-  // save says otherwise.
-  setDirty(true);
   persist();
   draw(label);
 }
@@ -2464,37 +2404,23 @@ async function decideWhichBoard() {
 
   const wanted = localStorage.getItem(OPEN_KEY);
   if (wanted && boardList.some((b) => b.slug === wanted)) {
-    // Is the draft in this browser the same board the server has? Compared by
-    // CONTENT, because that is the question — not by version, which the browser
-    // may never have seen, and not by timestamp, which neither side keeps.
-    // Only a draft that CAME FROM THIS BROWSER can be worth keeping. Comparing
-    // the server's board against a blank one the editor invented meant every
-    // clean browser was told its copy differed — and it does differ, and it is
-    // not work, and refusing to open the board over it is the opposite of
-    // protecting anything.
-    // THE SERVER'S COPY, unless this browser is holding work that never reached
-    // it. The byte comparison is gone: the feed states what the file is, so
-    // there is nothing left to guess, and guessing is what told Peter his copy
-    // differed on every single load.
-    await openBoard(wanted, { keepDraft: storedDraft && isDirty() ? state.project : null });
+    // THE SERVER'S COPY. There is no other copy to weigh it against any more,
+    // which is the whole point: every reconciliation rule written here — compare
+    // by bytes, compare by dirty flag, keep the draft, ask the user — existed
+    // only because the browser held a second board, and each one was wrong in a
+    // way that cost Peter something.
+    await openBoard(wanted);
     return;
   }
 
-  // Nothing to reopen. Whatever is on screen came from localStorage, so put it
-  // somewhere it can be shared — under its own name if it has one, and under a
-  // plain one if it does not.
-  const hasWork = (state.project.placements?.length ?? 0) > 0
-    || (state.project.wires?.length ?? 0) > 0
-    || (state.project.breaks?.length ?? 0) > 0;
-  if (hasWork) {
-    const name = state.project.name && state.project.name !== 'untitled'
-      ? state.project.name
-      : `recovered ${new Date().toISOString().slice(0, 10)}`;
-    await newBoard(name, { ...state.project, name });
-    banner(`Your board is now on the server as boards/${state.slug}.json, so it can be `
-      + 'shared and edited. It was only in this browser until now.', 'ok');
-    return;
-  }
+  // NOTHING TO REOPEN. There used to be a rescue here: whatever the browser had
+  // cached got posted to the server, under its own name or under
+  // `recovered <date>` if it had none.
+  //
+  // THAT IS WHERE THE NAME CAME FROM. "recovered 2026-08-30" was never a board
+  // Peter named — it was a label this branch invented for a draft it was
+  // rescuing, and it then haunted his board for two days. With no cache there is
+  // no orphaned work to rescue and no need to invent a name for it.
 
   if (boardList.length) {
     await openBoard(boardList[0].slug);

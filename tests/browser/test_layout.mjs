@@ -204,11 +204,17 @@ s.check('SELECTING A STRIP BRINGS ITS NET ROW TO THE TOP', async () => {
   needBrowser();
   const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
   try {
+    // SEEDED ON THE SERVER: the browser keeps no copy of the board.
+    const made = await fetch(`${base}/api/boards`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'many nets', project: MANY_NETS }),
+    }).then((r) => r.json());
     await page.goto(base);
-    await page.evaluate((p) => {
+    await page.evaluate((sl) => {
       localStorage.clear();
-      localStorage.setItem('stripex.project', JSON.stringify(p));
-    }, MANY_NETS);
+      localStorage.setItem('stripex.openBoard', sl);
+    }, made.slug);
     await page.reload();
     await page.waitForSelector('#boardWrap svg');
 
@@ -289,10 +295,12 @@ s.check('THE BOARD CARD SAYS WHICH BOARD, WHILE COLLAPSED', async () => {
     await page.waitForSelector('#boardWrap svg');
     await page.waitForTimeout(800);            // the board server answers
     const sub = (await page.locator('[data-cardsub="board"]').textContent()).trim();
-    const name = await page.evaluate(() => {
-      const raw = localStorage.getItem('stripex.project');
-      return raw ? JSON.parse(raw).name : null;
-    });
+    // The name comes from the board the editor actually opened, which is the
+    // server's — there is no cached copy to read it from.
+    const slug = await page.evaluate(() => localStorage.getItem('stripex.openBoard'));
+    const name = slug
+      ? (await fetch(`${base}/api/boards/${slug}`).then((r) => r.json()))?.project?.name
+      : null;
     ok(sub, 'the collapsed card says something');
     ok(!/^\d+\s*×\s*\d+$/.test(sub), `it is not just the size: ${JSON.stringify(sub)}`);
     if (name) ok(sub.includes(name.slice(0, 12)), `it names the board: ${sub} vs ${name}`);
@@ -438,13 +446,21 @@ s.check('A BOARD CAN BE RESIZED', async () => {
 // Governed by docs/specs/verb-after-noun.md
 
 // Open the editor with a known board and nothing else in the way.
+let seq = 0;
 async function withBoard(fn, project) {
   const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
   try {
-    await page.addInitScript((p) => {
+    // SEEDED ON THE SERVER: the browser keeps no copy of the board, so putting
+    // one in localStorage now seeds a cache that does not exist.
+    const made = await fetch(`${base}/api/boards`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: `layout ${seq += 1}`, project }),
+    }).then((r) => r.json());
+    await page.addInitScript((sl) => {
       localStorage.clear();
-      localStorage.setItem('stripex.project', JSON.stringify(p));
-    }, project);
+      localStorage.setItem('stripex.openBoard', sl);
+    }, made.slug);
     await page.goto(base);
     await page.waitForSelector('#boardWrap svg');
     await page.waitForTimeout(700);
@@ -477,8 +493,8 @@ s.check('A SELECTED PART IS DELETED BY THE DELETE BUTTON', async () => {
     await page.waitForTimeout(200);
     return {
       selected,
-      refs: await page.evaluate(() => JSON.parse(localStorage.getItem('stripex.project'))
-        .placements.map((x) => x.ref)),
+      refs: await page.evaluate(() => [...document.querySelectorAll('g[data-kind="part"]')]
+        .map((el) => el.dataset.ref)),
       armed: await page.evaluate(() =>
         document.querySelector('.tool.is-on')?.dataset.tool),
       status: await page.locator('#status').textContent(),
@@ -497,7 +513,8 @@ s.check('a selected pen wire is deleted the same way', async () => {
     await page.mouse.click(pad.x + pad.width / 2, pad.y + pad.height / 2);
     await page.locator('.tool[data-tool="delete"]').click();
     await page.waitForTimeout(200);
-    return page.evaluate(() => JSON.parse(localStorage.getItem('stripex.project')).wires.length);
+    return page.evaluate(() => new Set(
+      [...document.querySelectorAll('[data-kind="wire-pad"]')].map((el) => el.dataset.ref)).size);
   }, TWO_PARTS);
   eq(r, 0, 'the wire is gone');
 });
@@ -540,11 +557,11 @@ s.check('a selected NET is not deleted by the delete button', async () => {
     await page.mouse.click(hit.x, hit.y);
     await page.locator('.tool[data-tool="delete"]').click();
     await page.waitForTimeout(200);
-    return page.evaluate(() => {
-      const p = JSON.parse(localStorage.getItem('stripex.project'));
-      return { parts: p.placements.length, breaks: (p.breaks ?? []).length,
-        armed: document.querySelector('.tool.is-on')?.dataset.tool };
-    });
+    return page.evaluate(() => ({
+      parts: document.querySelectorAll('g[data-kind="part"]').length,
+      breaks: document.querySelectorAll('[data-kind="break"]').length,
+      armed: document.querySelector('.tool.is-on')?.dataset.tool,
+    }));
   }, TWO_PARTS);
   eq(r.parts, 2, 'both parts still there');
   eq(r.breaks, 0, 'and no copper was cut or restored');
@@ -558,7 +575,7 @@ s.check('and with nothing selected the tool just arms', async () => {
     await page.locator('.tool[data-tool="delete"]').click();
     await page.waitForTimeout(200);
     return page.evaluate(() => ({
-      parts: JSON.parse(localStorage.getItem('stripex.project')).placements.length,
+      parts: document.querySelectorAll('g[data-kind="part"]').length,
       armed: document.querySelector('.tool.is-on')?.dataset.tool,
     }));
   }, TWO_PARTS);
@@ -572,8 +589,8 @@ s.check('and the old way still works', async () => {
     const g = await page.locator('g[data-kind="part"][data-ref="R2"]').boundingBox();
     await page.mouse.click(g.x + g.width / 2, g.y + g.height / 2);
     await page.waitForTimeout(200);
-    return page.evaluate(() => JSON.parse(localStorage.getItem('stripex.project'))
-      .placements.map((x) => x.ref));
+    return page.evaluate(() => [...document.querySelectorAll('g[data-kind="part"]')]
+      .map((el) => el.dataset.ref));
   }, TWO_PARTS);
   eq(r, ['R1'], 'arm then click still deletes');
 });

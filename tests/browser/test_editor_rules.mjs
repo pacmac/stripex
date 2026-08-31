@@ -25,6 +25,8 @@ let server = null;
 let base = '';
 let mod = null;
 let launchError = null;
+let slug = null;
+let seq = 0;
 
 if (chromium) {
   try {
@@ -56,10 +58,19 @@ async function editor(fn) {
   const errs = [];
   page.on('pageerror', (e) => errs.push(e.message));
   try {
-    await page.addInitScript((p) => {
+    // SEEDED ON THE SERVER. The browser keeps no copy of the board any more, so
+    // a test that put one in localStorage was seeding a cache that no longer
+    // exists — and would have drawn an empty grid.
+    const made = await fetch(`${base}/api/boards`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: `rules ${seq += 1}`, project: BOARD }),
+    }).then((r) => r.json());
+    slug = made.slug;
+    await page.addInitScript((sl) => {
       localStorage.clear();
-      localStorage.setItem('stripex.project', JSON.stringify(p));
-    }, BOARD);
+      localStorage.setItem('stripex.openBoard', sl);
+    }, slug);
     await page.goto(base);
     await page.waitForSelector('#boardWrap svg');
     await page.waitForTimeout(900);
@@ -73,10 +84,11 @@ async function clickHole(page, col, row) {
   await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
 }
 
-const wireCount = (page) => page.evaluate(() => {
-  const raw = localStorage.getItem('stripex.project');
-  return raw ? JSON.parse(raw).wires.length : -1;
-});
+// ASKED OF THE SERVER, which is now the only place the board is.
+const wireCount = async () => {
+  const r = await fetch(`${base}/api/boards/${slug}`).then((x) => x.json());
+  return r.project?.wires?.length ?? -1;
+};
 
 s.check('DRAWING A PEN WIRE ONTO A PIN IS REFUSED', async () => {
   // The exact mistake I made nine times, made with a mouse.
@@ -85,9 +97,9 @@ s.check('DRAWING A PEN WIRE ONTO A PIN IS REFUSED', async () => {
     await page.locator('button[data-part="point-to-point"]').click();
     await clickHole(page, 12, 4);          // a free hole
     await clickHole(page, 4, 2);           // R1.1 is here
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(900);   // past the 400ms autosave
     return {
-      wires: await wireCount(page),
+      wires: await wireCount(),
       status: await page.locator('#status').textContent(),
     };
   });
@@ -103,8 +115,8 @@ s.check('and between two free holes it still works', async () => {
     await page.locator('button[data-part="point-to-point"]').click();
     await clickHole(page, 12, 4);
     await clickHole(page, 12, 6);
-    await page.waitForTimeout(300);
-    return { wires: await wireCount(page), pads: await page.locator('[data-kind="wire-pad"]').count() };
+    await page.waitForTimeout(900);   // past the 400ms autosave
+    return { wires: await wireCount(), pads: await page.locator('[data-kind="wire-pad"]').count() };
   });
   eq(r.wires, 1, 'a wire was made');
   eq(r.pads, 2, 'and drawn');
@@ -120,10 +132,10 @@ s.check('A PEN WIRE ONTO POWER IS ALLOWED, AND REPORTED', async () => {
     await page.locator('button[data-part="point-to-point"]').click();
     await clickHole(page, 12, 0);          // the 0V rail
     await clickHole(page, 12, 4);
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(900);   // past the 400ms autosave
     await page.locator('.tab[data-tab="findings"]').click();
     return {
-      wires: await wireCount(page),
+      wires: await wireCount(),
       checks: await page.locator('#tab-findings').innerText(),
     };
   });
@@ -138,15 +150,15 @@ s.check('placing, cutting and deleting still work', async () => {
   const r = await editor(async (page) => {
     await page.locator('button[data-part="res-axial"]').click();
     await clickHole(page, 2, 8);
-    await page.waitForTimeout(200);
-    const placed = await page.evaluate(() =>
-      JSON.parse(localStorage.getItem('stripex.project')).placements.length);
+    await page.waitForTimeout(800);
+    const placed = (await fetch(`${base}/api/boards/${slug}`).then((r) => r.json()))
+      .project.placements.length;
 
     await page.locator('.tool[data-cut="gap"]').click();
     await clickHole(page, 9, 5);
-    await page.waitForTimeout(200);
-    const cut = await page.evaluate(() =>
-      JSON.parse(localStorage.getItem('stripex.project')).breaks.length);
+    await page.waitForTimeout(800);
+    const cut = (await fetch(`${base}/api/boards/${slug}`).then((r) => r.json()))
+      .project.breaks.length;
 
     // ESCAPE FIRST. Placing selects what it placed, and arming a tool acts on an
     // existing selection — verb after noun, which Peter asked for. So arming
@@ -156,9 +168,9 @@ s.check('placing, cutting and deleting still work', async () => {
     await page.locator('.tool[data-tool="delete"]').click();
     const g = await page.locator('g[data-kind="part"][data-ref="R1"]').boundingBox();
     await page.mouse.click(g.x + g.width / 2, g.y + g.height / 2);
-    await page.waitForTimeout(200);
-    const left = await page.evaluate(() =>
-      JSON.parse(localStorage.getItem('stripex.project')).placements.map((x) => x.ref));
+    await page.waitForTimeout(800);
+    const left = (await fetch(`${base}/api/boards/${slug}`).then((r) => r.json()))
+      .project.placements.map((x) => x.ref);
     return { placed, cut, left };
   });
   eq(r.placed, 2, 'a part was placed');

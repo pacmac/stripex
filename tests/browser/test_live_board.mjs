@@ -141,15 +141,11 @@ s.check('THE "YOUR COPY DIFFERS" BANNER IS GONE', async () => {
 
   const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
   try {
-    // A browser holding an older copy of that board, as his was.
+    // A browser bookmarked to that board and holding NOTHING ELSE. It used to
+    // hold an older copy too — the point of the check was that the copy did not
+    // start an argument — and there is no copy to hold any more.
     await page.addInitScript((sl) => {
       localStorage.clear();
-      localStorage.setItem('stripex.project', JSON.stringify({
-        schema: 'stripex/1',
-        name: 'No Banner',
-        board: { cols: 20, rows: 12, pattern: 'strip' },
-        breaks: [], placements: [], wires: [],
-      }));
       localStorage.setItem('stripex.openBoard', sl);
     }, slug);
     await page.goto(base);

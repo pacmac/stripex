@@ -1,0 +1,8 @@
+$ node tests/browser/test_no_draft_cache.mjs
+FAIL  NO COPY OF THE BOARD IS KEPT IN THE BROWSER
+      stripex.project is gone: expected null, got "{\"schema\":\"stripex/1\",\"name\":\"No Cache\",\"board\":{\"cols\":14,\"rows\":10,\"pattern\":\"strip\"},\"breaks\":[],\"wires\":[],\"placements\":[{\"ref\":\"R1\",\"part\":\"res-axial\",\"at\":{\"col\":2,\"row\":2},\"rot\":0,\"span\":3}],\"netLabels\":{}}"
+FAIL  and not after an edit either
+      still no copy of the board: expected null, got "{\"schema\":\"stripex/1\",\"name\":\"No Cache\",\"board\":{\"cols\":14,\"rows\":10,\"pattern\":\"strip\"},\"breaks\":[{\"row\":7,\"x\":8,\"at\":\"gap\"}],\"wires\":[],\"placements\":[{\"ref\":\"R1\",\"part\":\"res-axial\",\"at\":{\"col\":2,\"row\":2},\"rot\":0,\"span\":3}],\"netLabels\":{}}"
+FAIL  WHAT THE BROWSER DOES KEEP IS ONLY ITS OWN
+      and nothing else about the document: stripex.project: expected [], got ["stripex.project"]
+no-draft-cache: 4/7 checks passed

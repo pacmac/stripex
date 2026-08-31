@@ -1,0 +1,2 @@
+$ node tests/browser/test_draft_keeps_the_name.mjs
+draft-keeps-the-name: 3/3 checks passed

@@ -3100,4 +3100,36 @@
     failures: 1
     at: '2026-08-31T12:00:18.790'
     commit: adf656c-dirty
+  fix:
+    file: .proofs/a-kept-draft-overwrites-the-boards-name.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T12:02:05.570'
+    commit: 7154ff7-dirty
+- id: the-draft-cache-is-a-second-source-of-truth
+  type: bug
+  what: "localStorage holds a full copy of the board in stripex.project plus a stripex.dirty flag, and\
+    \ that copy is treated as authoritative on load. All three of Peter's name reversions came from it:\
+    \ a stale copy written back over the server. It protects work for the 400ms between an edit and its\
+    \ save, and lets you draw while a server on the same machine is down \u2014 against three data-identity\
+    \ incidents, two of which I misdiagnosed."
+  spec: docs/specs/no-draft-cache.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_no_draft_cache.mjs
+    criterion: the browser keeps no copy of the board and no dirty flag, before or after an edit; a reload
+      shows what the server has including a change made behind its back; the name survives; an unreachable
+      server is reported; and an edit still autosaves
+    runs: 1
+  trial:
+    file: .proofs/the-draft-cache-is-a-second-source-of-truth.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T18:23:15.939'
+    commit: 7154ff7-dirty
   fix: null

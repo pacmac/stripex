@@ -393,5 +393,8 @@
     "0,3": {
       "colour": "#e8590c"
     }
+  },
+  "rules": {
+    "linksAreStraight": true
   }
 }

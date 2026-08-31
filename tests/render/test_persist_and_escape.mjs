@@ -17,22 +17,18 @@ const s = suite('persist-and-escape');
 
 // ------------------------------------------------- a full store says so
 
-s.check('PERSIST REPORTS A FULL STORE RATHER THAN SWALLOWING IT', () => {
-  // It caught the quota error with an empty catch, so once storage filled every
-  // later edit was silently not saved and you found out on reload. The board is
-  // the one thing in this project that must never fail quietly.
+s.check('PERSIST DOES NOT WRITE THE BOARD TO THE BROWSER AT ALL', () => {
+  // This used to check that a full localStorage was REPORTED rather than
+  // swallowed, because the board was cached there and a silent quota error meant
+  // edits vanished. The board is no longer written to the browser: it goes to
+  // the server, which reports its own failures. There is nothing left to fill.
+  //
+  // The defect that check was written for cannot recur, because the write is
+  // gone — so the check now guards the absence instead of the error handling.
   const body = /function persist\(\)\s*\{([\s\S]*?)\n\}/.exec(src)?.[1];
   ok(body, 'persist() is found');
-  ok(/catch\s*\([\s\S]{0,400}?banner\(/.test(body),
-    'the catch around the board write raises a banner');
-  ok(/NOT SAVED/i.test(body), 'and the banner says the work is not saved');
-  ok(!/catch\s*\(\w*\)\s*\{\s*\}/.test(body), 'no empty catch is left in it');
-});
-
-s.check('and it returns whether it actually wrote', () => {
-  // A caller that cannot tell is a caller that carries on regardless.
-  const body = /function persist\(\)\s*\{([\s\S]*?)\n\}/.exec(src)?.[1];
-  ok(/return ok;/.test(body), 'persist returns its result');
+  ok(!/localStorage\.setItem/.test(body), `it writes no board to the browser: ${body}`);
+  ok(/scheduleSave\(\)/.test(body), 'and sends the edit to the server');
 });
 
 s.check('the history is expendable and the board is not', () => {

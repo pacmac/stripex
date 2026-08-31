@@ -31,6 +31,8 @@ let server = null;
 let base = '';
 let mod = null;
 let launchError = null;
+let slug = null;
+let seq = 0;
 
 if (chromium) {
   try {
@@ -61,10 +63,17 @@ async function editor(fn) {
   const errs = [];
   page.on('pageerror', (e) => errs.push(e.message));
   try {
-    await page.addInitScript((p) => {
+    // SEEDED ON THE SERVER: the browser keeps no copy of the board any more.
+    const made = await fetch(`${base}/api/boards`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: `rules card ${seq += 1}`, project: BOARD }),
+    }).then((r) => r.json());
+    slug = made.slug;
+    await page.addInitScript((sl) => {
       localStorage.clear();
-      localStorage.setItem('stripex.project', JSON.stringify(p));
-    }, BOARD);
+      localStorage.setItem('stripex.openBoard', sl);
+    }, slug);
     await page.goto(base);
     await page.waitForSelector('#boardWrap svg');
     await page.waitForTimeout(900);
@@ -74,8 +83,11 @@ async function editor(fn) {
   } finally { await page.close(); }
 }
 
-const stored = (page) => page.evaluate(() =>
-  JSON.parse(localStorage.getItem('stripex.project')).rules ?? null);
+// Asked of the server, which is now the only place the board is.
+const stored = async () => {
+  const r = await fetch(`${base}/api/boards/${slug}`).then((x) => x.json());
+  return r.project?.rules ?? null;
+};
 
 s.check('THE CARD HAS A ROW PER RULE, AND app.js NAMES NONE OF THEM', () => {
   // The source half, which is the half that keeps them from drifting. If a rule
@@ -105,7 +117,7 @@ s.check('SWITCHING A RULE OFF IS SAVED AND REPORTED', async () => {
   const r = await editor(async (page) => {
     await page.locator('[data-rule="penWiresFreeHolesOnly"]').uncheck();
     await page.waitForTimeout(400);
-    const saved = await stored(page);
+    const saved = await stored();
     await page.locator('.tab[data-tab="findings"]').click();
     return { saved, checks: await page.locator('#tab-findings').innerText() };
   });
@@ -131,9 +143,9 @@ s.check('and with it off, a pen wire may land on a pin', async () => {
     };
     await hole(12, 4);
     await hole(4, 2);              // R1.1 is here
-    await page.waitForTimeout(300);
-    return { wires: await page.evaluate(() =>
-      JSON.parse(localStorage.getItem('stripex.project')).wires.length) };
+    await page.waitForTimeout(900);   // past the 400ms autosave
+    const r = await fetch(`${base}/api/boards/${slug}`).then((x) => x.json());
+    return { wires: r.project.wires.length };
   });
   eq(r.wires, 1, 'the wire was made');
 });
@@ -145,7 +157,7 @@ s.check('a bad pattern is refused and says which', async () => {
     await box.fill('^0V$\n^(unclosed');
     await box.blur();
     await page.waitForTimeout(300);
-    return { saved: await stored(page), status: await page.locator('#status').textContent() };
+    return { saved: await stored(), status: await page.locator('#status').textContent() };
   });
   ok(/unclosed/.test(r.status), `the status names the pattern: ${r.status}`);
   ok(!r.saved?.netClasses, 'and nothing was stored');
