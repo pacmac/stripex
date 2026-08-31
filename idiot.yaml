@@ -3132,4 +3132,10 @@
     failures: 1
     at: '2026-08-31T18:23:15.939'
     commit: 7154ff7-dirty
-  fix: null
+  fix:
+    file: .proofs/the-draft-cache-is-a-second-source-of-truth.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T18:37:12.559'
+    commit: e4ce89b-dirty

@@ -201,6 +201,14 @@
          a collapsed card. -->
     <button id="boards" class="iconbtn" title="Pick a board, or start a new one" aria-label="Boards">
       <svg class="ico" viewBox="0 0 24 24"><use href="#i-boards"/></svg><span id="boardLabel">Boards</span></button>
+    <!-- LABELLED, AND BESIDE BOARDS. It was an unlabelled icon at the far right
+         of six file-operation buttons and Peter could not find it: "so where is
+         the new component / library editor you added?" A component catalogue is
+         a document-level thing like the board list, not a file operation, and at
+         36 px a chip with eight legs reads as a smudge. -->
+    <button id="components" class="iconbtn" title="Add or correct a component"
+      aria-label="Components">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-chip"/></svg><span>Components</span></button>
     <span id="saveState" class="save-state" title="Saved automatically to the server"></span>
   </div>
 
@@ -221,11 +229,6 @@
     <button id="export" class="iconbtn" title="Export the board as an SVG"
       aria-label="Export as SVG">
       <svg class="ico" viewBox="0 0 24 24"><use href="#i-export"/></svg></button>
-    <!-- The catalogue is data now, and this is where it is edited. Not a card
-         in the left panel: a sixteen-pin name list does not fit in one. -->
-    <button id="components" class="iconbtn" title="Add or correct a component"
-      aria-label="Components">
-      <svg class="ico" viewBox="0 0 24 24"><use href="#i-chip"/></svg></button>
   </div>
 </header>
 
