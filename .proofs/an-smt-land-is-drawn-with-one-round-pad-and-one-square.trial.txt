@@ -1,0 +1,10 @@
+$ node tests/render/test_extents.mjs
+FAIL  A BODY OVER THE TOP EDGE IS INSIDE THE DRAWING
+      the drawing starts above the board: y=0.00: expected truthy, got falsy
+FAIL  and one over the bottom edge is too
+      the drawing reaches past the last row: bottom=30.48 vs board 30.48: expected truthy, got falsy
+FAIL  EVERY PART AT EVERY ROTATION DRAWS INSIDE THE EXTENT
+      20 draw outside the extent: jst-xh rot 0: body corner 6.44,-1.08 outside -8.13,0.00 58.93,30.48 | jst-xh rot 0: body corner 13.88,-1.08 outside -8.13,0.00 58.93,30.48 | jst-xh rot 0: body corner 8.82,-1.74 outside -8.13,0.00 58.93,30.48 | jst-xh rot 0: body corner 11.50,-1.74 outside -8.13,0.00 58.93,30.48: expected [], got ["jst-xh rot 0: body corner 6.44,-1.08 outside -8.13,0.00 58.93,30.48","jst-xh rot 0: body corner 13.88,-1.08 outside -8.13,0.00 58.93,30.48","jst-xh rot 0: body corner 8.82,-1.74 outside -8.13,0.00 58.93,30.48","jst-xh rot 0: body corner 11.50,-1.74 outside -8.13,0.00 58.93,30.48"]
+FAIL  BOTH LANDS OF AN SMT PART ARE SQUARE
+      smt-0603 draws both as rectangles: [{"shape":"rect","pin":"1"},{"shape":"circle","pin":"2"}]: expected ["rect","rect"], got ["rect","circle"]
+extents: 4/8 checks passed

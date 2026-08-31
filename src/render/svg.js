@@ -185,6 +185,107 @@ export function footprintBox(placement, getPart = null) {
 const silk = (c) => `fill="${c.silkFill}" fill-opacity="${SILK_FILL_OPACITY}"`
   + ` stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"`;
 
+// THE JST HOUSING'S OWN DIMENSIONS, at module scope because two things read
+// them: the body that draws the connector, and the extent that measures it so
+// the drawing is big enough to hold it. Restating them in the second place is
+// how they would come to disagree.
+//
+// The XH drawing gives the pin span as A = 2.5(n-1) and the housing as
+// B = A + 4.9, confirmed against the KiCad footprint library's fab outlines for
+// the 2, 3, 5 and 8-way parts in both angles. Depth does not scale with way
+// count: a 2-way and an 8-way are equally deep.
+const JST_END_MM = 2.45;        // housing past each end pin, (B - A) / 2
+const JST_BACK_MM = 2.35;       // behind the pin row, vertical
+const JST_FRONT_MM = 3.40;      // in front of it — the mating face
+const JST_RA_BACK_MM = 2.30;    // behind the pin row, right angle
+const JST_RA_FRONT_MM = 9.20;   // over the board, right angle
+// The straight part's latch is drawn standing proud of the shroud, so it is what
+// reaches furthest on that side. Named here because the extent has to know.
+const JST_RAMP_PROUD_MM = PITCH_MM * 0.26;
+
+// The corners a body actually occupies, in board millimetres.
+//
+// THROUGH THE SAME TRANSFORM THE DRAWING USES. The bodies that exceed their
+// footprint are drawn in a rotated group with local coordinates, so working out
+// which board direction "in front of the pin row" points in is not a guess to
+// make twice — it is `rotate(angle)` applied to the same local rectangle. An
+// earlier version of this assumed the body always grew toward -y and was wrong
+// at rot 180.
+function bodyCornersMm(part, pl, pts, box) {
+  const shape = part.body?.shape ?? 'blob';
+  const a = pts[0];
+  const b = pts[pts.length - 1];
+  const len = Math.hypot(b.x - a.x, b.y - a.y);
+
+  if (shape === 'can' || shape === 'blob') {
+    // A round body is sized by the LONGER side of its box, so it exceeds the box
+    // across the short axis — which the drawing says in as many words.
+    const r = Math.max(box.w, box.h) / 2;
+    const cx = box.x + box.w / 2;
+    const cy = box.y + box.h / 2;
+    return [[cx - r, cy - r], [cx + r, cy + r]];
+  }
+  if (shape === 'hole') {
+    const r = (part.body.radius ?? 1.4) * PITCH_MM * 0.5;
+    return [[a.x - r, a.y - r], [a.x + r, a.y + r]];
+  }
+  if (shape !== 'jst') return [[box.x, box.y], [box.x + box.w, box.y + box.h]];
+
+  const right = pl.angle === 'right';
+  const w = len + 2 * JST_END_MM;
+  const back = (right ? JST_RA_BACK_MM : JST_BACK_MM)
+    // The straight part's latch stands PROUD of the shroud, so it is what
+    // reaches furthest — the shroud alone left it hanging outside the drawing.
+    + (right ? 0 : JST_RAMP_PROUD_MM);
+  const front = right ? JST_RA_FRONT_MM : JST_FRONT_MM;
+
+  const rad = Math.atan2(b.y - a.y, b.x - a.x);
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const mx = (a.x + b.x) / 2;
+  const my = (a.y + b.y) / 2;
+  return [[-w / 2, -back], [w / 2, -back], [-w / 2, front], [w / 2, front]]
+    .map(([x, y]) => [mx + x * cos - y * sin, my + x * sin + y * cos]);
+}
+
+// EVERYTHING THE DRAWING HAS TO HOLD, in board millimetres.
+//
+// Peter, 2026-08-31: "the JST 3 pin connector is now partly obscured hidden at
+// the overflow at the top, so the board size / auto zoom will need to include
+// the extents of any component footprints on the board and not just the board
+// size itself."
+//
+// A part hanging over the edge must still be DRAWN, because that is exactly the
+// case a person needs to see: it is telling you the connector does not fit where
+// you put it. Cropping it turns a placement problem into an invisible one.
+export function drawingExtentMm(project, getPart = defaultGetPart) {
+  const { w, h } = boardSizeMm(project.board);
+  let x0 = 0;
+  let y0 = 0;
+  let x1 = w;
+  let y1 = h;
+
+  for (const pl of project.placements ?? []) {
+    let part;
+    let pins;
+    try {
+      part = getPart(pl.part);
+      pins = resolvePins([pl], getPart);
+    } catch { continue; }
+    if (!pins.length) continue;
+
+    const pts = pins.map((p) => holeToMm(p.col, p.row));
+    const box = footprintBoxFromPoints(pts);
+    for (const [x, y] of bodyCornersMm(part, pl, pts, box)) {
+      x0 = Math.min(x0, x);
+      x1 = Math.max(x1, x);
+      y0 = Math.min(y0, y);
+      y1 = Math.max(y1, y);
+    }
+  }
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
 // `box` is the footprint: pin extent grown by half a pitch. Every shape is drawn
 // inside it, so no shape carries its own size — the 0603 was the last exception
 // and is now drawn as its land as well, across the two holes it bridges.
@@ -309,12 +410,6 @@ function bodyFor(part, pts, c, box, pl = {}) {
       //
       // A first source said B = 2.5n + 3.6, which would make a 3-way 11.1 mm.
       // The outlines say 9.9 and JST's own formula agrees. Two sources.
-      const JST_END_MM = 2.45;        // housing past each end pin, (B - A) / 2
-      const JST_BACK_MM = 2.35;       // behind the pin row, vertical
-      const JST_FRONT_MM = 3.40;      // in front of it — the mating face
-      const JST_RA_BACK_MM = 2.30;    // behind the pin row, right angle
-      const JST_RA_FRONT_MM = 9.20;   // over the board, right angle
-
       const right = pl.angle === 'right';
       // Pin span plus the housing's own overhang, so it scales at one way per
       // 2.5 mm without anything here being told the way count. The 0.04 mm a
@@ -341,7 +436,7 @@ function bodyFor(part, pts, c, box, pl = {}) {
         // makes it legible: inside the box it was lost behind the pads, which
         // sit on the same row.
         : `<rect data-kind="jst-ramp" x="${n(x0 + w * 0.32)}"`
-          + ` y="${n(y0 - PITCH_MM * 0.26)}"`
+          + ` y="${n(y0 - JST_RAMP_PROUD_MM)}"`
           + ` width="${n(w * 0.36)}" height="${n(PITCH_MM * 0.3)}"`
           + ` rx="${n(PITCH_MM * 0.08)}" fill="${c.silk}" fill-opacity="0.55"`
           + ` stroke="${c.silk}" stroke-width="${SILK_STROKE_MM}"/>`;
@@ -549,9 +644,19 @@ export function renderBoard(project, opts = {}) {
   // the first rail is named, because a board that changes size when you type a
   // name is a board that jumps under the pointer.
   const gutter = NET_NAME_GUTTER_MM;
+  // THE WINDOW IS THE BOARD PLUS WHATEVER IS DRAWN OFF IT. A right-angle JST
+  // lies 9.2 mm past its pin row, so one on the top edge had its housing cut
+  // off — the viewBox started at the board's own y = 0 and there was no canvas
+  // above it. The extent only grows when something needs it, so an ordinary
+  // board keeps exactly the window it had.
+  const ext = drawingExtentMm(project, getPart);
+  const vx = Math.min(-gutter, ext.x);
+  const vy = Math.min(0, ext.y);
+  const vw = Math.max(w + gutter * 2, ext.x + ext.w - vx, ext.w);
+  const vh = Math.max(h, ext.y + ext.h - vy);
   const out = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg"`
-    + ` viewBox="${n(-gutter)} 0 ${n(w + gutter * 2)} ${h}"`
+    + ` viewBox="${n(vx)} ${n(vy)} ${n(Math.max(vw, w + gutter * 2))} ${n(vh)}"`
     + ` data-view="${view}" data-theme="${theme}" width="100%" height="100%">`);
 
   // 1. substrate
@@ -845,12 +950,24 @@ export function renderBoard(project, opts = {}) {
     // marking, not copper, so a part's silkscreen colour has to paint it.
     const padInk = silkOf(pl, part, c.silk);
     const padR = n(PAD_R_MM);
+    const isLand = sideOf(part) === 'copper';
     for (const [i, p] of pts.entries()) {
       const pinName = pins[i]?.pin ?? '';
       const common = `data-kind="pad" data-pin="${esc(pinName)}"`
         + ` data-first="${i === 0}" pointer-events="all"`
         + ` fill="none" stroke="${padInk}" stroke-width="${SILK_STROKE_MM}"`;
-      out.push(i === 0
+      // A LAND HAS NO PIN 1. The square marks pin 1 on a DIL or a connector,
+      // where it is a real feature of the part and how you orient it. An 0603
+      // has two identical rectangular lands and no orientation at all, so one
+      // square and one round invented a pin 1 on the parts where it matters
+      // least. Peter: "for smt resistors, both ends / pins should be a square
+      // footprint and not one round and one square."
+      //
+      // Keyed on the part being COPPER SIDE — soldered to the track rather than
+      // led through a hole — so the rule is about what a land is, not about
+      // which two entries happen to be SMT today.
+      const square = i === 0 || isLand;
+      out.push(square
         ? `<rect ${common} x="${n(p.x - padR)}" y="${n(p.y - padR)}"`
           + ` width="${padR * 2}" height="${padR * 2}"/>`
         : `<circle ${common} cx="${n(p.x)}" cy="${n(p.y)}" r="${padR}"/>`);
