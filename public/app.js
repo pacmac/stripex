@@ -359,11 +359,21 @@ async function openBoard(slug, { keepDraft = null } = {}) {
   // asked a question that answers itself: the unsaved work is the newer thing,
   // so it is what gets written.
   //
-  // SAFE BECAUSE THE WRITE IS GUARDED, not because we guessed. The save carries
-  // the version this fetch returned, so if the file moves again between here and
-  // the write, the server refuses it and the existing 409 path says so. Nothing
-  // is lost silently in either direction.
+  // THE DRAFT OWNS WHAT YOU DREW. THE SERVER OWNS WHAT THE BOARD IS CALLED.
+  //
+  // This said "safe because the write is guarded" and it was not. It adopts the
+  // version this fetch returned and then saves the browser's own project — so
+  // the guard cannot fire, because the token is fresh and the content is old.
+  // That is the same mistake that lost Peter two spot cuts a day earlier, made
+  // again somewhere else, and it reverted his board's name three times.
+  //
+  // A RENAME IS NOT COPPER. The editor never edits `name` except through
+  // renameBoard, which goes straight to the server, so a draft's name is only
+  // ever stale — it cannot be the newer of the two and has no business
+  // overriding one. The draft supplies the placements, wires, cuts and labels;
+  // the server supplies what the thing is called.
   if (keepDraft) {
+    state.project = { ...state.project, name: body.project?.name ?? state.project.name };
     state.slug = slug;
     state.version = body.version;
     state.conflict = null;
@@ -442,7 +452,11 @@ async function renameBoard(name) {
   if (!ok) return say(body?.error ?? 'could not rename that board');
   state.slug = body.slug;
   state.version = body.version;
-  state.project.name = wanted;
+  state.project = { ...state.project, name: wanted };
+  // AND WRITE IT DOWN. This set the name in memory and left the cached copy
+  // holding the old one, so the browser went stale the instant a board was
+  // renamed — and every later save carried the name back with it.
+  persistDraftOnly();
   localStorage.setItem(OPEN_KEY, body.slug);
   await refreshBoards();
   paintCards();

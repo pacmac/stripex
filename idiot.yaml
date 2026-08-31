@@ -3068,4 +3068,36 @@
     failures: 1
     at: '2026-08-31T11:37:34.152'
     commit: ccb4678-dirty
+  fix:
+    file: .proofs/there-is-no-screen-for-editing-a-component.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T11:46:05.435'
+    commit: adf656c-dirty
+- id: a-kept-draft-overwrites-the-boards-name
+  type: bug
+  what: "openBoard's keepDraft branch adopts the server's fresh version token and then saves the browser's\
+    \ stale project, so the version guard cannot fire \u2014 the same 'fresh token, older content' mistake\
+    \ that lost Peter two spot cuts. A tab holding unsaved work reverts the board's NAME to whatever it\
+    \ had cached. Reproduced: server says 'Yagi V5 Control Board' before the tab loads and 'Old Name'\
+    \ after, three times against Peter's real board. renameBoard also never persists, so the cached copy\
+    \ is stale the moment a board is renamed."
+  spec: docs/specs/live-board-feed.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_draft_keeps_the_name.mjs
+    criterion: a tab with unsaved work keeps its own parts and does not revert the board's name, and a
+      rename writes the new name into the browser's cached copy
+    runs: 1
+  trial:
+    file: .proofs/a-kept-draft-overwrites-the-boards-name.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T12:00:18.790'
+    commit: adf656c-dirty
   fix: null
