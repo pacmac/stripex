@@ -11,7 +11,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
 import { partList, getPart } from '../parts/library.js';
-import { deviceList } from '../parts/devices.js';
+import {
+  deviceList, getDevice, isBuiltIn, installDevices, validateDevice,
+} from '../parts/devices.js';
+import * as devicesStore from './devices.js';
 import { resolvePins } from '../model/rotate.js';
 import { validateProject, makeProject } from '../model/board.js';
 import { renderBoard } from '../render/svg.js';
@@ -34,7 +37,50 @@ app.get('/api/parts', (_req, res) => res.json(partList()));
 // The named components — XIAO, TMC2209, the JST family. /api/parts has always
 // existed; this never did, so a caller had no way to learn that any of them
 // exist, let alone which of their pin names are unverified.
-app.get('/api/devices', (_req, res) => res.json({ devices: deviceList() }));
+//
+// The list is the BUILT-INS WITH WHAT IS STORED OVER THEM, and each entry says
+// which it is, so a caller can offer "back to stock" only where there is stock
+// to go back to.
+app.get('/api/devices', (_req, res) => {
+  loadDevices();
+  return res.json({ devices: deviceList() });
+});
+
+app.get('/api/devices/:id', (req, res) => {
+  loadDevices();
+  const d = getDevice(req.params.id);
+  if (!d) return res.status(404).json({ error: `there is no device called ${req.params.id}`, code: 'no-such-device' });
+  return res.json({ device: d, builtIn: isBuiltIn(req.params.id) });
+});
+
+// Create a component, or override a built-in with a corrected one.
+//
+// This is the whole point of the exercise: every component problem this week
+// needed a source edit, and Peter is the one holding the part.
+app.put('/api/devices/:id', (req, res) => {
+  const device = { ...(req.body?.device ?? req.body), id: req.params.id };
+  const bad = validateDevice(device);
+  if (bad) return res.status(400).json({ error: bad, code: 'invalid-device' });
+  try {
+    const stored = devicesStore.put(devicesFile(), device);
+    const out = installDevices(stored);
+    if (out.error) return res.status(400).json({ error: out.error, code: 'invalid-device' });
+    return res.json({ device: getDevice(req.params.id), builtIn: isBuiltIn(req.params.id) });
+  } catch (e) { return deviceError(res, e); }
+});
+
+// Drop an override: a built-in returns to stock, a custom device goes.
+app.delete('/api/devices/:id', (req, res) => {
+  try {
+    const stored = devicesStore.remove(devicesFile(), req.params.id);
+    installDevices(stored);
+    return res.json({
+      id: req.params.id,
+      device: getDevice(req.params.id),
+      builtIn: isBuiltIn(req.params.id),
+    });
+  } catch (e) { return deviceError(res, e); }
+});
 
 app.get('/api/new', (req, res) => {
   const cols = Number(req.query.cols ?? 25);
@@ -76,6 +122,23 @@ app.post('/api/check', (req, res) => {
 // Resolved per request, not captured once: the tests point STRIPEX_BOARDS_DIR at
 // a temporary directory so a check run cannot touch a board somebody is using.
 const boardsDir = () => boards.boardsDirFor(root);
+const devicesFile = () => devicesStore.devicesFileFor(root);
+
+const deviceError = (res, e) => {
+  const status = { invalid: 400, 'no-such-device': 404, unreadable: 500 }[e.code] ?? 500;
+  return res.status(status).json({ error: e.message, code: e.code ?? 'error' });
+};
+
+// The stored catalogue, put over the built-ins.
+//
+// Read on every request rather than cached: the file is small, it can be edited
+// by hand or by another process, and a cache would be a second copy of the truth
+// that goes stale exactly when somebody changes a component — which is the one
+// thing this feature exists to make easy.
+function loadDevices() {
+  try { installDevices(devicesStore.read(devicesFile())); }
+  catch { /* an unreadable file leaves the built-ins standing, and /api/devices still answers */ }
+}
 
 // One place that turns a store error into a status, so a new error code cannot
 // quietly become a 500.

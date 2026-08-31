@@ -3004,4 +3004,37 @@
     failures: 1
     at: '2026-08-31T09:48:25.988'
     commit: 20e934a-dirty
+  fix:
+    file: .proofs/the-silkscreen-outline-runs-through-its-own-pads.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T09:53:11.446'
+    commit: ff459da-dirty
+- id: the-device-catalogue-is-code-so-only-i-can-change-it
+  type: new
+  what: 'DEVICES is a hardcoded object in src/parts/devices.js, so adding a component or correcting one
+    means editing source. Everything that went wrong with components this week needed a code change: the
+    JST body was the wrong size twice, the TMC2209 has two unverified pin names only Peter can settle,
+    and there is no 1206 land for the SMT parts he actually needs. He cannot add or fix a component himself.'
+  spec: docs/specs/component-editor.md
+  files:
+  - src/parts/devices.js
+  - src/server/devices.js
+  - src/server/index.js
+  test:
+    command:
+    - node
+    - tests/parts/test_device_store.mjs
+    criterion: the built-ins survive with nothing stored, a new device joins and can be placed, an override
+      replaces a built-in and dropping it returns to stock, an invalid device is refused naming what is
+      wrong, and editing a device does not change a board already built from it
+    runs: 1
+  trial:
+    file: .proofs/the-device-catalogue-is-code-so-only-i-can-change-it.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T10:31:08.368'
+    commit: ff459da-dirty
   fix: null
