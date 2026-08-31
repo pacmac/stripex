@@ -2810,3 +2810,31 @@
     runs: 1
   trial: null
   fix: null
+- id: the-jst-shroud-is-drawn-far-smaller-than-the-real-connector
+  type: bug
+  what: 'The JST XH body is drawn from invented proportions, not the datasheet. Measured against the KiCad
+    footprint library (which matches JST''s own A=2.5(n-1), B=A+4.9): a 3-way shroud is 9.9mm long, 5.75mm
+    deep for the vertical part and 11.5mm for the right angle, extending 9.2mm on one side of the pin
+    row. stripex draws 7.62mm long, 2.92mm deep straight and 4.83mm right angle. The right-angle body
+    covers about 3.6 rows of board beyond its pins and stripex shows 1.45, so a layout will put parts
+    under a connector that is really sitting on them.'
+  spec: docs/specs/named-components.md
+  files:
+  - src/render/svg.js
+  - src/parts/devices.js
+  test:
+    command:
+    - node
+    - tests/render/test_jst_dimensions.mjs
+    criterion: a JST body is the pin span plus 4.9mm at 2/3/5/8 ways, about n+1 holes long, 5.75mm deep
+      vertical and 11.5mm right angle at every way count, with 9.2mm of the right-angle body over the
+      board and the vertical body not centred on the pin row
+    runs: 1
+  trial:
+    file: .proofs/the-jst-shroud-is-drawn-far-smaller-than-the-real-connector.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T09:01:23.672'
+    commit: d5afa6f-dirty
+  fix: null

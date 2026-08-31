@@ -1,0 +1,167 @@
+{
+  "schema": "stripex/1",
+  "name": "jst check",
+  "board": {
+    "cols": 26,
+    "rows": 20,
+    "pattern": "strip"
+  },
+  "breaks": [],
+  "placements": [
+    {
+      "ref": "J1",
+      "part": "jst-xh",
+      "at": {
+        "col": 1,
+        "row": 2
+      },
+      "rot": 0,
+      "device": "jst-xh-2-straight",
+      "span": 2,
+      "angle": "straight",
+      "pinNames": [
+        "1",
+        "2"
+      ],
+      "pinSource": "the connector's own numbering — a JST pin has no function of its own"
+    },
+    {
+      "ref": "J2",
+      "part": "jst-xh",
+      "at": {
+        "col": 6,
+        "row": 2
+      },
+      "rot": 0,
+      "device": "jst-xh-3-straight",
+      "span": 3,
+      "angle": "straight",
+      "pinNames": [
+        "1",
+        "2",
+        "3"
+      ],
+      "pinSource": "the connector's own numbering — a JST pin has no function of its own"
+    },
+    {
+      "ref": "J3",
+      "part": "jst-xh",
+      "at": {
+        "col": 12,
+        "row": 2
+      },
+      "rot": 0,
+      "device": "jst-xh-8-straight",
+      "span": 8,
+      "angle": "straight",
+      "pinNames": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "pinSource": "the connector's own numbering — a JST pin has no function of its own"
+    },
+    {
+      "ref": "J4",
+      "part": "jst-xh",
+      "at": {
+        "col": 1,
+        "row": 8
+      },
+      "rot": 0,
+      "device": "jst-xh-2-right",
+      "span": 2,
+      "angle": "right",
+      "pinNames": [
+        "1",
+        "2"
+      ],
+      "pinSource": "the connector's own numbering — a JST pin has no function of its own"
+    },
+    {
+      "ref": "J5",
+      "part": "jst-xh",
+      "at": {
+        "col": 6,
+        "row": 8
+      },
+      "rot": 0,
+      "device": "jst-xh-3-right",
+      "span": 3,
+      "angle": "right",
+      "pinNames": [
+        "1",
+        "2",
+        "3"
+      ],
+      "pinSource": "the connector's own numbering — a JST pin has no function of its own"
+    },
+    {
+      "ref": "J6",
+      "part": "jst-xh",
+      "at": {
+        "col": 12,
+        "row": 8
+      },
+      "rot": 0,
+      "device": "jst-xh-8-right",
+      "span": 8,
+      "angle": "right",
+      "pinNames": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "pinSource": "the connector's own numbering — a JST pin has no function of its own"
+    },
+    {
+      "ref": "J7",
+      "part": "jst-xh",
+      "at": {
+        "col": 2,
+        "row": 14
+      },
+      "rot": 90,
+      "device": "jst-xh-4-right",
+      "span": 4,
+      "angle": "right",
+      "pinNames": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "pinSource": "the connector's own numbering — a JST pin has no function of its own"
+    },
+    {
+      "ref": "J8",
+      "part": "jst-xh",
+      "at": {
+        "col": 8,
+        "row": 14
+      },
+      "rot": 90,
+      "device": "jst-xh-4-straight",
+      "span": 4,
+      "angle": "straight",
+      "pinNames": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "pinSource": "the connector's own numbering — a JST pin has no function of its own"
+    }
+  ],
+  "wires": []
+}

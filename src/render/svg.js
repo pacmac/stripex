@@ -295,16 +295,42 @@ function bodyFor(part, pts, c, box, pl = {}) {
       // for a right-angle, offset entirely to one side. That asymmetry is the
       // whole reason to draw a connector rather than a box, and a bounding box
       // has no side.
+      // THE NUMBERS ARE JST'S, NOT PROPORTIONS PICKED TO LOOK RIGHT.
+      //
+      // Peter, 2026-08-31: "the footprint for JST XH is wrong." It was, by a
+      // CONSTANT rather than a proportion — half a pitch of overhang where the
+      // real housing has 2.45 mm, and depths chosen to "read as a shroud" — so
+      // the 8-way looked nearly right and the 2-way looked badly wrong.
+      //
+      // The XH drawing gives the pin span as A = 2.5(n-1) and the housing as
+      // B = A + 4.9, confirmed against the KiCad footprint library's fab
+      // outlines for the 2, 3, 5 and 8-way parts in both angles. Depth does not
+      // scale with way count at all: it is the same for a 2-way and an 8-way.
+      //
+      // A first source said B = 2.5n + 3.6, which would make a 3-way 11.1 mm.
+      // The outlines say 9.9 and JST's own formula agrees. Two sources.
+      const JST_END_MM = 2.45;        // housing past each end pin, (B - A) / 2
+      const JST_BACK_MM = 2.35;       // behind the pin row, vertical
+      const JST_FRONT_MM = 3.40;      // in front of it — the mating face
+      const JST_RA_BACK_MM = 2.30;    // behind the pin row, right angle
+      const JST_RA_FRONT_MM = 9.20;   // over the board, right angle
+
       const right = pl.angle === 'right';
-      // Half a pitch of shroud past each end pin.
-      const w = len + PITCH_MM;
-      // Deep enough to read as a shroud rather than a line. The right-angle body
-      // is deeper because it is lying down.
-      const d = right ? PITCH_MM * 1.9 : PITCH_MM * 1.15;
+      // Pin span plus the housing's own overhang, so it scales at one way per
+      // 2.5 mm without anything here being told the way count. The 0.04 mm a
+      // way that the board's 2.54 pitch adds over JST's 2.5 is left alone: the
+      // pins really are on the board's pitch.
+      const w = len + 2 * JST_END_MM;
+      const back = right ? JST_RA_BACK_MM : JST_BACK_MM;
+      const front = right ? JST_RA_FRONT_MM : JST_FRONT_MM;
+      const d = back + front;
       const x0 = -w / 2;
-      // Straight: centred on the pins. Right angle: hanging off one side of them,
-      // with a strip still over the pin row so the two are visibly one part.
-      const y0 = right ? -PITCH_MM * 0.45 : -d / 2;
+      // NOT CENTRED ON THE PIN ROW, because the real one is not — 2.35 behind
+      // and 3.4 in front of it for a vertical part. For a right angle the body
+      // lies over the board, 9.2 mm past the pins: about three and a half
+      // strips that a layout must not put anything on. Drawing 1.45 of a strip
+      // said they were free.
+      const y0 = -back;
       const ramp = right
         // on the far edge, where the cable leaves
         ? `<rect data-kind="jst-ramp" x="${n(x0 + w * 0.3)}" y="${n(y0 + d - PITCH_MM * 0.34)}"`
