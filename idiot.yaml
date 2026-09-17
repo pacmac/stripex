@@ -3868,12 +3868,28 @@
   spec: docs/specs/device-aware-api.md
   files:
   - src/model/ops.js
+  - src/model/board.js
   test:
-    command: null
-    criterion: null
+    command:
+    - node
+    - tests/model/test_device_refs.mjs
+    criterion: addPart with a device numbers from the device's refPrefix (sot23-mosfet is Q1 then Q2),
+      and falls back to the footprint's letter when the device has none
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/a-device-placed-by-the-api-takes-its-footprints-letter.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:59:38.506'
+    commit: 39f0f6d-dirty
+  fix:
+    file: .proofs/a-device-placed-by-the-api-takes-its-footprints-letter.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:01:15.703'
+    commit: 39f0f6d-dirty
 - id: the-board-has-no-row-letters-or-column-numbers
   type: new
   what: nothing at the board's edges says which row or column a hole is in, and there is no layer for

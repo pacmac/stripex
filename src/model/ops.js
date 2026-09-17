@@ -124,7 +124,9 @@ export function addPart(project, { part, at, rot: asked, span, width, device, si
     if (!d) return fail('no-such-device', `${JSON.stringify(device)} is not a device`);
     const next = clone(project);
     const pl = placementFor(device, { col: at.col, row: at.row }, rot,
-      nextPartRef(next, d.base));
+      // The DEVICE's letter, when it has one — numbering from the footprint put
+      // a SOT-23 MOSFET down as U2.
+      nextPartRef(next, d.base, d.refPrefix ?? null));
     if (!pl) return fail('no-such-device', `${JSON.stringify(device)} could not be placed`);
     if (silk) pl.silk = silk;
     if (value) pl.value = value;

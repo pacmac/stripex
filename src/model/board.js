@@ -162,8 +162,10 @@ export function nextWireRef(project) {
 // The prefix comes from the part definition. It used to live in a table here,
 // which is a second list of every part that has to be kept in step with the
 // library — and was not: the 0603 was added to the library and came out as "X1".
-export function nextPartRef(project, partId) {
-  const prefix = (hasPart(partId) ? getPart(partId).refPrefix : null) ?? 'X';
+// `ownPrefix` is a device's own letter, which wins over its footprint's: a
+// SOT-23 MOSFET is a Q, not the U its generic package would give it.
+export function nextPartRef(project, partId, ownPrefix = null) {
+  const prefix = ownPrefix ?? (hasPart(partId) ? getPart(partId).refPrefix : null) ?? 'X';
   const taken = new Set([
     ...(project.placements ?? []).map((pl) => pl.ref),
     ...(project.wires ?? []).map((w) => w.ref),
