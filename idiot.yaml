@@ -3964,11 +3964,29 @@
   - src/model/views.js
   - src/render/print.js
   test:
-    command: null
-    criterion: null
+    command:
+    - bash
+    - -c
+    - node tests/model/test_bom.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit $((a ||
+      b))
+    criterion: Top|Bot|Print views, no header Print; the Print view replaces the board with Print top
+      right; BOM, layers and page choices drive a live preview and persist across reload; the same sheet
+      prints; bomFor, holeName, cutRows and wireRows name things by the edge labels
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/print-is-a-header-dialog-that-forgets-and-has-no-tables.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:38:16.708'
+    commit: c50df96-dirty
+  fix:
+    file: .proofs/print-is-a-header-dialog-that-forgets-and-has-no-tables.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:44:08.582'
+    commit: c50df96-dirty
 - id: card-listeners-pile-up-so-a-layer-toggle-hangs
   type: bug
   what: "paintLayers and paintRules add a change listener to their card body on every repaint; draw()\
@@ -3998,3 +4016,31 @@
     failures: 0
     at: '2026-09-17T15:37:27.929'
     commit: 85f8aa1-dirty
+- id: the-bom-counts-different-sized-sockets-as-one
+  type: bug
+  what: the BOM names a parametric part by its catalogue name only, so a 16-pin and a 14-pin DIP socket,
+    or a 3-way and 5-way header, are one row with Qty 2
+  spec: docs/specs/print-view.md
+  files:
+  - src/model/views.js
+  test:
+    command:
+    - node
+    - tests/model/test_bom.mjs
+    criterion: a BOM names a part whose pin count varies with its pin count, so different-sized sockets
+      and headers are separate rows, and leaves fixed-pin parts unnamed by count
+    runs: 1
+  trial:
+    file: .proofs/the-bom-counts-different-sized-sockets-as-one.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:44:44.258'
+    commit: c50df96-dirty
+  fix:
+    file: .proofs/the-bom-counts-different-sized-sockets-as-one.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:44:54.488'
+    commit: c50df96-dirty

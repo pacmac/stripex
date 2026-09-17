@@ -350,7 +350,8 @@ s.check('THE VIEW IS A BUTTON GROUP, NOT A DROPDOWN', async () => {
       lit: [...document.querySelectorAll('.bar [data-view].is-on')].map((b) => b.dataset.view),
     }));
     eq(before.selects, 0, 'no dropdown in the toolbar');
-    eq(before.views, 2, 'two view buttons');
+    // Three since the Print view joined Top and Bot (print-view.md).
+    eq(before.views, 3, 'three view buttons: Top, Bot, Print');
     eq(before.lit, ['top'], 'exactly one is lit, and it is Top');
 
     // The board actually turns over — checked by the drawing, not by a class.

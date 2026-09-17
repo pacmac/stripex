@@ -202,7 +202,12 @@
     <button class="viewbtn is-on" data-view="top"
       title="Top — the component side">Top</button>
     <button class="viewbtn" data-view="underside"
-      title="Underside — the solder side, mirrored">Underside</button>
+      title="Bot — the solder side, mirrored">Bot</button>
+    <!-- PRINT IS A VIEW. Peter: "add another button print ... such that it
+         renders a panel where top / bot would be". The internal name of the
+         bottom view stays `underside`; only what a person reads changed. -->
+    <button class="viewbtn" data-view="print"
+      title="Print — choose the page, the layers and the tables">Print</button>
   </div>
 
   <div class="group">
@@ -249,39 +254,8 @@
     <button id="export" class="iconbtn" title="Export the board as an SVG"
       aria-label="Export as SVG">
       <svg class="ico" viewBox="0 0 24 24"><use href="#i-export"/></svg></button>
-    <button id="print" class="iconbtn" title="Print the board on A4"
-      aria-label="Print">
-      <svg class="ico" viewBox="0 0 24 24"><use href="#i-print"/></svg></button>
   </div>
 </header>
-
-<!-- PRINT. Three choices, each a row of buttons so the whole sheet is decided
-     at a glance, and a sentence saying whether it fits before you commit paper
-     to it. See docs/specs/print-sheet.md. -->
-<dialog id="printDialog" class="printdlg" aria-labelledby="printTitle">
-  <h2 id="printTitle">Print</h2>
-  <div class="printrow"><span class="printlabel">Colour</span>
-    <span class="devseg" role="group" aria-label="Colour">
-      <button type="button" class="devseg-opt" data-print-colour="colour">Colour</button>
-      <button type="button" class="devseg-opt" data-print-colour="mono">Black and white</button>
-    </span></div>
-  <div class="printrow"><span class="printlabel">Sides</span>
-    <span class="devseg" role="group" aria-label="Sides">
-      <button type="button" class="devseg-opt" data-print-sides="top">Top</button>
-      <button type="button" class="devseg-opt" data-print-sides="underside">Underside</button>
-      <button type="button" class="devseg-opt" data-print-sides="both">Both on one sheet</button>
-    </span></div>
-  <div class="printrow"><span class="printlabel">Size</span>
-    <span class="devseg" role="group" aria-label="Size">
-      <button type="button" class="devseg-opt" data-print-size="actual">Actual size</button>
-      <button type="button" class="devseg-opt" data-print-size="fill">Fill the page</button>
-    </span></div>
-  <p id="printFit" class="printfit" aria-live="polite"></p>
-  <div class="printactions">
-    <button type="button" id="printCancel">Cancel</button>
-    <button type="button" id="printGo" class="primary">Print</button>
-  </div>
-</dialog>
 
 <!-- What actually goes to paper. Empty and hidden on screen; built on Print,
      and under @media print it is the only thing shown. -->
@@ -294,6 +268,44 @@
 
   <section class="stage" id="stage">
     <div id="boardWrap" class="board-wrap"></div>
+    <!-- THE PRINT VIEW, in the board's place. Settings, layers and tables on the
+         left, the page itself on the right, Print at the top right. What the
+         preview shows is built by the same function as what goes to paper.
+         See docs/specs/print-view.md. -->
+    <section id="printView" class="pv" hidden aria-label="Print">
+      <div class="pv-bar">
+        <h2>Print</h2>
+        <span id="pvFit" class="pv-fit" aria-live="polite"></span>
+        <button type="button" id="pvPrint" class="primary">Print</button>
+      </div>
+      <div class="pv-body">
+        <aside class="pv-options">
+          <h3>Page</h3>
+          <span class="devseg" role="group" aria-label="Colour">
+            <button type="button" class="devseg-opt" data-print-colour="colour">Colour</button>
+            <button type="button" class="devseg-opt" data-print-colour="mono">Black &amp; white</button>
+          </span>
+          <span class="devseg" role="group" aria-label="Sides">
+            <button type="button" class="devseg-opt" data-print-sides="top">Top</button>
+            <button type="button" class="devseg-opt" data-print-sides="underside">Bot</button>
+            <button type="button" class="devseg-opt" data-print-sides="both">Both</button>
+          </span>
+          <span class="devseg" role="group" aria-label="Size">
+            <button type="button" class="devseg-opt" data-print-size="actual">Actual size</button>
+            <button type="button" class="devseg-opt" data-print-size="fill">Fill the page</button>
+          </span>
+          <h3>Layers</h3>
+          <div id="pvLayers" class="pv-checks"></div>
+          <h3>Tables</h3>
+          <div class="pv-checks">
+            <label><input type="checkbox" data-print-table="bom"> Bill of materials</label>
+            <label><input type="checkbox" data-print-table="cuts"> Cut list</label>
+            <label><input type="checkbox" data-print-table="wires"> Wire runs</label>
+          </div>
+        </aside>
+        <div id="pvPreview" class="pv-preview"><div class="pv-page"><div class="pv-sheet"></div></div></div>
+      </div>
+    </section>
     <p class="status" id="status"></p>
   </section>
 

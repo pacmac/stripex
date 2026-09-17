@@ -1115,22 +1115,71 @@ button.primary {
 
 /* ------------------------------------------------------------------- print */
 
-/* The dialog: three rows of choices, the fit sentence, and the two actions. */
-.printdlg {
-  border: 1px solid var(--line);
-  border-radius: 10px;
+/* THE PRINT VIEW, in the board's place: a bar with Print at its right, the
+   choices down the left, the page itself filling the rest. */
+.stage.is-printing #boardWrap { display: none; }
+.pv[hidden] { display: none; }
+.pv { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--stage); }
+.pv-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 14px;
   background: var(--panel);
-  color: var(--ink);
-  padding: 18px 20px 16px;
-  width: min(520px, calc(100vw - 32px));
+  border-bottom: 1px solid var(--line);
 }
-.printdlg::backdrop { background: rgba(0, 0, 0, 0.35); }
-.printdlg h2 { margin: 0 0 14px; font-size: 16px; }
-.printrow { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 10px; margin: 8px 0; }
-.printlabel { font-size: 12px; color: var(--ink-dim); }
-.printfit { font-size: 12.5px; color: var(--ink-dim); min-height: 2.8em; margin: 14px 0 12px; }
-.printfit.is-warn { color: var(--warning); }
-.printactions { display: flex; justify-content: flex-end; gap: 8px; }
+.pv-bar h2 { margin: 0; font-size: 15px; }
+.pv-fit { flex: 1; font-size: 12.5px; color: var(--ink-dim); }
+.pv-fit.is-warn { color: var(--warning); }
+.pv-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 250px 1fr; }
+.pv-options {
+  overflow-y: auto;
+  padding: 10px 14px 16px;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pv-options h3 {
+  margin: 10px 0 2px;
+  font: 700 11px/1 var(--ui);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-dim);
+}
+.pv-options h3:first-child { margin-top: 2px; }
+.pv-checks { display: flex; flex-direction: column; gap: 2px; }
+.pv-checks label { display: flex; align-items: center; gap: 7px; color: var(--ink); padding: 3px 0; }
+.pv-preview { overflow: auto; padding: 20px; }
+/* The page on screen: white, A4 wide, as tall as its content but never less
+   than a sheet. Zoomed to the pane by app.js. */
+.pv-page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 10mm;
+  box-sizing: border-box;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.3);
+  font: 10pt/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.pv-page.is-mono svg { filter: grayscale(1); }
+
+/* On the page, on screen and on paper alike. */
+.printhead { display: flex; gap: 14px; align-items: baseline; height: 10mm; }
+.printhead span { color: #444; }
+.printview { margin: 0 0 6mm; break-inside: avoid; }
+.printview figcaption { height: 6mm; font-size: 9pt; color: #333; }
+.printview svg { display: block; }
+.printtable { margin: 4mm 0 0; break-inside: auto; }
+.printtable h3 { font-size: 10pt; margin: 0 0 2mm; }
+.printtable table { border-collapse: collapse; width: 100%; font-size: 9pt; }
+.printtable th, .printtable td { border-bottom: 0.2mm solid #999; padding: 1mm 2mm; text-align: left; vertical-align: top; }
+.printtable th { border-bottom-color: #000; }
+.printtable tr { break-inside: avoid; }
+.printnone { font-size: 9pt; color: #555; margin: 0; }
 
 /* The sheet is nothing on screen and everything on paper. */
 #printSheet { display: none; }
@@ -1149,11 +1198,7 @@ button.primary {
     color: #000;
     font: 10pt/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
-  .printhead { display: flex; gap: 14px; align-items: baseline; height: 10mm; }
-  .printhead span { color: #444; }
-  .printview { margin: 0 0 6mm; break-inside: avoid; }
-  .printview figcaption { height: 6mm; font-size: 9pt; color: #333; }
-  .printview svg { display: block; }
+  /* The sheet's own styles are shared with the on-screen preview, above. */
   /* Black and white greys the colours a board carries itself as well. */
   #printSheet.is-mono svg { filter: grayscale(1); }
 }

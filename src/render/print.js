@@ -8,6 +8,28 @@
 // from printLayout.
 
 import { PITCH_MM } from '../model/geometry.js';
+import { columnLabel } from '../model/labels.js';
+import { cutList, runList } from '../model/views.js';
+
+// A HOLE NAMED THE WAY THE BOARD'S EDGES LABEL IT: row letter, column number.
+// Zero-based in, so holeName(4, 2) is C5 — the hole you find by reading C down
+// the side and 5 along the top.
+export const holeName = (col, row) => `${columnLabel(row + 1)}${col + 1}`;
+
+// Every cut to make, derived ones included, in those names. A knife cut sits
+// between two columns — "C 4|5" — and a spot-face is at a hole — "C5".
+export function cutRows(project) {
+  return cutList(project).map((b) => (b.at === 'hole'
+    ? { where: holeName(b.x, b.row), kind: 'spot-face' }
+    : { where: `${columnLabel(b.row + 1)} ${b.x + 1}|${b.x + 2}`, kind: 'knife' }));
+}
+
+// Every pen wire, hole to hole, in the same names.
+export function wireRows(project) {
+  return runList(project).map((w) => ({
+    ref: w.ref, from: holeName(w.from.col, w.from.row), to: holeName(w.to.col, w.to.row),
+  }));
+}
 
 export const A4_MM = { w: 210, h: 297 };
 export const PRINT_MARGIN_MM = 10;

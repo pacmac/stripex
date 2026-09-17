@@ -72,7 +72,10 @@ s.check('FOCUS OFFERS TOP / COPPER SIDE, SWITCHING GHOSTS IT, AND UNDO PUTS IT B
       const g = page.locator('#boardWrap [data-kind="part"][data-ref="R1"]');
       const after = { side: await g.getAttribute('data-side'), opacity: await g.getAttribute('opacity') };
       await page.keyboard.press('Control+z');
-      await page.waitForTimeout(500);
+      // Wait for the state, not a fixed time: under the full suite's load a
+      // 500 ms sleep read the board before the undo had landed.
+      await page.waitForFunction(() => document.querySelector('#boardWrap [data-kind="part"][data-ref="R1"]')
+        ?.getAttribute('data-side') === 'top', null, { timeout: 4000 }).catch(() => {});
       const undone = await page.locator('#boardWrap [data-kind="part"][data-ref="R1"]').getAttribute('data-side');
       r = { n, litBefore, after, undone };
     }

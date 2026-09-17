@@ -6,9 +6,9 @@
 // rather than recomputing layout — one description of where things are.
 
 import { renderBoard, DEFAULT_LAYERS, drawingExtentMm } from '/src/render/svg.js';
-import { printLayout, viewBoxSize } from '/src/render/print.js';
+import { printLayout, viewBoxSize, cutRows, wireRows } from '/src/render/print.js';
 import { PITCH_MM } from '/src/model/geometry.js';
-import { findingsFor, netsFor, runList } from '/src/model/views.js';
+import { findingsFor, netsFor, runList, bomFor } from '/src/model/views.js';
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
 import { rotatePlacement, resolvePins } from '/src/model/rotate.js';
 import { requiredBreaks, ownerOf, effectiveBreaks } from '/src/model/breaks.js';
@@ -515,6 +515,9 @@ function draw(message) {
   paintLayers();
   markSelectedRows();
   focusOnSelectionChange();
+  // A board that changes under the Print view — a save from elsewhere, an undo
+  // — changes its preview too, or the page would print something stale.
+  if (state.printing) paintPrintView();
   if (shouldSetStatus(message)) say(message);
 }
 
@@ -571,6 +574,129 @@ function scrollSelectionIntoPanel() {
   const panel = row.closest('.panel');
   if (!panel) return;
   panel.scrollTop += row.getBoundingClientRect().top - panel.getBoundingClientRect().top;
+}
+
+// -------------------------------------------------------------------- print
+//
+// Peter: "rename Underside -> "Bot", add another button print ... the layer
+// selection and print settings should persist so that each time I print I wont
+// have to re-select everything. this panel should have a print button, probably
+// top right". See docs/specs/print-view.md.
+//
+// Print is a VIEW. Its choices — the page, which layers, which tables — are a
+// preference of whoever is printing, kept like the layers are, and no board
+// data goes near the browser store. The first time, the print layers start from
+// the layers on screen; after that they are their own.
+const PRINT_KEY = 'stripex.print';
+const PRINT_LAYERS = LAYER_ROWS.filter(([k]) => k !== 'drc');
+
+const printPrefs = (() => {
+  const base = {
+    colour: 'colour',
+    sides: 'both',
+    size: 'actual',
+    layers: Object.fromEntries(PRINT_LAYERS.map(([k]) => [k, state.layers?.[k] !== false])),
+    tables: { bom: false, cuts: false, wires: false },
+  };
+  try {
+    const raw = JSON.parse(localStorage.getItem(PRINT_KEY) ?? 'null');
+    if (raw && typeof raw === 'object') {
+      return {
+        ...base, ...raw,
+        layers: { ...base.layers, ...(raw.layers ?? {}) },
+        tables: { ...base.tables, ...(raw.tables ?? {}) },
+      };
+    }
+  } catch { /* a preference, not a record */ }
+  return base;
+})();
+
+function savePrintPrefs() {
+  try { localStorage.setItem(PRINT_KEY, JSON.stringify(printPrefs)); } catch { /* a preference */ }
+}
+
+// The drawing for paper: the print layers, never the check markers, never a
+// selection or a lit net — those belong to editing, not to a build sheet.
+const printSvg = (view, theme) => renderBoard(state.project, {
+  view, theme, layers: { ...DEFAULT_LAYERS, ...printPrefs.layers, drc: false },
+});
+
+const printLayoutFor = (theme) => printLayout({
+  drawing: viewBoxSize(printSvg('top', theme)), sides: printPrefs.sides, size: printPrefs.size,
+});
+
+// ONE SHEET, built here and used twice: once into the preview, once onto paper.
+// A preview built separately would be a second thing that can disagree.
+function printSheetHtml() {
+  const mono = printPrefs.colour === 'mono';
+  const theme = mono ? 'mono' : 'light';
+  const lay = printLayoutFor(theme);
+  const caption = {
+    top: 'Top — the component side',
+    underside: 'Bot — the copper side, mirrored',
+  };
+  const scaleText = printPrefs.size === 'actual'
+    ? 'actual size — one hole is 2.54 mm'
+    : `scaled to ${Math.round(lay.scale * 100)}%`;
+  const table = (id, title, head, rows) => `<section class="printtable"><h3>${title}</h3>${rows.length
+    ? `<table data-table="${id}"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead>`
+      + `<tbody>${rows.map((row) => `<tr>${row.map((c) => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+    : '<p class="printnone">None on this board.</p>'}</section>`;
+
+  const html = `<header class="printhead"><b>${escapeHtml(state.project.name || 'board')}</b>`
+    + `<span>${new Date().toISOString().slice(0, 10)}</span><span>${scaleText}</span></header>`
+    + lay.views.map((v) => `<figure class="printview"><figcaption>${caption[v.view]}</figcaption>${
+      // Millimetres on the element: the drawing's own units, so actual size
+      // really is one hole to 2.54 mm on the paper.
+      printSvg(v.view, theme).replace('width="100%" height="100%"',
+        `width="${v.widthMm}mm" height="${v.heightMm}mm"`)}</figure>`).join('')
+    + (printPrefs.tables.bom ? table('bom', 'Bill of materials', ['Qty', 'Refs', 'Value', 'Part'],
+      bomFor(state.project).map((r) => [String(r.qty), r.refs.join(', '), r.value, r.part])) : '')
+    + (printPrefs.tables.cuts ? table('cuts', 'Cut list', ['Where', 'Cut'],
+      cutRows(state.project).map((c) => [c.where, c.kind])) : '')
+    + (printPrefs.tables.wires ? table('wires', 'Wire runs', ['Ref', 'From', 'To'],
+      wireRows(state.project).map((w) => [w.ref, w.from, w.to])) : '');
+  return { html, mono, lay };
+}
+
+function paintPrintView() {
+  const panel = $('#printView');
+  if (!panel || panel.hidden) return;
+  for (const key of ['colour', 'sides', 'size']) {
+    const attr = `print${key[0].toUpperCase()}${key.slice(1)}`;
+    for (const b of panel.querySelectorAll(`[data-print-${key}]`)) {
+      const on = b.dataset[attr] === printPrefs[key];
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', String(on));
+    }
+  }
+  const layers = $('#pvLayers');
+  if (!layers.children.length) {
+    layers.innerHTML = PRINT_LAYERS.map(([k, label]) => `<label>
+      <input type="checkbox" data-print-layer="${k}"> ${escapeHtml(label)}</label>`).join('');
+  }
+  for (const box of panel.querySelectorAll('[data-print-layer]')) box.checked = printPrefs.layers[box.dataset.printLayer] !== false;
+  for (const box of panel.querySelectorAll('[data-print-table]')) box.checked = Boolean(printPrefs.tables[box.dataset.printTable]);
+
+  const { html, mono, lay } = printSheetHtml();
+  $('#pvFit').textContent = lay.message;
+  $('#pvFit').classList.toggle('is-warn', !lay.fits);
+  const page = $('#pvPreview .pv-page');
+  page.classList.toggle('is-mono', mono);
+  $('#pvPreview .pv-sheet').innerHTML = html;
+  // Fit the A4 page to the pane's width. zoom rather than a transform, so the
+  // pane scrolls over the real height of a sheet that runs onto a second page.
+  const pane = $('#pvPreview');
+  const pageMm = 210;
+  const pxPerMm = 96 / 25.4;
+  page.style.zoom = String(Math.min(1.4, Math.max(0.3, (pane.clientWidth - 40) / (pageMm * pxPerMm))));
+}
+
+function showPrintView(on) {
+  state.printing = on;
+  $('#printView').hidden = !on;
+  $('#stage').classList.toggle('is-printing', on);
+  if (on) paintPrintView();
 }
 
 // A layer switched on or off. Attached ONCE to the Layers card body, in
@@ -2670,14 +2796,20 @@ function boot() {
 
   // One click, and the lit button says which side you are looking at without
   // being opened. `state.view` is unchanged, so nothing downstream moved.
-  for (const b of document.querySelectorAll('[data-view]')) {
+  // `.viewbtn`, not `[data-view]`: the board's own SVG and every printed view
+  // carry data-view too.
+  for (const b of document.querySelectorAll('.viewbtn[data-view]')) {
     b.addEventListener('click', () => {
-      state.view = b.dataset.view;
-      for (const other of document.querySelectorAll('[data-view]')) {
+      for (const other of document.querySelectorAll('.viewbtn[data-view]')) {
         other.classList.toggle('is-on', other === b);
       }
+      // Print is a view of its own: the panel in the board's place, leaving
+      // state.view — which side the board shows — exactly as it was.
+      if (b.dataset.view === 'print') return showPrintView(true);
+      showPrintView(false);
+      state.view = b.dataset.view;
       draw(state.view === 'underside'
-        ? 'underside — mirrored, this is what you solder'
+        ? 'bot — mirrored, this is what you solder'
         : 'top');
     });
   }
@@ -2828,77 +2960,32 @@ function boot() {
     say(`exported the ${state.view} view`);
   });
 
-  // ------------------------------------------------------------------ print
-  //
-  // Peter: "need a print button, prefereably with options to print in colours
-  // and black and white, and to be able to print top and bottom on a single A4
-  // sheet, either to scale or fill to contents." See docs/specs/print-sheet.md.
-  //
-  // What prints is what is shown — the layers switched on — without the check
-  // markers, a selection or a lit net, which belong to editing and not to a
-  // build sheet. The sizes and the sentence both come from printLayout, so the
-  // dialog cannot promise one thing and the sheet do another.
-  const printChoice = { colour: 'colour', sides: 'both', size: 'actual' };
-  const printSvg = (view, theme) => renderBoard(state.project, {
-    view, theme, layers: { ...state.layers, drc: false },
-  });
-  const printLayoutNow = (theme) => printLayout({
-    drawing: viewBoxSize(printSvg('top', theme)), sides: printChoice.sides, size: printChoice.size,
-  });
-
-  function paintPrintDialog() {
-    for (const key of ['colour', 'sides', 'size']) {
-      const attr = `print${key[0].toUpperCase()}${key.slice(1)}`;
-      for (const b of document.querySelectorAll(`#printDialog [data-print-${key}]`)) {
-        const on = b.dataset[attr] === printChoice[key];
-        b.classList.toggle('is-on', on);
-        b.setAttribute('aria-pressed', String(on));
-      }
-    }
-    const lay = printLayoutNow('light');
-    $('#printFit').textContent = lay.message;
-    $('#printFit').classList.toggle('is-warn', !lay.fits);
-  }
-
-  function buildPrintSheet() {
-    const theme = printChoice.colour === 'mono' ? 'mono' : 'light';
-    const lay = printLayoutNow(theme);
-    const caption = {
-      top: 'Top — the component side',
-      underside: 'Underside — the copper side, mirrored',
-    };
-    const scaleText = printChoice.size === 'actual'
-      ? 'actual size — one hole is 2.54 mm'
-      : `scaled to ${Math.round(lay.scale * 100)}%`;
-    const sheet = $('#printSheet');
-    // Black and white also greys the colours a board carries itself — a part's
-    // silkscreen, wire colours, net colours — which no theme can reach.
-    sheet.classList.toggle('is-mono', theme === 'mono');
-    sheet.innerHTML = `<header class="printhead"><b>${escapeHtml(state.project.name || 'board')}</b>`
-      + `<span>${new Date().toISOString().slice(0, 10)}</span><span>${scaleText}</span></header>`
-      + lay.views.map((v) => `<figure class="printview"><figcaption>${caption[v.view]}</figcaption>${
-        // Millimetres on the element: the drawing's own units, so actual size
-        // really is one hole to 2.54 mm on the paper.
-        printSvg(v.view, theme).replace('width="100%" height="100%"',
-          `width="${v.widthMm}mm" height="${v.heightMm}mm"`)}</figure>`).join('');
-  }
-
-  $('#print').addEventListener('click', () => {
-    paintPrintDialog();
-    $('#printDialog').showModal();
-  });
-  $('#printDialog').addEventListener('click', (e) => {
+  // ------------------------------------------------------------ print view
+  // Choices in the panel. Attached once; the panel is not rebuilt, only its
+  // lit states and its preview are (see the Layers card for why that matters).
+  $('#printView').addEventListener('click', (e) => {
     const b = e.target.closest('[data-print-colour], [data-print-sides], [data-print-size]');
     if (!b) return;
-    if (b.dataset.printColour) printChoice.colour = b.dataset.printColour;
-    if (b.dataset.printSides) printChoice.sides = b.dataset.printSides;
-    if (b.dataset.printSize) printChoice.size = b.dataset.printSize;
-    paintPrintDialog();
+    if (b.dataset.printColour) printPrefs.colour = b.dataset.printColour;
+    if (b.dataset.printSides) printPrefs.sides = b.dataset.printSides;
+    if (b.dataset.printSize) printPrefs.size = b.dataset.printSize;
+    savePrintPrefs();
+    paintPrintView();
   });
-  $('#printCancel').addEventListener('click', () => $('#printDialog').close());
-  $('#printGo').addEventListener('click', () => {
-    buildPrintSheet();
-    $('#printDialog').close();
+  $('#printView').addEventListener('change', (e) => {
+    const { printLayer, printTable } = e.target.dataset;
+    if (printLayer) printPrefs.layers[printLayer] = e.target.checked;
+    else if (printTable) printPrefs.tables[printTable] = e.target.checked;
+    else return;
+    savePrintPrefs();
+    paintPrintView();
+  });
+  $('#pvPrint').addEventListener('click', () => {
+    // The very sheet the preview shows, not a second build of it.
+    const { html, mono } = printSheetHtml();
+    const sheet = $('#printSheet');
+    sheet.innerHTML = html;
+    sheet.classList.toggle('is-mono', mono);
     window.print();
   });
 
@@ -2914,6 +3001,8 @@ function boot() {
     }
 
     if (e.target.matches('input, select, textarea')) return;
+    // Tool keys act on a board you can see. In the Print view you cannot.
+    if (state.printing) return;
     if (e.key === 'Escape') {
       state.selection = null;
       // Escape means "stop what I am doing", and the armed tool is part of what
