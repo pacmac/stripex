@@ -6,6 +6,7 @@
 // rather than recomputing layout — one description of where things are.
 
 import { renderBoard, DEFAULT_LAYERS, drawingExtentMm } from '/src/render/svg.js';
+import { printLayout, viewBoxSize } from '/src/render/print.js';
 import { PITCH_MM } from '/src/model/geometry.js';
 import { findingsFor, netsFor, runList } from '/src/model/views.js';
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
@@ -2790,6 +2791,80 @@ function boot() {
     a.download = `${state.project.name || 'board'}-${state.view}.svg`;
     a.click();
     say(`exported the ${state.view} view`);
+  });
+
+  // ------------------------------------------------------------------ print
+  //
+  // Peter: "need a print button, prefereably with options to print in colours
+  // and black and white, and to be able to print top and bottom on a single A4
+  // sheet, either to scale or fill to contents." See docs/specs/print-sheet.md.
+  //
+  // What prints is what is shown — the layers switched on — without the check
+  // markers, a selection or a lit net, which belong to editing and not to a
+  // build sheet. The sizes and the sentence both come from printLayout, so the
+  // dialog cannot promise one thing and the sheet do another.
+  const printChoice = { colour: 'colour', sides: 'both', size: 'actual' };
+  const printSvg = (view, theme) => renderBoard(state.project, {
+    view, theme, layers: { ...state.layers, drc: false },
+  });
+  const printLayoutNow = (theme) => printLayout({
+    drawing: viewBoxSize(printSvg('top', theme)), sides: printChoice.sides, size: printChoice.size,
+  });
+
+  function paintPrintDialog() {
+    for (const key of ['colour', 'sides', 'size']) {
+      const attr = `print${key[0].toUpperCase()}${key.slice(1)}`;
+      for (const b of document.querySelectorAll(`#printDialog [data-print-${key}]`)) {
+        const on = b.dataset[attr] === printChoice[key];
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-pressed', String(on));
+      }
+    }
+    const lay = printLayoutNow('light');
+    $('#printFit').textContent = lay.message;
+    $('#printFit').classList.toggle('is-warn', !lay.fits);
+  }
+
+  function buildPrintSheet() {
+    const theme = printChoice.colour === 'mono' ? 'mono' : 'light';
+    const lay = printLayoutNow(theme);
+    const caption = {
+      top: 'Top — the component side',
+      underside: 'Underside — the copper side, mirrored',
+    };
+    const scaleText = printChoice.size === 'actual'
+      ? 'actual size — one hole is 2.54 mm'
+      : `scaled to ${Math.round(lay.scale * 100)}%`;
+    const sheet = $('#printSheet');
+    // Black and white also greys the colours a board carries itself — a part's
+    // silkscreen, wire colours, net colours — which no theme can reach.
+    sheet.classList.toggle('is-mono', theme === 'mono');
+    sheet.innerHTML = `<header class="printhead"><b>${escapeHtml(state.project.name || 'board')}</b>`
+      + `<span>${new Date().toISOString().slice(0, 10)}</span><span>${scaleText}</span></header>`
+      + lay.views.map((v) => `<figure class="printview"><figcaption>${caption[v.view]}</figcaption>${
+        // Millimetres on the element: the drawing's own units, so actual size
+        // really is one hole to 2.54 mm on the paper.
+        printSvg(v.view, theme).replace('width="100%" height="100%"',
+          `width="${v.widthMm}mm" height="${v.heightMm}mm"`)}</figure>`).join('');
+  }
+
+  $('#print').addEventListener('click', () => {
+    paintPrintDialog();
+    $('#printDialog').showModal();
+  });
+  $('#printDialog').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-print-colour], [data-print-sides], [data-print-size]');
+    if (!b) return;
+    if (b.dataset.printColour) printChoice.colour = b.dataset.printColour;
+    if (b.dataset.printSides) printChoice.sides = b.dataset.printSides;
+    if (b.dataset.printSize) printChoice.size = b.dataset.printSize;
+    paintPrintDialog();
+  });
+  $('#printCancel').addEventListener('click', () => $('#printDialog').close());
+  $('#printGo').addEventListener('click', () => {
+    buildPrintSheet();
+    $('#printDialog').close();
+    window.print();
   });
 
   document.addEventListener('keydown', (e) => {

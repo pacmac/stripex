@@ -1112,3 +1112,48 @@ button.primary {
   main { grid-template-columns: 160px 1fr 230px; }
   .tool span { display: none; }
 }
+
+/* ------------------------------------------------------------------- print */
+
+/* The dialog: three rows of choices, the fit sentence, and the two actions. */
+.printdlg {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--ink);
+  padding: 18px 20px 16px;
+  width: min(520px, calc(100vw - 32px));
+}
+.printdlg::backdrop { background: rgba(0, 0, 0, 0.35); }
+.printdlg h2 { margin: 0 0 14px; font-size: 16px; }
+.printrow { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 10px; margin: 8px 0; }
+.printlabel { font-size: 12px; color: var(--ink-dim); }
+.printfit { font-size: 12.5px; color: var(--ink-dim); min-height: 2.8em; margin: 14px 0 12px; }
+.printfit.is-warn { color: var(--warning); }
+.printactions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* The sheet is nothing on screen and everything on paper. */
+#printSheet { display: none; }
+
+@media print {
+  @page { size: A4 portrait; margin: 10mm; }
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    display: block !important;
+  }
+  body > *:not(#printSheet) { display: none !important; }
+  #printSheet {
+    display: block !important;
+    color: #000;
+    font: 10pt/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .printhead { display: flex; gap: 14px; align-items: baseline; height: 10mm; }
+  .printhead span { color: #444; }
+  .printview { margin: 0 0 6mm; break-inside: avoid; }
+  .printview figcaption { height: 6mm; font-size: 9pt; color: #333; }
+  .printview svg { display: block; }
+  /* Black and white greys the colours a board carries itself as well. */
+  #printSheet.is-mono svg { filter: grayscale(1); }
+}

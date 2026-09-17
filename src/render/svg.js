@@ -86,6 +86,32 @@ export const THEMES = {
     // needs rescuing.
     wireCasing: '#0b0906',
   },
+  // BLACK AND WHITE, FOR PAPER. Not a greyscale of the light theme — that
+  // prints the tan board as a grey rectangle and spends the toner on nothing.
+  // A white board, black ink and outlines, pale copper, white holes ringed in
+  // black. See docs/specs/print-sheet.md.
+  mono: {
+    substrate: '#ffffff',
+    substrateEdge: '#000000',
+    copper: '#d9d9d9',
+    copperDim: '#e6e6e6',
+    copperLit: '#9e9e9e',
+    hole: '#ffffff',
+    holeRing: '#000000',
+    cut: '#000000',
+    ink: '#000000',
+    wire: '#000000',
+    wireInk: '#000000',
+    body: '#ffffff',
+    bodyInk: '#000000',
+    lead: '#555555',
+    error: '#000000',
+    warning: '#000000',
+    select: '#000000',
+    silk: '#000000',
+    silkFill: '#000000',
+    wireCasing: '#ffffff',
+  },
 };
 
 const n = (v) => Math.round(v * 1000) / 1000;

@@ -49,6 +49,12 @@
        stroke-linecap="round" stroke-linejoin="round">
       <path d="M4 12a8 8 0 1 0 2.34-5.66"/><path d="M4 4v5h5"/><path d="M12 8v4l3 2"/>
     </g>
+    <g id="i-print" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 9V3h12v6"/>
+      <rect x="3" y="9" width="18" height="8" rx="2"/>
+      <path d="M6 14h12v7H6z"/>
+    </g>
     <g id="i-export" fill="none" stroke="currentColor" stroke-width="2"
        stroke-linecap="round" stroke-linejoin="round">
       <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>
@@ -229,8 +235,43 @@
     <button id="export" class="iconbtn" title="Export the board as an SVG"
       aria-label="Export as SVG">
       <svg class="ico" viewBox="0 0 24 24"><use href="#i-export"/></svg></button>
+    <button id="print" class="iconbtn" title="Print the board on A4"
+      aria-label="Print">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-print"/></svg></button>
   </div>
 </header>
+
+<!-- PRINT. Three choices, each a row of buttons so the whole sheet is decided
+     at a glance, and a sentence saying whether it fits before you commit paper
+     to it. See docs/specs/print-sheet.md. -->
+<dialog id="printDialog" class="printdlg" aria-labelledby="printTitle">
+  <h2 id="printTitle">Print</h2>
+  <div class="printrow"><span class="printlabel">Colour</span>
+    <span class="devseg" role="group" aria-label="Colour">
+      <button type="button" class="devseg-opt" data-print-colour="colour">Colour</button>
+      <button type="button" class="devseg-opt" data-print-colour="mono">Black and white</button>
+    </span></div>
+  <div class="printrow"><span class="printlabel">Sides</span>
+    <span class="devseg" role="group" aria-label="Sides">
+      <button type="button" class="devseg-opt" data-print-sides="top">Top</button>
+      <button type="button" class="devseg-opt" data-print-sides="underside">Underside</button>
+      <button type="button" class="devseg-opt" data-print-sides="both">Both on one sheet</button>
+    </span></div>
+  <div class="printrow"><span class="printlabel">Size</span>
+    <span class="devseg" role="group" aria-label="Size">
+      <button type="button" class="devseg-opt" data-print-size="actual">Actual size</button>
+      <button type="button" class="devseg-opt" data-print-size="fill">Fill the page</button>
+    </span></div>
+  <p id="printFit" class="printfit" aria-live="polite"></p>
+  <div class="printactions">
+    <button type="button" id="printCancel">Cancel</button>
+    <button type="button" id="printGo" class="primary">Print</button>
+  </div>
+</dialog>
+
+<!-- What actually goes to paper. Empty and hidden on screen; built on Print,
+     and under @media print it is the only thing shown. -->
+<section id="printSheet" aria-hidden="true"></section>
 
 <main>
   <!-- Cards, built from CARDS in src/render/panels.js. Each owns the settings

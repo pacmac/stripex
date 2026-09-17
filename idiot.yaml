@@ -3873,3 +3873,39 @@
     failures: 0
     at: '2026-09-17T13:18:57.089'
     commit: d6474ff-dirty
+- id: the-board-cannot-be-printed
+  type: new
+  what: 'there is no way to print a board: no button, no black and white, no top and underside on one
+    sheet, no actual-size or fill choice'
+  spec: docs/specs/print-sheet.md
+  files:
+  - src/render/print.js
+  - src/render/svg.js
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_sheet.mjs; b=$?; exit
+      $((a || b))
+    criterion: printLayout fits a 30x14 board both sides at actual size on A4, says when it does not and
+      to use Fill the page, fill gives one largest scale; a mono theme draws a white board with black
+      ink; the Print button opens the three choices, builds a mono top+underside sheet without check markers,
+      calls print, and print media shows only the sheet
+    runs: 1
+  trial:
+    file: .proofs/the-board-cannot-be-printed.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T13:20:59.692'
+    commit: c1ce68d-dirty
+  fix:
+    file: .proofs/the-board-cannot-be-printed.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T13:24:13.108'
+    commit: c1ce68d-dirty
