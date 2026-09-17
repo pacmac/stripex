@@ -5,7 +5,7 @@
 // cannot drift apart. Hit-testing reads data-* attributes off event.target
 // rather than recomputing layout — one description of where things are.
 
-import { renderBoard, DEFAULT_LAYERS } from '/src/render/svg.js';
+import { renderBoard, DEFAULT_LAYERS, drawingExtentMm } from '/src/render/svg.js';
 import { PITCH_MM } from '/src/model/geometry.js';
 import { findingsFor, netsFor, runList } from '/src/model/views.js';
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
@@ -75,7 +75,7 @@ function swatches(field, current, effective, label) {
         data-hex="" title="Default">&times;</button></div>`;
 }
 import {
-  partList, getPart, defaultRotOf, placesWith, CATEGORIES, pinLabel,
+  partList, getPart, defaultRotOf, placesWith, CATEGORIES, pinLabel, sideOf, pinsOf,
 } from '/src/parts/library.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -111,6 +111,33 @@ const OPEN_KEY = 'stripex.openBoard';
 // to stop. tests/render/test_boot.mjs holds that line down.
 let loadRepairs = [];
 const LAYER_KEY = 'stripex.layers';
+
+// HOW THE LIBRARY IS SHOWN — list or tiles, and which groups are folded. A view
+// preference, the same kind of thing as the layers: it belongs to whoever is
+// looking, not to the board, and nothing about a board is ever kept here. The
+// page is right without it, so a blocked or cleared store costs only the
+// preference.
+const LIB_KEY = 'stripex.library';
+
+function loadLibraryView() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LIB_KEY) ?? 'null');
+    return {
+      libView: raw?.view === 'tiles' ? 'tiles' : 'list',
+      libCollapsed: new Set(Array.isArray(raw?.collapsed) ? raw.collapsed : []),
+    };
+  } catch {
+    return { libView: 'list', libCollapsed: new Set() };
+  }
+}
+
+function saveLibraryView() {
+  try {
+    localStorage.setItem(LIB_KEY, JSON.stringify({
+      view: state.libView, collapsed: [...state.libCollapsed],
+    }));
+  } catch { /* a preference, not a record */ }
+}
 
 // Order and wording of the layer list. The swatch is the colour that layer
 // actually paints, so the list reads as the drawing rather than as a glossary.
@@ -175,6 +202,7 @@ const state = {
   // armed. Nothing ever disappears, so the panel's shape is learnable.
   openCard: 'library',
   search: '',
+  ...loadLibraryView(),
   layers: loadLayers(),
   // The stacks live in src/model/undo.js — see `history` below. They were two
   // arrays here, and the bug they held was unreachable by any check because
@@ -953,6 +981,26 @@ const capitalise = (s) => String(s ?? '').charAt(0).toUpperCase() + String(s ?? 
 // does not work, so that is how it is shown — with the cuts the package itself
 // declares, which is what makes this a stripboard footprint rather than a
 // generic one.
+//
+// A SCRAP OF BOARD FOR ONE PART: the pins' own block plus one strip all round,
+// with the placement shifted onto it. Shared by this preview and the Library's
+// footprints, so the two can never disagree about how a part is framed.
+//
+// Built, not mutated: the caller's placement is copied, and the project never
+// leaves the caller.
+function scrapProjectFor(placement) {
+  const pl = { ...placement, at: { col: 1, row: 1 } };
+  const at1 = resolvePins([pl], getPart);
+  const cs = at1.map((q) => q.col);
+  const rs = at1.map((q) => q.row);
+  // Shift so the top-left pin lands one strip in from the corner, then make the
+  // board that block plus the same strip on the far side.
+  pl.at = { col: 1 + (1 - Math.min(...cs)), row: 1 + (1 - Math.min(...rs)) };
+  const cols = Math.max(...cs) - Math.min(...cs) + 3;
+  const rows = Math.max(...rs) - Math.min(...rs) + 3;
+  return { ...makeProject({ cols, rows, name: 'preview' }), placements: [pl] };
+}
+
 function paintDevicePreview() {
   const el = $('#devDrawing');
   if (!el || !devEditing) return;
@@ -987,18 +1035,7 @@ function paintDevicePreview() {
   if (d.pins?.length) pl.pinNames = [...d.pins];
   if (d.unverifiedPins?.length) pl.unverifiedPins = [...d.unverifiedPins];
 
-  const at1 = resolvePins([pl], getPart);
-  const cs = at1.map((p) => p.col);
-  const rs = at1.map((p) => p.row);
-  // Shift so the top-left pin lands one strip in from the corner, then make the
-  // board that block plus the same strip on the far side.
-  pl.at = { col: 1 + (1 - Math.min(...cs)), row: 1 + (1 - Math.min(...rs)) };
-  const cols = Math.max(...cs) - Math.min(...cs) + 3;
-  const rows = Math.max(...rs) - Math.min(...rs) + 3;
-
-  // Built, not mutated: a scratch project that never leaves this function, and
-  // nothing in this editor changes a project in place.
-  const p = { ...makeProject({ cols, rows, name: 'preview' }), placements: [pl] };
+  const p = scrapProjectFor(pl);
   try {
     el.innerHTML = renderBoard(p, {
       theme: state.theme,
@@ -1874,12 +1911,17 @@ function onBoardClick(evt) {
 function buildCards() {
   $('#cards').innerHTML = CARDS.map((c) => `
     <section class="card" data-card="${c.id}">
-      <button class="card-head" data-cardtoggle="${c.id}">
-        <span class="card-icon">${c.icon}</span>
-        <span class="card-title">${c.title}</span>
-        <span class="card-sub" data-cardsub="${c.id}"></span>
-        <span class="card-chev">▾</span>
-      </button>
+      <div class="card-headrow">
+        <button class="card-head" data-cardtoggle="${c.id}">
+          <span class="card-icon">${c.icon}</span>
+          <span class="card-title">${c.title}</span>
+          <span class="card-sub" data-cardsub="${c.id}"></span>
+          <span class="card-chev">▾</span>
+        </button>
+        <!-- A card's own controls sit BESIDE its header button, never inside
+             it: a button inside a button is invalid and takes the click. -->
+        <span class="card-tools" data-cardtools="${c.id}"></span>
+      </div>
       <div class="card-body" data-cardbody="${c.id}" hidden></div>
     </section>`).join('');
 
@@ -1918,6 +1960,21 @@ function paintCards() {
   const label = $('#boardLabel');
   if (label) label.textContent = named ? state.project.name : 'Boards';
   syncBoardSize();
+
+  // The list / tiles toggle, top right of the Library header. Only while the
+  // card is open: it controls a body you cannot otherwise see. It shows the
+  // view a click will GIVE you, and says so in words for a screen reader.
+  const libTools = $('[data-cardtools="library"]');
+  if (libTools) {
+    const toTiles = state.libView !== 'tiles';
+    libTools.innerHTML = state.openCard === 'library'
+      ? `<button class="card-tool" data-libview-toggle
+          title="${toTiles ? 'Show as tiles' : 'Show as a list'}"
+          aria-label="${toTiles ? 'Show as tiles' : 'Show as a list'}">${toTiles
+  ? '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1"/><rect x="9" y="1.5" width="5.5" height="5.5" rx="1"/><rect x="1.5" y="9" width="5.5" height="5.5" rx="1"/><rect x="9" y="9" width="5.5" height="5.5" rx="1"/></svg>'
+  : '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><rect x="1.5" y="2" width="3.5" height="3" rx="0.6"/><rect x="1.5" y="6.5" width="3.5" height="3" rx="0.6"/><rect x="1.5" y="11" width="3.5" height="3" rx="0.6"/><path d="M7 3.5h7.5M7 8h7.5M7 12.5h7.5"/></svg>'}</button>`
+      : '';
+  }
 
   if (state.openCard === 'library') paintLibrary();
   if (state.openCard === 'layers') paintLayers();
@@ -2002,6 +2059,81 @@ function pathPatch(id, value) {
   return parts.reverse().reduce((acc, key) => ({ [key]: acc }), value);
 }
 
+// A PART'S FOOTPRINT, for the Library. Drawn by renderBoard on a scrap of board
+// sized to the part, so the Library shows exactly what placing it will draw —
+// including, until parts declare which way their pins cross the strips, a DIP
+// whose pins run along them, because that is how it places today.
+//
+// Cropped by drawingExtentMm rather than by measuring the DOM, so it needs no
+// layout and can be cached: the catalogue does not change between repaints, the
+// theme does. Every data-* attribute is stripped, so nothing that hit-tests the
+// board by data-kind or data-ref can ever mistake a thumbnail for a real part.
+const thumbCache = new Map();
+
+function libraryThumb(item) {
+  const key = `${item.isDevice ? 'd' : 'p'}:${item.id}:${state.theme}`;
+  if (thumbCache.has(key)) return thumbCache.get(key);
+
+  let svg = '';
+  try {
+    const base = item.isDevice ? getDevice(item.id)?.base : item.id;
+    const part = base ? getPart(base) : null;
+    if (part && placesWith(part) !== 'wire') {
+      const pl = item.isDevice
+        ? placementFor(item.id, { col: 0, row: 0 }, defaultRotOf(part), 'X1')
+        : { ref: 'X1', part: item.id, at: { col: 0, row: 0 }, rot: defaultRotOf(part) };
+      const project = scrapProjectFor(pl);
+      const e = drawingExtentMm(project, getPart);
+      const { cols, rows } = project.board;
+      const pad = PITCH_MM * 0.25;
+      const x0 = Math.min(0, e.x) - pad;
+      const y0 = Math.min(0, e.y) - pad;
+      const x1 = Math.max(cols * PITCH_MM, e.x + e.w) + pad;
+      const y1 = Math.max(rows * PITCH_MM, e.y + e.h) + pad;
+      svg = renderBoard(project, {
+        theme: state.theme,
+        // A copper-side part is built from the underside, so that is its face.
+        view: sideOf(part) === 'copper' ? 'underside' : 'top',
+        layers: { ...DEFAULT_LAYERS, labels: false, pinNames: false, netNames: false, drc: false },
+      })
+        .replace(/viewBox="[^"]*"/, `viewBox="${x0} ${y0} ${x1 - x0} ${y1 - y0}"`)
+        .replace(/ data-[a-z-]+="[^"]*"/g, '')
+        .replace('<svg ', '<svg aria-hidden="true" focusable="false" ');
+    }
+  } catch { svg = ''; }
+
+  // Point to point has no footprint: it is drawn between two holes you choose.
+  // A stand-in says that rather than leaving a blank.
+  if (!svg) {
+    svg = '<svg viewBox="0 0 24 16" aria-hidden="true" focusable="false" class="lib-stand-in">'
+      + '<circle cx="5" cy="11" r="2.4"/><circle cx="19" cy="5" r="2.4"/>'
+      + '<path d="M7 10 L17 6"/></svg>';
+  }
+  thumbCache.set(key, svg);
+  return svg;
+}
+
+// The quiet second line: what tells two similar names apart without reading
+// them twice. Pins, and which side it is soldered to; for a device, the package
+// it is built on and whether any of its pin names are unverified.
+function librarySub(item) {
+  if (item.isDevice) {
+    const d = getDevice(item.id);
+    const base = d ? getPart(d.base) : null;
+    const bits = [`${d?.pins?.length ?? 0} pins`, base?.name].filter(Boolean).map(escapeHtml);
+    if (item.unverifiedPins?.length) bits.push('<span class="lib-warn">unverified</span>');
+    return bits.join(' · ');
+  }
+  const part = getPart(item.id);
+  // Wire-only first: point to point is also kind 'link', and it does not join
+  // the strips it lies over — it joins the two holes you pick.
+  if (placesWith(part) === 'wire') return 'wire · hole to hole';
+  if (part.kind === 'link') return 'link · joins strips';
+  const n = pinsOf(part).length;
+  return [`${n} ${n === 1 ? 'pin' : 'pins'}`, sideOf(part) === 'copper' ? 'copper side' : null]
+    .filter(Boolean).join(' · ');
+}
+
 function paintLibrary() {
   // Devices sit in the SAME list as the generic parts, grouped by the same
   // categories — a XIAO under Modules, a JST beside the pin header. A separate
@@ -2029,18 +2161,48 @@ function paintLibrary() {
           value="${state[f.field] ?? f.value}"></label>`).join('')}</div>`;
   };
 
-  $('[data-cardbody="library"]').innerHTML = `
+  const tiles = state.libView === 'tiles';
+  const searching = Boolean(state.search.trim());
+  const isOn = (p) => (p.isDevice ? p.id === state.device : p.id === state.part && !state.device);
+
+  // ONE ITEM, WHETHER PART OR DEVICE. They used to be two: the style named
+  // button[data-part], so a device fell through to the default bordered,
+  // centred button and the XIAO looked like a different kind of thing.
+  const itemHtml = (p) => `
+    <button ${p.isDevice ? `data-device="${p.id}"` : `data-part="${p.id}"`}
+      class="lib-item ${isOn(p) ? 'is-on' : ''}" title="${escapeHtml(p.name)}">
+      <span class="lib-thumb">${libraryThumb(p)}</span>
+      <span class="lib-text">
+        <span class="lib-name">${escapeHtml(p.name)}</span>
+        <span class="lib-sub">${librarySub(p)}</span>
+      </span>
+    </button>`;
+
+  const body = $('[data-cardbody="library"]');
+  body.dataset.libview = state.libView;
+  body.innerHTML = `
     <input id="libsearch" class="lib-search" placeholder="search parts"
       value="${escapeHtml(state.search)}">
-    ${groups.map((g) => `
-      <div class="lib-group">${escapeHtml(g.name)}</div>
-      ${g.parts.map((p) => `
-        <button ${p.isDevice ? `data-device="${p.id}"` : `data-part="${p.id}"`}
-          class="${(p.isDevice ? p.id === state.device : p.id === state.part && !state.device)
-            ? 'is-on' : ''}">
-          ${escapeHtml(p.name)}${p.kind === 'link' ? '<span class="kind">link</span>' : ''}${
-  p.unverifiedPins?.length ? '<span class="kind warn">?</span>' : ''}
-        </button>${paramsHtml(p)}`).join('')}`).join('')
+    ${groups.map((g) => {
+    // A search shows its matches even in a folded group: a search that hides
+    // its own results is a search that lies.
+    const folded = state.libCollapsed.has(g.id) && !searching;
+    // In tiles, a part's settings cannot fit beneath a half-width tile, so they
+    // open beneath its group's grid instead.
+    const chosen = g.parts.find((p) => isOn(p));
+    return `<section class="lib-grp">
+      <button class="lib-group" data-libgroup="${g.id}" data-count="${g.parts.length}"
+        aria-expanded="${!folded}">
+        <span class="lib-chev" aria-hidden="true">▾</span>
+        <span class="lib-gname">${escapeHtml(g.name)}</span>
+        <span class="lib-count">${g.parts.length}</span>
+      </button>
+      <div class="lib-items" data-libgroup-body="${g.id}" ${folded ? 'hidden' : ''}>
+        ${g.parts.map((p) => itemHtml(p) + (tiles ? '' : paramsHtml(p))).join('')}
+      </div>
+      ${tiles && chosen && !folded ? paramsHtml(chosen) : ''}
+    </section>`;
+  }).join('')
     || '<p class="empty">Nothing matches.</p>'}
     ${armedDevice?.unverifiedPins?.length ? `<p class="hint" style="color:var(--warning)">
       ${escapeHtml(armedDevice.unverifiedPins.join(', '))}
@@ -2277,6 +2439,22 @@ function boot() {
       return setTool(tool.dataset.tool);
     }
 
+    // The Library's list / tiles toggle, and a group heading folding its group.
+    // Both are how the list is SHOWN, so neither touches the board or the tool.
+    if (evt.target.closest('[data-libview-toggle]')) {
+      state.libView = state.libView === 'tiles' ? 'list' : 'tiles';
+      saveLibraryView();
+      return paintCards();
+    }
+    const libGroup = evt.target.closest('[data-libgroup]');
+    if (libGroup) {
+      const id = libGroup.dataset.libgroup;
+      if (state.libCollapsed.has(id)) state.libCollapsed.delete(id);
+      else state.libCollapsed.add(id);
+      saveLibraryView();
+      return paintLibrary();
+    }
+
     // A device arms the same way a part does, and arms its BASE part with it,
     // so everything downstream that asks "what is armed" keeps working. Clearing
     // state.device is what un-arms it — see the part branch below.
@@ -2425,6 +2603,9 @@ function boot() {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
     document.documentElement.dataset.theme = state.theme;
     draw('');
+    // The Library's footprints are drawn in a theme too; without this they
+    // kept the old board colours on the new panel.
+    paintCards();
   });
 
   $('#save').addEventListener('click', () => {

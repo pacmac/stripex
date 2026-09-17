@@ -230,8 +230,27 @@ main {
   text-align: left;
   color: var(--ink);
 }
-.card-head:hover { background: var(--panel-2); }
-.card.is-open .card-head { background: var(--panel-2); }
+/* The header is a ROW: the card's own button, and a slot for that card's tools
+   beside it. The ground belongs to the row, so a tool reads as part of the
+   header rather than a patch stuck on the end of it. */
+.card-headrow { display: flex; align-items: center; }
+.card-headrow .card-head { flex: 1 1 auto; min-width: 0; }
+.card-headrow:hover { background: var(--panel-2); }
+.card.is-open .card-headrow { background: var(--panel-2); }
+.card-tools { display: flex; align-items: center; padding-right: 6px; }
+.card-tools:empty { display: none; }
+.card-tool {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-dim);
+}
+.card-tool:hover { color: var(--accent); border-color: var(--line); background: var(--panel); }
+.card-tool svg { fill: none; stroke: currentColor; stroke-width: 1.4; }
 
 .card-icon { color: var(--accent); font-size: 14px; line-height: 1; }
 .card-title { font-weight: 600; }
@@ -321,13 +340,90 @@ main {
   margin-bottom: 6px;
 }
 
+/* A GROUP THAT READS AS A GROUP. Peter: "impossible to distinguish one lib
+   group item from another." The heading was 10.5 px grey over 13 px dark items
+   — weaker than what it headed — and sat as close to the group above as to its
+   own. Now: a rule above, more room before than after, the heading in the ink
+   colour at weight, its count at the far end, and a click folds it. */
+.lib-grp + .lib-grp { border-top: 1px solid var(--line); }
+.lib-grp { padding: 4px 0 8px; }
 .lib-group {
-  font-size: 10.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 2px 6px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--ink);
+  font: 700 11px/1 var(--ui);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ink-dim);
-  margin: 8px 0 2px;
+  letter-spacing: 0.07em;
+  text-align: left;
 }
+.lib-group:hover { color: var(--accent); }
+.lib-chev { color: var(--ink-dim); font-size: 10px; transition: transform 0.12s; }
+.lib-group[aria-expanded="false"] .lib-chev { transform: rotate(-90deg); }
+.lib-gname { flex: 1 1 auto; }
+.lib-count { color: var(--ink-dim); font-weight: 500; letter-spacing: 0; }
+
+/* `hidden` has to win over the grid below — `.screen` taught that once already. */
+.lib-items[hidden] { display: none; }
+.lib-items { display: flex; flex-direction: column; gap: 2px; }
+
+/* ONE ITEM STYLE, part or device. */
+.card-body .lib-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 6px;
+  background: transparent;
+  border-color: transparent;
+  text-align: left;
+  color: var(--ink);
+}
+.card-body .lib-item:hover { background: var(--panel-2); }
+.card-body .lib-item.is-on { border-color: var(--accent); }
+.card-body .lib-item.is-on .lib-name { color: var(--accent); }
+.card-body.is-armed .lib-item.is-on { background: var(--accent); }
+.card-body.is-armed .lib-item.is-on .lib-name,
+.card-body.is-armed .lib-item.is-on .lib-sub { color: var(--accent-ink); }
+
+.lib-thumb {
+  flex: 0 0 52px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  background: var(--stage);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.lib-thumb svg { width: 100%; height: 100%; display: block; }
+.lib-stand-in { fill: none; stroke: var(--ink-dim); stroke-width: 1.4; }
+.lib-text { display: flex; flex-direction: column; min-width: 0; }
+.lib-name { font-weight: 600; line-height: 1.25; }
+.lib-sub { font-size: 11px; color: var(--ink-dim); line-height: 1.3; }
+.lib-warn { color: var(--warning); font-weight: 600; }
+
+/* TILES: two across, the footprint above the name. The second line goes — at
+   half the panel's width it would only wrap. */
+[data-libview="tiles"] .lib-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+[data-libview="tiles"] .lib-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 4px;
+  border-color: var(--line);
+}
+[data-libview="tiles"] .lib-thumb { flex: 0 0 auto; height: 56px; }
+[data-libview="tiles"] .lib-name { font-size: 11.5px; text-align: center; }
+[data-libview="tiles"] .lib-sub { display: none; }
 
 /* A part's parameters sit directly beneath IT, not in the panel. */
 .part-params {
@@ -347,20 +443,6 @@ main {
 }
 .part-params input { width: 72px; }
 
-.card-body button[data-part] {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 6px 8px;
-  background: transparent;
-  border-color: transparent;
-}
-.card-body button[data-part]:hover { background: var(--panel-2); }
-.card-body button[data-part].is-on { border-color: var(--accent); color: var(--accent); }
-.card-body.is-armed button[data-part].is-on {
-  background: var(--accent);
-  color: var(--accent-ink);
-}
 .card-body .kind {
   font-size: 10px;
   text-transform: uppercase;
