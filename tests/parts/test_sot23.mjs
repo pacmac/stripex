@@ -128,6 +128,27 @@ s.check('A PACKAGE IS NAMED FOR ITS SHAPE, NOT FOR ONE THING IT MIGHT HOLD', () 
   eq(lib.getPart('sot23').refPrefix, 'U', 'sot23 takes the generic prefix');
 });
 
+s.check('A SOT-23 MOSFET IS A DEVICE: G, S, D, prefix Q, along its strip', async () => {
+  // Peter: "Looks like we will need a SOT-23 FET component. I believe most share
+  // the same GDS pins ?" They do, for MOSFETs: 2N7002, BSS138, AO3400/3401,
+  // Si2302 are all 1 G, 2 S, 3 D. BJTs (1 B, 2 E, 3 C) and JFETs do not, which
+  // is why this is a MOSFET device and not the package's own pin names.
+  const dev = await softImport('../../src/parts/devices.js', here);
+  const d = dev.getDevice('sot23-mosfet');
+  ok(d, 'the sot23-mosfet device exists');
+  if (!d) return;
+  eq(d.base, 'sot23', 'built on the SOT-23 package');
+  eq(d.pins, ['G', 'S', 'D'], 'pins G, S, D');
+  eq(d.refPrefix, 'Q', 'prefix Q');
+  eq(d.category, 'semiconductor', 'listed with the semiconductors');
+  ok(String(d.pinSource ?? '').length > 20, `says where the pinout came from: "${d.pinSource}"`);
+  eq(dev.validateDevice(d), null, 'valid');
+  const pl = dev.placementFor('sot23-mosfet', { col: 3, row: 2 }, lib.defaultRotOf(lib.getPart('sot23'), d.pinsRun));
+  eq(pl.rot, 0, 'places along its strip');
+  const [g, sPin] = rot.resolvePins([pl], lib.getPart);
+  eq([g.pin, sPin.pin, g.row === sPin.row], ['G', 'S', true], 'G and S share a strip, with a derived cut between them');
+});
+
 s.check('A CORRECTLY CUT SOT-23 IS CLEAN', () => {
   const cuts = brk.requiredBreaks(Q(0), lib.getPart);
   const c = codes(cuts, [Q(0)]);

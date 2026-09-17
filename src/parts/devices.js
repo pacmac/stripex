@@ -135,6 +135,24 @@ export const DEVICES = {
     ],
   },
 
+  // A SOT-23 MOSFET. Peter: "I believe most share the same GDS pins ?" — they
+  // do: 1 G, 2 S, 3 D is the pinout of the common ones named below. It is a
+  // MOSFET device rather than the package's own names because the package is
+  // shared with BJTs (1 B, 2 E, 3 C) and JFETs, which do not follow it.
+  //
+  // On stripboard G and S share a strip, so the derived knife cut is what keeps
+  // them apart. A deliberate gate-to-source tie is that cut left out.
+  'sot23-mosfet': {
+    id: 'sot23-mosfet',
+    name: 'SOT-23 MOSFET',
+    category: 'semiconductor',
+    base: 'sot23',
+    refPrefix: 'Q',
+    pinSource: 'the common SOT-23 MOSFET pinout: 2N7002, BSS138, AO3400/AO3401, Si2302 — '
+      + 'check a part outside that list against its own datasheet',
+    pins: ['G', 'S', 'D'],
+  },
+
   ...jstFamily(),
 };
 

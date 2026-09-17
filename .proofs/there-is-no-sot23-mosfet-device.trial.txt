@@ -1,0 +1,4 @@
+$ node tests/parts/test_sot23.mjs
+FAIL  A SOT-23 MOSFET IS A DEVICE: G, S, D, prefix Q, along its strip
+      the sot23-mosfet device exists: expected truthy, got falsy
+sot23: 10/11 checks passed

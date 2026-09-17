@@ -3706,3 +3706,31 @@
     failures: 0
     at: '2026-09-17T08:59:23.173'
     commit: 8491894-dirty
+- id: there-is-no-sot23-mosfet-device
+  type: new
+  what: a SOT-23 MOSFET places as a bare sot23 with pins 1 2 3 and prefix U, so every board has to rename
+    G S D by hand
+  spec: docs/specs/sot23-and-accepted-findings.md
+  files:
+  - src/parts/devices.js
+  test:
+    command:
+    - node
+    - tests/parts/test_sot23.mjs
+    criterion: a sot23-mosfet device exists on the sot23 package with pins G S D, prefix Q, category semiconductor,
+      a stated pin source, and places along its strip
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-sot23-mosfet-device.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T09:54:44.333'
+    commit: f13a427-dirty
+  fix:
+    file: .proofs/there-is-no-sot23-mosfet-device.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T09:56:04.379'
+    commit: f13a427-dirty
