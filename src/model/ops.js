@@ -301,6 +301,11 @@ export function clearBreak(project, { row, x } = {}) {
 
 export function setLabel(project, hole, { name, colour } = {}) {
   if (!onBoard(project, hole)) return fail('off-board', `(${hole?.col},${hole?.row}) is not on this board`);
+  // A CLEAR IS ALWAYS LET THROUGH. The dead-hole guard below is for naming — a
+  // name on a hole with no net names nothing — and running it first meant a name
+  // stranded by a later spot-face could never be removed. device hit exactly
+  // that on rakio-2-cam-top. See stranded-net-labels.md.
+  if (!name && !colour) return { project: setNetLabel(clone(project), hole, null) };
   // A name belongs to a net, and a hole with no strip under it belongs to none —
   // a spot-faced hole is the case that matters.
   const { idx, segmentNet } = netsOf(project);

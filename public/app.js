@@ -1464,10 +1464,26 @@ function paintNets() {
     return seg ? { col: seg.x0, row } : null;
   };
 
-  const conflicts = netLabelProblems(state.project, segmentNet);
+  const problems = netLabelProblems(state.project, segmentNet);
+  const conflicts = problems.filter((p) => p.code === 'net-name-conflict');
   const warn = conflicts.length
     ? `<p class="hint" style="color:var(--error)">${escapeHtml(conflicts[0].message)}</p>`
     : '';
+  // NAMES ON NO NET. A name on a hole a spot-face removed belongs to no net, so
+  // it had no row below and no way to be reached — Peter's MS1. Listed here with
+  // its hole and a Clear, so a name that cannot be seen can still be removed.
+  const stranded = problems.filter((p) => p.code === 'net-name-stranded');
+  const strandedHtml = stranded.length ? `
+    <h4 class="nets-sub">Names on no net</h4>
+    ${stranded.map((p) => {
+    const h = p.holes[0];
+    const key = `${h.col},${h.row}`;
+    return `<div class="row" data-stranded="${key}">
+      <span class="ref mono">${escapeHtml(p.refs[0])}</span>
+      <span class="msg">${escapeHtml(p.where)}, ${escapeHtml(p.reason)}</span>
+      <button class="linky" data-clear-label="${key}">Clear</button>
+    </div>`;
+  }).join('')}` : '';
 
   $('#tab-nets').innerHTML = warn + (nets.map((netObj) => {
     const a = anchorOf(netObj);
@@ -1504,7 +1520,18 @@ function paintNets() {
       <span class="msg">${netObj.segments.length} segment${netObj.segments.length === 1 ? '' : 's'},
         ${netObj.pins.length} connection${netObj.pins.length === 1 ? '' : 's'}</span>
     </div>${rows.map(editor).join('')}`;
-  }).join('') || '<p class="empty">No nets.</p>');
+  }).join('') || '<p class="empty">No nets.</p>') + strandedHtml;
+
+  // Clearing a stranded name: the one way to reach it. The buttons are new on
+  // every repaint, so their listeners are too — nothing piles up.
+  for (const b of $('#tab-nets').querySelectorAll('[data-clear-label]')) {
+    b.addEventListener('click', () => {
+      const [col, row] = b.dataset.clearLabel.split(',').map(Number);
+      const name = state.project.netLabels?.[b.dataset.clearLabel]?.name ?? 'name';
+      state.project = setNetLabel(state.project, { col, row }, null);
+      commit(`cleared ${name}, which named nothing`);
+    });
+  }
 
   for (const input of $('#tab-nets').querySelectorAll('[data-netname]')) {
     input.addEventListener('change', (e) => {

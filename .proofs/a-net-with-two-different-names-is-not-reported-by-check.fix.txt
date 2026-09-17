@@ -1,0 +1,2 @@
+$ node tests/model/test_stranded_labels.mjs
+stranded-labels: 3/3 checks passed

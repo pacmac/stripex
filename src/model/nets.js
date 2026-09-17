@@ -21,6 +21,7 @@ import { effectiveBreaks } from './breaks.js';
 import { nets as deriveNets } from '../net/derive.js';
 import { resolvePins } from './rotate.js';
 import { getPart } from '../parts/library.js';
+import { columnLabel } from './labels.js';
 
 const parseHole = (key) => {
   const m = /^(-?\d+),(-?\d+)$/.exec(String(key));
@@ -101,9 +102,24 @@ export function netLabelProblems(project, segmentNet = null) {
     const hole = parseHole(key);
     if (!hole || !label?.name) continue;
     const segId = idx.get(holeKey(hole.col, hole.row));
-    if (!segId) continue;
-    const netId = sn[segId];
-    if (!netId) continue;
+    const netId = segId ? sn[segId] : null;
+    // A NAME THAT NAMES NOTHING. Peter's MS1 sat on a hole a spot-face later
+    // removed: stored, not drawn, not listed, unreachable. It is reported rather
+    // than dropped, because the cut may be the mistake and the name is the only
+    // record of what the hole was meant to carry. See stranded-net-labels.md.
+    if (!netId) {
+      const where = `${columnLabel(hole.row + 1)}${hole.col + 1}`;
+      const reason = segId ? 'on a strip that carries nothing' : 'which a spot-face has cut away';
+      problems.push({
+        code: 'net-name-stranded',
+        message: `${label.name} is at ${where}, ${reason}, so it names nothing — clear it, or name the net you meant`,
+        refs: [label.name],
+        holes: [{ col: hole.col, row: hole.row }],
+        where,
+        reason,
+      });
+      continue;
+    }
     const prev = seen.get(netId);
     if (prev && prev.name !== label.name) {
       problems.push({

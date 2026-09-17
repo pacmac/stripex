@@ -2443,16 +2443,34 @@
   what: 'A net name anchored to a hole that is later spot-faced belongs to no net, so it is not drawn,
     not listed in the Nets tab, and cannot be renamed or cleared. Peter''s board has MS1 at (8,17) with
     a spot cut at that hole: the name is stored and gone.'
-  spec: docs/specs/every-net-name-is-editable.md
+  spec: docs/specs/stranded-net-labels.md
   files:
   - src/model/nets.js
+  - src/model/views.js
   - public/app.js
   test:
-    command: null
-    criterion: a name on a killed hole is still reachable and says so, rather than vanishing
+    command:
+    - bash
+    - -c
+    - node tests/model/test_stranded_labels.mjs; a=$?; node tests/browser/test_stranded_labels_ui.mjs;
+      b=$?; exit $((a || b))
+    criterion: a name on a dead hole is a net-name-stranded warning naming name and hole, listed in the
+      Nets tab under Names on no net with a Clear that removes it from the stored board
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/a-net-name-on-a-spot-faced-hole-is-invisible-and-unreachable.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:55:09.376'
+    commit: 4e33f24-dirty
+  fix:
+    file: .proofs/a-net-name-on-a-spot-faced-hole-is-invisible-and-unreachable.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:57:45.721'
+    commit: 4e33f24-dirty
 - id: the-rules-cannot-be-configured-by-the-person-they-constrain
   type: new
   what: 'The design rules are data on the project and overridable by a program, but there is no control
@@ -2912,17 +2930,30 @@
     V5 Control Board it returns 'one net is called both 0V and CLK' and GET /api/boards/:slug/check reports
     0 errors and 7 warnings, none of them that. The merged findings include the DRC, checkRules and disabled
     rules but not the label conflicts, so the one check that reads a board's own names is dead code.
-  spec: docs/specs/every-net-name-is-editable.md
+  spec: docs/specs/stranded-net-labels.md
   files:
-  - src/server/index.js
-  - public/app.js
+  - src/model/views.js
   test:
-    command: null
-    criterion: a net carrying two different names is reported in the findings, by the API and in the Checks
-      tab
+    command:
+    - node
+    - tests/model/test_stranded_labels.mjs
+    criterion: a net carrying two different names is a net-name-conflict warning in findingsFor, which
+      every check endpoint uses
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/a-net-with-two-different-names-is-not-reported-by-check.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:55:09.745'
+    commit: 4e33f24-dirty
+  fix:
+    file: .proofs/a-net-with-two-different-names-is-not-reported-by-check.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:57:46.115'
+    commit: 4e33f24-dirty
 - id: the-right-angle-jst-is-too-long-and-sits-behind-its-pins
   type: bug
   what: 'Peter measured his actual right-angle JST XH: the shroud projects about 6.6-7mm over the board
@@ -4060,3 +4091,31 @@
     failures: 0
     at: '2026-09-17T15:44:54.488'
     commit: c50df96-dirty
+- id: a-label-on-a-cut-hole-cannot-be-cleared-over-the-api
+  type: bug
+  what: setLabel runs the dead-hole guard before checking whether it is a clear, so a stored name on a
+    spot-faced hole can never be removed over the API (device, rakio-2-cam-top RX at 5,5)
+  spec: docs/specs/stranded-net-labels.md
+  files:
+  - src/model/ops.js
+  test:
+    command:
+    - node
+    - tests/model/test_stranded_labels.mjs
+    criterion: setLabel with no name clears a stored name on a dead hole and still refuses to set one
+      there
+    runs: 1
+  trial:
+    file: .proofs/a-label-on-a-cut-hole-cannot-be-cleared-over-the-api.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:55:10.105'
+    commit: 4e33f24-dirty
+  fix:
+    file: .proofs/a-label-on-a-cut-hole-cannot-be-cleared-over-the-api.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:57:46.498'
+    commit: 4e33f24-dirty
