@@ -1,0 +1,3 @@
+$ bash -c node tests/model/test_side.mjs; a=$?; node tests/browser/test_side_switch.mjs; b=$?; exit $((a || b))
+side: 8/8 checks passed
+side-switch: 1/1 checks passed

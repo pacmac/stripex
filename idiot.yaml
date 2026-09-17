@@ -3791,3 +3791,55 @@
     failures: 0
     at: '2026-09-17T10:05:21.756'
     commit: b3bf1e0-dirty
+- id: a-component-cannot-switch-side
+  type: new
+  what: which side of the board a part is on is fixed by the part; no placement, device or API call can
+    move it to the other side, and the field that would decide it also decides hole occupancy
+  spec: docs/specs/switchable-side.md
+  files:
+  - src/parts/library.js
+  - src/parts/devices.js
+  - src/model/board.js
+  - src/model/edit.js
+  - src/model/ops.js
+  - src/net/drc.js
+  - src/model/rules.js
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/model/test_side.mjs; a=$?; node tests/browser/test_side_switch.mjs; b=$?; exit $((a ||
+      b))
+    criterion: a placement carries a side defaulting to its device's then part's; Focus, addPart, setSide
+      and devices can set it; surface-mount stays the part's so hole occupancy is unchanged; the drawing
+      ghosts or shows by the placement's side; the Focus choice switches it and undo restores it
+    runs: 1
+  trial:
+    file: .proofs/a-component-cannot-switch-side.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T12:55:54.991'
+    commit: 58b84a8-dirty
+  fix:
+    file: .proofs/a-component-cannot-switch-side.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T12:59:06.078'
+    commit: 58b84a8-dirty
+- id: a-device-placed-by-the-api-takes-its-footprints-letter
+  type: bug
+  what: addPart with a device numbers the ref from the base part's prefix, so a sot23-mosfet (prefix Q)
+    is placed as U2
+  spec: docs/specs/device-aware-api.md
+  files:
+  - src/model/ops.js
+  test:
+    command: null
+    criterion: null
+    runs: 1
+  trial: null
+  fix: null

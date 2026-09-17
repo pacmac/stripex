@@ -16,7 +16,8 @@
 // be a slower way of making the same mistakes.
 
 import { makeProject, nextWireRef, nextPartRef, validateProject } from './board.js';
-import { getPart, hasPart, sideOf, defaultRotOf } from '../parts/library.js';
+import { getPart, hasPart, isSurfaceMount, defaultRotOf, SIDES } from '../parts/library.js';
+import { applyPlacementEdit } from './edit.js';
 import { getDevice, placementFor } from '../parts/devices.js';
 import { resolvePins, isRotation } from './rotate.js';
 import { segments, segmentIndex, holeKey } from '../net/segments.js';
@@ -32,17 +33,18 @@ const onBoard = (project, h) => Number.isInteger(h?.col) && Number.isInteger(h?.
   && h.col >= 0 && h.row >= 0
   && h.col < project.board.cols && h.row < project.board.rows;
 
-// Which hole holds which pin. Copper-side pads are excluded: they are soldered
-// to the track underneath and never enter the hole.
+// Which hole holds which pin. Surface-mount pads are excluded: they are soldered
+// to the track and never enter the hole. That is the PART's fact, not which
+// side the placement is on — a DIP on the copper side still fills its holes.
 function pinsByHole(project) {
   const out = new Map();
   let pins = [];
   try { pins = resolvePins(project.placements ?? [], getPart); } catch { return out; }
   for (const p of pins) {
-    let side = 'top';
-    try { side = sideOf(getPart(project.placements.find((x) => x.ref === p.ref).part)); }
+    let surface = false;
+    try { surface = isSurfaceMount(getPart(project.placements.find((x) => x.ref === p.ref).part)); }
     catch { /* unknown part */ }
-    if (side === 'copper') continue;
+    if (surface) continue;
     out.set(`${p.col},${p.row}`, `${p.ref}.${p.pin}`);
   }
   return out;
@@ -95,8 +97,11 @@ export function freeHolesOn(project, ref, pin) {
 
 // ------------------------------------------------------------------ parts
 
-export function addPart(project, { part, at, rot: asked, span, width, device, silk, value } = {}) {
+export function addPart(project, { part, at, rot: asked, span, width, device, silk, value, side } = {}) {
   if (!onBoard(project, at)) return fail('off-board', `(${at?.col},${at?.row}) is not on this board`);
+  if (side != null && !SIDES.includes(side)) {
+    return fail('bad-side', `${JSON.stringify(side)} is not a side — "top" or "copper"`);
+  }
   // NO ROTATION GIVEN means the one the part declares, not 0. At 0 every part in
   // the catalogue lies with its pins along one strip. An explicit rot is always
   // honoured. See docs/specs/pins-run-across-strips.md.
@@ -123,6 +128,7 @@ export function addPart(project, { part, at, rot: asked, span, width, device, si
     if (!pl) return fail('no-such-device', `${JSON.stringify(device)} could not be placed`);
     if (silk) pl.silk = silk;
     if (value) pl.value = value;
+    if (side) pl.side = side;       // over the device's own, when asked for
     next.placements.push(pl);
     const bad = validateProject(next);
     if (bad.length) return fail('invalid', bad[0].message);
@@ -138,10 +144,23 @@ export function addPart(project, { part, at, rot: asked, span, width, device, si
   if (def.defaultWidth != null) pl.width = width ?? def.defaultWidth;
   if (silk) pl.silk = silk;
   if (value) pl.value = value;
+  if (side) pl.side = side;
   next.placements.push(pl);
   const bad = validateProject(next);
   if (bad.length) return fail('invalid', bad[0].message);
   return { project: next, ref: pl.ref };
+}
+
+// Move a placed part to the other side of the board. Through the same edit the
+// Focus panel uses, so the API and the mouse cannot disagree about what is legal.
+export function setSide(project, ref, side) {
+  const i = (project.placements ?? []).findIndex((x) => x.ref === ref);
+  if (i < 0) return fail('no-such-ref', `${JSON.stringify(ref)} is not on this board`);
+  const { placement, error } = applyPlacementEdit(project.placements[i], getPart, 'side', side);
+  if (error) return fail('bad-side', error);
+  const next = clone(project);
+  next.placements[i] = placement;
+  return { project: next, ref };
 }
 
 export function removePart(project, ref) {
@@ -476,6 +495,7 @@ const OPS = {
   adoptDevice: (p, a) => adoptDevice(p, a.ref, a.device),
   addPart: (p, a) => addPart(p, a),
   removePart: (p, a) => removePart(p, a.ref),
+  setSide: (p, a) => setSide(p, a.ref, a.side),
   movePart: (p, a) => movePart(p, a.ref, a.pin, a.to),
   addWire: (p, a) => addWire(p, a.from, a.to),
   removeWire: (p, a) => removeWire(p, a.ref),

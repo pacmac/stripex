@@ -20,7 +20,7 @@
 import { segments, segmentIndex, holeKey } from '../net/segments.js';
 import { effectiveBreaks } from './breaks.js';
 import { resolvePins } from './rotate.js';
-import { getPart, sideOf } from '../parts/library.js';
+import { getPart, isSurfaceMount } from '../parts/library.js';
 import { netLabelsAllByNet } from './nets.js';
 import { nets as deriveNets } from '../net/derive.js';
 
@@ -198,13 +198,15 @@ export function checkRules(project) {
 
   // A copper-side pad is soldered to the track underneath and never enters the
   // hole, so it does not occupy one — the same exclusion the DRC already makes.
-  const sideByRef = new Map();
+  // Surface-mount is the part's fact, not the placement's side: a DIP moved to
+  // the copper side still fills its holes. See switchable-side.md.
+  const surfaceRefs = new Set();
   for (const pl of placements) {
-    try { sideByRef.set(pl.ref, sideOf(getPart(pl.part))); } catch { /* unknown part */ }
+    try { if (isSurfaceMount(getPart(pl.part))) surfaceRefs.add(pl.ref); } catch { /* unknown part */ }
   }
   const pinAt = new Map();
   for (const p of pins) {
-    if (sideByRef.get(p.ref) === 'copper') continue;
+    if (surfaceRefs.has(p.ref)) continue;
     pinAt.set(holeKey(p.col, p.row), `${p.ref}.${p.pin}`);
   }
 

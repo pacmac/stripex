@@ -4,7 +4,7 @@
 // save and on anything arriving over HTTP, and a validator that throws turns a
 // recoverable "this file is wrong here" into a dead editor.
 
-import { hasPart, getPart, pinsOf, isWireOnly } from '../parts/library.js';
+import { hasPart, getPart, pinsOf, isWireOnly, SIDES } from '../parts/library.js';
 import { isRotation } from './rotate.js';
 import { columnLabel } from './labels.js';
 
@@ -93,6 +93,9 @@ export function validateProject(project) {
     }
     if (!isHole(pl.at)) { bad('bad-anchor', `${where}.at is not a hole`); continue; }
     if (!isRotation(pl.rot ?? 0)) bad('bad-rotation', `${where}.rot is ${pl.rot}, want 0/90/180/270`);
+    if (pl.side != null && !SIDES.includes(pl.side)) {
+      bad('bad-side', `${where}.side is ${JSON.stringify(pl.side)}, want "top" or "copper"`);
+    }
     const part = getPart(pl.part);
     if (part.parametric) {
       const span = pl.span ?? part.defaultSpan;

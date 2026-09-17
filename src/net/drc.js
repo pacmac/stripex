@@ -8,7 +8,7 @@
 import { segments, segmentIndex, holeKey } from './segments.js';
 import { resolvePins } from '../model/rotate.js';
 import { missingBreaks } from '../model/breaks.js';
-import { sideOf, pinsRunOf } from '../parts/library.js';
+import { isSurfaceMount, pinsRunOf } from '../parts/library.js';
 import { nets } from './derive.js';
 
 const err = (code, message, refs = [], holes = []) =>
@@ -65,15 +65,18 @@ export function drc(board, breaks = [], placements = [], getPart = null, wires =
   // A copper-side pad is soldered to the track underneath and never enters the
   // hole, so the hole stays free for a through-hole lead. Counting SMT pads here
   // would put a collision on every board that has a chip under a resistor.
-  const sideByRef = new Map();
+  //
+  // SURFACE-MOUNT, not "on the copper side": a DIP a placement has moved to the
+  // copper side still has legs through its holes. See switchable-side.md.
+  const surfaceRefs = new Set();
   for (const pl of placements) {
-    try { sideByRef.set(pl.ref, sideOf(getPart(pl.part))); } catch { /* unknown part */ }
+    try { if (isSurfaceMount(getPart(pl.part))) surfaceRefs.add(pl.ref); } catch { /* unknown part */ }
   }
 
   const leadAt = new Map();
   for (const p of pins) {
     if (!onBoard(p.col, p.row)) continue;
-    if (sideByRef.get(p.ref) === 'copper') continue;
+    if (surfaceRefs.has(p.ref)) continue;
     const k = holeKey(p.col, p.row);
     if (!leadAt.has(k)) leadAt.set(k, []);
     leadAt.get(k).push(p);

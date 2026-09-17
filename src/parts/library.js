@@ -377,8 +377,23 @@ export function hasPart(id) {
 // Which side of the board a part is mounted on. Through-hole parts sit on top
 // and occupy their holes; a copper-side part is soldered to the track underneath
 // and leaves the hole free.
-export const sideOf = (part) => part.side ?? 'top';
-export const occupiesHoles = (part) => sideOf(part) === 'top';
+// WHICH SIDE OF THE BOARD, and WHETHER IT IS SURFACE-MOUNT — two facts that used
+// to be one field. See docs/specs/switchable-side.md.
+//
+// Peter: "an item / component / object needs to be able to switch layer but
+// have a default layer, mostly top." So the SIDE belongs to the placement, and
+// the part only supplies the default.
+//
+// Surface-mount does not move with it. `part.side` also meant "its pads are
+// soldered to the track and never enter a hole", and every hole-occupancy check
+// read it that way. A DIP flipped to the copper side still pushes its legs
+// through holes; an 0603 lifted to the top is still a chip with no leads. So
+// occupancy asks isSurfaceMount — the part's fact — and only the drawing asks
+// which side a placement is on.
+export const SIDES = ['top', 'copper'];
+export const sideOf = (part, placement = null) => placement?.side ?? part?.side ?? 'top';
+export const isSurfaceMount = (part) => (part?.side ?? 'top') === 'copper';
+export const occupiesHoles = (part) => !isSurfaceMount(part);
 
 // How this device's strips get cut: with a knife between two holes, or with a
 // spot-face cutter at one. Declared rather than inferred from pin spacing —

@@ -953,6 +953,17 @@ function paintDeviceEditor(builtIn) {
           <span class="devseg" role="group" aria-label="Pins run">${opt('across', 'Across')}${opt('along', 'Along')}${opt('either', 'Either')}</span>
           <span class="devhint">${d.pinsRun ? 'set for this component' : 'as the footprint says'}</span></div>`;
   })() : ''}
+        ${basePart ? (() => {
+    // WHICH SIDE IT MOUNTS ON by default. Stored on the device only when it
+    // differs from the footprint's, like Pins run; a placement can still be
+    // switched on the board.
+    const now = d.side ?? sideOf(basePart);
+    const opt = (v, label) => `<button type="button" class="devseg-opt${now === v ? ' is-on' : ''}"
+      data-devside="${v}" aria-pressed="${now === v}">${label}</button>`;
+    return `<div class="devfield"><span class="devlabel">Mounted on</span>
+          <span class="devseg" role="group" aria-label="Mounted on">${opt('top', 'Top')}${opt('copper', 'Copper side')}</span>
+          <span class="devhint">${d.side ? 'set for this component' : 'as the footprint says'}</span></div>`;
+  })() : ''}
         ${field('refPrefix', 'Reference letter', d.refPrefix, 'text', 'U1, R1, J1 …')}
         <label class="devfield"><span class="devlabel">Silkscreen</span>
           <span class="devcolour"><input data-field="silk" type="color"
@@ -1047,6 +1058,7 @@ function paintDevicePreview() {
     rot: defaultRotOf(getPart(d.base), d.pinsRun),
   };
   if (d.pinsRun) pl.pinsRun = d.pinsRun;
+  if (d.side) pl.side = d.side;
   if (d.span != null) pl.span = d.span;
   if (d.width != null) pl.width = d.width;
   if (d.silk) pl.silk = d.silk;
@@ -1059,7 +1071,7 @@ function paintDevicePreview() {
       theme: state.theme,
       // A copper-side part from the copper side: that is the face it is built
       // from, and from the top a SOT-23 is its own mirror image.
-      view: sideOf(getPart(d.base)) === 'copper' ? 'underside' : 'top',
+      view: sideOf(getPart(d.base), pl) === 'copper' ? 'underside' : 'top',
       layers: { ...DEFAULT_LAYERS, pinNames: false, netNames: false, drc: false, labels: false },
     });
   } catch (e) {
@@ -1623,9 +1635,36 @@ function paintInspectorFrom() {
     <div class="field"><span>Rotation</span>
       <select data-edit="rot">${[0, 90, 180, 270].map((r) =>
     `<option value="${r}"${(pl.rot ?? 0) === r ? ' selected' : ''}>${r}°</option>`).join('')}</select></div>
+    ${can.includes('side') ? (() => {
+    // WHICH SIDE OF THE BOARD. Peter: "an item / component / object needs to be
+    // able to switch layer but have a default layer, mostly top." Two buttons,
+    // not a dropdown — one click, and the current side is visible without
+    // opening anything.
+    const now = sideOf(part, pl);
+    const opt = (v, label) => `<button type="button" class="devseg-opt${now === v ? ' is-on' : ''}"
+      data-edit-side="${v}" aria-pressed="${now === v}">${label}</button>`;
+    return `<div class="field"><span>Side</span>
+      <span class="devseg" role="group" aria-label="Side of the board">${opt('top', 'Top')}${opt('copper', 'Copper side')}</span></div>`;
+  })() : ''}
     <div class="field"><span>Column</span>${num('col', pl.at.col, 'min="0"')}</div>
     <div class="field"><span>Row</span>${num('row', pl.at.row, 'min="0"')}</div>
     <p class="hint" id="editError"></p>`;
+
+  // The side choice: one click, one commit, one undo step.
+  for (const b of el.querySelectorAll('[data-edit-side]')) {
+    b.addEventListener('click', (e) => {
+      const i2 = state.project.placements.findIndex((x) => x.ref === state.selection?.ref);
+      if (i2 < 0) return;
+      const value = e.currentTarget.dataset.editSide;
+      const { placement, error } = applyPlacementEdit(
+        state.project.placements[i2], getPart, 'side', value,
+      );
+      if (error) { $('#editError').textContent = error; return; }
+      state.project.placements[i2] = placement;
+      inspectorShape = null;          // which button is lit changed, so repaint
+      commit(`${placement.ref} to the ${value === 'top' ? 'top' : 'copper side'}`);
+    });
+  }
 
   // One commit per change event, not per keystroke, so an edit is one undo step.
   for (const sw of el.querySelectorAll('[data-swatch]')) {
@@ -2123,7 +2162,7 @@ const thumbCache = new Map();
 function libraryThumb(item) {
   // A device's own pinsRun is in the key: changing it on the Components screen
   // turns the footprint, and a cache keyed on id alone would keep the old one.
-  const key = `${item.isDevice ? `d:${getDevice(item.id)?.pinsRun ?? ''}` : 'p'}:${item.id}:${state.theme}`;
+  const key = `${item.isDevice ? `d:${getDevice(item.id)?.pinsRun ?? ''}:${getDevice(item.id)?.side ?? ''}` : 'p'}:${item.id}:${state.theme}`;
   if (thumbCache.has(key)) return thumbCache.get(key);
 
   let svg = '';
@@ -2145,7 +2184,8 @@ function libraryThumb(item) {
       svg = renderBoard(project, {
         theme: state.theme,
         // A copper-side part is built from the underside, so that is its face.
-        view: sideOf(part) === 'copper' ? 'underside' : 'top',
+        // The placement's side, so a device that mounts underneath says so.
+        view: sideOf(part, pl) === 'copper' ? 'underside' : 'top',
         layers: { ...DEFAULT_LAYERS, labels: false, pinNames: false, netNames: false, drc: false },
       })
         .replace(/viewBox="[^"]*"/, `viewBox="${x0} ${y0} ${x1 - x0} ${y1 - y0}"`)
@@ -2651,14 +2691,19 @@ function boot() {
       || e.target.dataset.field === 'width') paintDeviceEditor(!$('#devRevert').hidden ? false : null);
     else paintDevicePreview();
   });
-  // Pins run across or along: stored only when it differs from the footprint.
+  // Pins run, and the side it mounts on: each stored only when it differs from
+  // the footprint, so correcting a footprint corrects the devices built on it.
   $('#devEdit').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-pinsrun]');
-    if (!b) return;
+    const run = e.target.closest('[data-pinsrun]');
+    const side = e.target.closest('[data-devside]');
+    if (!run && !side) return;
     devEditing = readDeviceForm();
     const base = getPart(devEditing.base);
-    if (b.dataset.pinsrun === base?.pinsRun) delete devEditing.pinsRun;
-    else devEditing.pinsRun = b.dataset.pinsrun;
+    if (run) {
+      if (run.dataset.pinsrun === base?.pinsRun) delete devEditing.pinsRun;
+      else devEditing.pinsRun = run.dataset.pinsrun;
+    } else if (side.dataset.devside === sideOf(base)) delete devEditing.side;
+    else devEditing.side = side.dataset.devside;
     paintDeviceEditor(!$('#devRevert').hidden ? false : null);
   });
 

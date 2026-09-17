@@ -24,7 +24,7 @@ import { netsFor } from '../model/views.js';
 import {
   wireColour, silkOf, segmentShade, isWireColoured, linkColour,
 } from './colours.js';
-import { getPart, getPart as defaultGetPart, sideOf } from '../parts/library.js';
+import { getPart, getPart as defaultGetPart, sideOf, isSurfaceMount } from '../parts/library.js';
 
 // Where a pad is DRAWN, in board millimetres. Usually its hole; for an off-grid
 // pad (a SOT-23's pin 3, over the gap between two holes) the draw position
@@ -962,7 +962,9 @@ export function renderBoard(project, opts = {}) {
     // underside view — the one you solder from — must draw it, and the top view
     // must ghost it rather than pretend it is not there. The underside used to
     // drop every body, which was right when every part was through-hole.
-    const side = sideOf(part);
+    // THE PLACEMENT's side, which defaults to the part's: a part can be moved to
+    // the other face of the board (switchable-side.md).
+    const side = sideOf(part, pl);
     const showBody = under ? side === 'copper' : true;
     const ghosted = !under && side === 'copper';
 
@@ -1058,7 +1060,9 @@ export function renderBoard(project, opts = {}) {
     // marking, not copper, so a part's silkscreen colour has to paint it.
     const padInk = silkOf(pl, part, c.silk);
     const padR = n(PAD_R_MM);
-    const isLand = sideOf(part) === 'copper';
+    // A land is a SURFACE-MOUNT pad, on whichever side it has been put — the
+    // part's fact, not the placement's side.
+    const isLand = isSurfaceMount(part);
     for (const [i, p] of pts.entries()) {
       const pinName = pins[i]?.pin ?? '';
       const common = `data-kind="pad" data-pin="${esc(pinName)}"`

@@ -6,9 +6,11 @@
 // that keeps the renderer testable.
 
 import { rotatePlacement, isRotation } from './rotate.js';
+import { SIDES } from '../parts/library.js';
 
 export function editableFields(part) {
-  const fields = ['ref', 'value', 'silk', 'rot', 'col', 'row'];
+  // Every part can go on either side of the board — see switchable-side.md.
+  const fields = ['ref', 'value', 'silk', 'rot', 'side', 'col', 'row'];
   if (part.parametric) fields.push('span');
   if (part.defaultWidth != null) fields.push('width');
   // Only a part that cuts its own strips has cuts to switch off.
@@ -77,6 +79,14 @@ export function applyPlacementEdit(placement, getPart, field, value) {
     case 'autoBreak': {
       // Accepts a real boolean or the string a checkbox hands over.
       next.autoBreak = value === true || value === 'true' || value === 'on';
+      return accept(next);
+    }
+
+    case 'side': {
+      // Stored explicitly once chosen, even when it matches the part's default:
+      // "I put this on top" is a decision, and a device may default otherwise.
+      if (!SIDES.includes(value)) return refuse(placement, 'side must be top or copper');
+      next.side = value;
       return accept(next);
     }
 

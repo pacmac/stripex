@@ -21,7 +21,7 @@
 // after the fact, changing the meaning of data that was valid when it was
 // written. Not again.
 
-import { getPart, hasPart, PINS_RUN } from './library.js';
+import { getPart, hasPart, PINS_RUN, SIDES } from './library.js';
 import { resolvePins } from '../model/rotate.js';
 
 // PIN NUMBERING, EVERYWHERE HERE: down one side, then back up the other, which
@@ -233,6 +233,11 @@ export function validateDevice(d) {
     return `${d.id}: pinsRun is ${JSON.stringify(d.pinsRun)}, and must be one of ${PINS_RUN.map((v) => `"${v}"`).join(', ')}`;
   }
 
+  // Which side of the board it mounts on, when it differs from its base part.
+  if (d.side != null && !SIDES.includes(d.side)) {
+    return `${d.id}: side is ${JSON.stringify(d.side)}, and must be "top" or "copper"`;
+  }
+
   const pins = d.pins ?? [];
   if (!Array.isArray(pins) || !pins.length) return `${d.id} has no pins`;
   const seen = new Set();
@@ -317,6 +322,8 @@ export function placementFor(deviceId, at, rot = 0, ref = null) {
   // Only an OVERRIDE is copied: a device that says nothing leaves the placement
   // to its part, so correcting a part's declaration corrects its devices too.
   if (d.pinsRun != null) pl.pinsRun = d.pinsRun;
+  // The side it mounts on, likewise only when the device says so.
+  if (d.side != null) pl.side = d.side;
   // Which way a shrouded connector faces is a property of the thing on the
   // board, not of the catalogue it came from — so it is copied like everything
   // else here, and the drawing reads it off the placement.
