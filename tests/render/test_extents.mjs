@@ -97,7 +97,10 @@ s.check('A BOARD WITH NOTHING OVERHANGING DOES NOT MOVE', () => {
     { ref: 'R1', part: 'res-axial', at: { col: 5, row: 5 }, rot: 0, span: 3 },
   ]));
   eq(inside, empty, 'the viewBox is unchanged by a part well inside the board');
-  eq(empty.y, 0, 'and an empty board still starts at the board top');
+  // It started at exactly 0 until the row and column labels needed a band above
+  // the board (edge-labels-layer.md). The band is fixed, so the rule this pins
+  // still holds: nothing on an ordinary board moves the top.
+  eq(empty.y, -R.EDGE_LABEL_BAND_MM, 'and an empty board starts one label band above the board top');
 });
 
 s.check('EVERY PART AT EVERY ROTATION DRAWS INSIDE THE EXTENT', () => {

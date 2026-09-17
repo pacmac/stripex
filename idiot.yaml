@@ -3843,3 +3843,33 @@
     runs: 1
   trial: null
   fix: null
+- id: the-board-has-no-row-letters-or-column-numbers
+  type: new
+  what: nothing at the board's edges says which row or column a hole is in, and there is no layer for
+    it
+  spec: docs/specs/edge-labels-layer.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_edge_labels.mjs
+    criterion: an edgeLabels layer, on by default, letters rows A..Z AA.. on both sides and numbers columns
+      top and bottom, mirrors columns in the underside view, keeps the same window when switched off,
+      and no label lies inside the board or on a net-name plate
+    runs: 1
+  trial:
+    file: .proofs/the-board-has-no-row-letters-or-column-numbers.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T13:15:26.155'
+    commit: d6474ff-dirty
+  fix:
+    file: .proofs/the-board-has-no-row-letters-or-column-numbers.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T13:18:57.089'
+    commit: d6474ff-dirty

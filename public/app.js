@@ -160,6 +160,8 @@ const LAYER_ROWS = [
   // the parts you placed, this one names copper you did not. Turning off R1 and
   // 10k is not asking for GND to go with them.
   ['labels', 'Refs and values', '#241f18'],
+  // Outside the board: rows A, B … and columns 1, 2 … for finding a hole.
+  ['edgeLabels', 'Row and column labels', '#6d6555'],
   ['drc', 'Check markers', '#d1242f'],
 ];
 
@@ -1072,7 +1074,9 @@ function paintDevicePreview() {
       // A copper-side part from the copper side: that is the face it is built
       // from, and from the top a SOT-23 is its own mirror image.
       view: sideOf(getPart(d.base), pl) === 'copper' ? 'underside' : 'top',
-      layers: { ...DEFAULT_LAYERS, pinNames: false, netNames: false, drc: false, labels: false },
+      // No row and column labels: this is one part on a scrap, not a board you
+      // find holes on.
+      layers: { ...DEFAULT_LAYERS, pinNames: false, netNames: false, drc: false, labels: false, edgeLabels: false },
     });
   } catch (e) {
     el.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
@@ -2186,7 +2190,7 @@ function libraryThumb(item) {
         // A copper-side part is built from the underside, so that is its face.
         // The placement's side, so a device that mounts underneath says so.
         view: sideOf(part, pl) === 'copper' ? 'underside' : 'top',
-        layers: { ...DEFAULT_LAYERS, labels: false, pinNames: false, netNames: false, drc: false },
+        layers: { ...DEFAULT_LAYERS, labels: false, pinNames: false, netNames: false, drc: false, edgeLabels: false },
       })
         .replace(/viewBox="[^"]*"/, `viewBox="${x0} ${y0} ${x1 - x0} ${y1 - y0}"`)
         .replace(/ data-[a-z-]+="[^"]*"/g, '')

@@ -47,10 +47,14 @@ s.check('the viewBox is the board size plus a gutter each side', () => {
   const p = project();
   const svg = String(R.renderBoard(p, {}));
   const { w, h } = geom.boardSizeMm(p.board);
-  const m = /viewBox="(-?[\d.]+) 0 ([\d.]+) ([\d.]+)"/.exec(svg);
+  // And a band above and below for the row and column labels
+  // (edge-labels-layer.md): the height is the board plus one band each side.
+  const m = /viewBox="(-?[\d.]+) (-?[\d.]+) ([\d.]+) ([\d.]+)"/.exec(svg);
   ok(m, `a viewBox: ${svg.slice(0, 120)}`);
-  const [x0, vw, vh] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  eq(vh, h, 'the height is the board');
+  const [x0, y0, vw, vh] = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
+  const band = R.EDGE_LABEL_BAND_MM;
+  eq(y0, -band, 'it starts one label band above the board');
+  ok(Math.abs(vh - (h + band * 2)) < 0.01, `the height is the board plus a band each side: ${vh}`);
   ok(x0 < 0, `it starts left of the board: ${x0}`);
   ok(Math.abs(vw - (w - x0 * 2)) < 0.01, `and is symmetric: ${vw} for a ${w} board`);
   ok(vw > w, 'so a name pushed off the edge has somewhere to be');

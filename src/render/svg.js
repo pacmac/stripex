@@ -17,6 +17,7 @@ import { segments } from '../net/segments.js';
 import { resolvePins } from '../model/rotate.js';
 import { effectiveBreaks } from '../model/breaks.js';
 import { netLabelsByNet } from '../model/nets.js';
+import { columnLabel } from '../model/labels.js';
 // The renderer ASKS the model what is connected, and does not answer it. These
 // four used to be exported from here, which made the SVG module the place the
 // server and the tests went to learn what a net was.
@@ -580,7 +581,16 @@ export const DEFAULT_LAYERS = {
   // wiring. Turning it on is the deliberate act of "now I am wiring".
   pinNames: false,
   drc: true,
+  // Row letters and column numbers outside the board's edges — a ruler for
+  // finding a hole on the real board. Peter: "another layer is needed at the
+  // outer edges of the board showing the rows (A-Z, AA...etc) and columns".
+  edgeLabels: true,
 };
+
+// The band just outside each edge that the row and column labels live in.
+// ALWAYS reserved, layer on or off, for the reason the net-name gutter is: a
+// board that changes size when a layer is switched jumps under the pointer.
+export const EDGE_LABEL_BAND_MM = PITCH_MM * 0.9;
 
 // The plate behind a net name, sized without a text metric — this renderer has
 // no DOM to measure in.
@@ -716,16 +726,20 @@ export function renderBoard(project, opts = {}) {
   // above it. The extent only grows when something needs it, so an ordinary
   // board keeps exactly the window it had.
   const ext = drawingExtentMm(project, getPart);
-  const vx = Math.min(-gutter, ext.x);
-  const vy = Math.min(0, ext.y);
-  const vw = Math.max(w + gutter * 2, ext.x + ext.w - vx, ext.w);
-  const vh = Math.max(h, ext.y + ext.h - vy);
+  // And the edge-label band on all four sides, outside the board and inside the
+  // net-name gutter — see edge-labels-layer.md.
+  const band = EDGE_LABEL_BAND_MM;
+  const side = gutter + band;
+  const vx = Math.min(-side, ext.x);
+  const vy = Math.min(-band, ext.y);
+  const vw = Math.max(w + side * 2, ext.x + ext.w - vx, ext.w);
+  const vh = Math.max(h + band - vy, ext.y + ext.h - vy);
   // Definitions gathered while drawing and emitted in one <defs> at the end —
   // the silkscreen clearance masks, one per placement.
   const defs = [];
   const out = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg"`
-    + ` viewBox="${n(vx)} ${n(vy)} ${n(Math.max(vw, w + gutter * 2))} ${n(vh)}"`
+    + ` viewBox="${n(vx)} ${n(vy)} ${n(Math.max(vw, w + side * 2))} ${n(vh)}"`
     + ` data-view="${view}" data-theme="${theme}" width="100%" height="100%">`);
 
   // 1. substrate
@@ -1179,7 +1193,9 @@ export function renderBoard(project, opts = {}) {
     // middle of the board has no edge to go to, and its name stays on it.
     const touchesLeft = nn.x <= 0.01;
     const touchesRight = nn.x + nn.w >= w - 0.01;
-    const outside = PITCH_MM * 0.35;
+    // Past the edge-label band, so a rail's name and the row letter beside it
+    // do not sit on each other.
+    const outside = PITCH_MM * 0.35 + EDGE_LABEL_BAND_MM;
     let cx = nn.x + nn.w / 2;
     let anchor = 'middle';
     let plateX = cx - plate.w / 2;
@@ -1210,6 +1226,34 @@ export function renderBoard(project, opts = {}) {
       + ` y="${n(cy + plate.fontSize * 0.35)}" font-size="${n(plate.fontSize)}"`
       + ` fill="${ink}" text-anchor="middle" font-family="sans-serif"`
       + ` pointer-events="none" font-weight="600">${esc(nn.name)}</text>`);
+  }
+
+  // 7c. row letters and column numbers, in the band outside each edge.
+  //
+  // Rows A, B … Z, AA — the same bijective lettering pen wires use, so the
+  // project has one — and columns from 1, because a person counting holes on a
+  // real board counts from one. Letters left and right, numbers top and bottom,
+  // so a label is beside a hole wherever you look on a big board. Each label
+  // takes its x from the hole it names through mx, so the underside view mirrors
+  // the columns with no special case. A ruler, not an object: quiet ink, no
+  // pointer events.
+  if (L.edgeLabels) {
+    const fs = PITCH_MM * 0.36;
+    const edge = (axis, text, x, y) => out.push(`<text data-kind="edge-label"`
+      + ` data-axis="${axis}" x="${n(x)}" y="${n(y + fs * 0.35)}" font-size="${n(fs)}"`
+      + ` fill="${c.ink}" fill-opacity="0.62" text-anchor="middle"`
+      + ` font-family="sans-serif" pointer-events="none">${text}</text>`);
+    for (let r = 0; r < b.rows; r += 1) {
+      const { y } = holeToMm(0, r);
+      const t = columnLabel(r + 1);
+      edge('row', t, -EDGE_LABEL_BAND_MM / 2, y);
+      edge('row', t, w + EDGE_LABEL_BAND_MM / 2, y);
+    }
+    for (let col = 0; col < b.cols; col += 1) {
+      const x = mx(holeToMm(col, 0).x);
+      edge('col', String(col + 1), x, -EDGE_LABEL_BAND_MM / 2);
+      edge('col', String(col + 1), x, h + EDGE_LABEL_BAND_MM / 2);
+    }
   }
 
   // 8. hit targets for the cuts.

@@ -1,0 +1,2 @@
+$ node tests/render/test_edge_labels.mjs
+edge-labels: 5/5 checks passed
