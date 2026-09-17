@@ -173,6 +173,34 @@ export function drc(board, breaks = [], placements = [], getPart = null, wires =
     }
   }
 
+  // --- off-grid pads --------------------------------------------------------
+  //
+  // A SOT-23's pin 3 is drawn over the GAP between two holes on its strip (see
+  // docs/specs/sot23-and-accepted-findings.md). Its connectivity hole is on the
+  // grid, which is only honest while nothing lies in that gap — so the two
+  // things that can lie there are reported rather than silently resolved to
+  // whichever hole the model happened to pick.
+  for (const p of pins) {
+    const offCol = p.drawCol !== undefined && !Number.isInteger(p.drawCol);
+    const offRow = p.drawRow !== undefined && !Number.isInteger(p.drawRow);
+    if (offRow) {
+      // Turned across the strips: the pad is on the gap BETWEEN two strips, and
+      // its partners are on different strips 1.9 mm apart. Nothing about that
+      // can be soldered.
+      out.push(err('pad-between-strips',
+        `${p.ref} pin ${p.pin} lands between two strips — turn it so its first two pins lie along one strip`,
+        [p.ref], [{ col: p.col, row: p.row }]));
+      continue;
+    }
+    if (!offCol) continue;
+    const gap = Math.floor(p.drawCol);
+    if (breaks.some((b) => b.at === 'gap' && b.row === p.row && b.x === gap)) {
+      out.push(err('pad-over-cut',
+        `${p.ref} pin ${p.pin} sits across the cut between holes ${gap} and ${gap + 1} in row ${p.row} — it joins whichever side the solder reaches`,
+        [p.ref], [{ col: gap, row: p.row }, { col: gap + 1, row: p.row }]));
+    }
+  }
+
   // --- what each segment carries -------------------------------------------
   const usable = pins.filter((p) => p.electrical && onBoard(p.col, p.row));
   const { segmentNet } = nets(segs, usable, placements, getPart, wires);

@@ -4,3 +4,10 @@ node_modules/
 *.db-wal
 data/
 .DS_Store
+
+# The global gitignore carries Python packaging's `parts/`, which matches this
+# repo's part library and its tests. Nothing under either had ever been
+# committed: the catalogue, the device store and nine test files lived only on
+# disk. A repo .gitignore outranks the global one, so these put them back.
+!src/parts/
+!tests/parts/

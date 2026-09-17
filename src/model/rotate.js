@@ -32,6 +32,14 @@ export function resolvePins(placements, getPart) {
     const part = getPart(pl.part);
     for (const [i, pin] of pinsOf(part, pl.span, pl.width).entries()) {
       const [dx, dy] = rotate(pin.dx, pin.dy, pl.rot ?? 0);
+      // An OFF-GRID pad — a SOT-23's pin 3 sits over the gap between two holes.
+      // Its hole stays on the grid for connectivity; the drawing position is the
+      // hole plus the offset, turned with the part so it can never fall out of
+      // step with rotation.
+      const [ox, oy] = pin.ox ? rotate(pin.ox, 0, pl.rot ?? 0) : [0, 0];
+      const draw = pin.ox
+        ? { drawCol: pl.at.col + dx + ox, drawRow: pl.at.row + dy + oy }
+        : {};
       out.push({
         ref: pl.ref,
         // A placement may carry its own pin names — a device copies them in when
@@ -42,6 +50,7 @@ export function resolvePins(placements, getPart) {
         row: pl.at.row + dy,
         electrical: pin.electrical !== false,
         kind: part.kind,
+        ...draw,
       });
     }
   }

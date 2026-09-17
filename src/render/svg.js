@@ -26,6 +26,12 @@ import {
 } from './colours.js';
 import { getPart, getPart as defaultGetPart, sideOf } from '../parts/library.js';
 
+// Where a pad is DRAWN, in board millimetres. Usually its hole; for an off-grid
+// pad (a SOT-23's pin 3, over the gap between two holes) the draw position
+// resolvePins worked out. Every drawing of a pad goes through here, so the
+// outline, the extents and the land cannot disagree about where it is.
+const padMm = (p) => holeToMm(p.drawCol ?? p.col, p.drawRow ?? p.row);
+
 export const THEMES = {
   light: {
     substrate: '#e8dcc0',
@@ -175,8 +181,8 @@ export function footprintBoxFromPoints(pts) {
 // hole — the right answer rather than a special case.
 export function footprintBox(placement, getPart = null) {
   const pins = resolvePins([placement], getPart ?? defaultGetPart);
-  const xs = pins.map((p) => holeToMm(p.col, p.row).x);
-  const ys = pins.map((p) => holeToMm(p.col, p.row).y);
+  const xs = pins.map((p) => padMm(p).x);
+  const ys = pins.map((p) => padMm(p).y);
   const x0 = Math.min(...xs) - SILK_MARGIN_MM;
   const y0 = Math.min(...ys) - SILK_MARGIN_MM;
   return {
@@ -290,7 +296,7 @@ export function drawingExtentMm(project, getPart = defaultGetPart) {
     } catch { continue; }
     if (!pins.length) continue;
 
-    const pts = pins.map((p) => holeToMm(p.col, p.row));
+    const pts = pins.map(padMm);
     const box = footprintBoxFromPoints(pts);
     for (const [x, y] of bodyCornersMm(part, pl, pts, box)) {
       x0 = Math.min(x0, x);
@@ -497,6 +503,50 @@ function bodyFor(part, pts, c, box, pl = {}) {
         + ` rx="${n(0.25)}" fill="${c.silk}" fill-opacity="0.5"/>`
         + `<rect x="${n(bl / 2 - cap)}" y="${n(-bw / 2)}" width="${n(cap)}" height="${n(bw)}"`
         + ` rx="${n(0.25)}" fill="${c.silk}" fill-opacity="0.5"/></g>`;
+    }
+    case 'sot23': {
+      // THE LAND, as for the 0603: a SOT-23 is 2.9 x 1.3 mm, and silk that size
+      // over two strips would be accurate and invisible.
+      //
+      // Laid out in the frame of pins 1 -> 2, with pin 3 on the far side. The
+      // side is taken from where pin 3 actually IS rather than assumed, because
+      // the underside view mirrors x and a fixed side would put the body on the
+      // wrong strip there.
+      //
+      // Not the `len` and `angle` above: those run from the first pin to the
+      // LAST, which here is pin 3 on the other strip.
+      const [p1, p2, p3] = pts;
+      const len12 = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      const angle12 = (Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180) / Math.PI;
+      const ux = (p2.x - p1.x) / len12;
+      const uy = (p2.y - p1.y) / len12;
+      const across = (p3.x - p1.x) * -uy + (p3.y - p1.y) * ux;
+      const side = across < 0 ? -1 : 1;
+      const h = Math.abs(across);
+      const cx0 = (p1.x + p2.x) / 2;
+      const cy0 = (p1.y + p2.y) / 2;
+      const bl = len12 + HOLE_DIA_MM;
+      const bw = TRACK_W_MM * 0.85;
+      const cap = HOLE_DIA_MM;
+      // One termination per pad, where the solder goes: two on the near strip,
+      // one on the far — which is what makes this read as a 2+1 at a glance.
+      const term = (x, y) => `<rect x="${n(x - cap / 2)}" y="${n(y - bw / 2)}"`
+        + ` width="${n(cap)}" height="${n(bw)}" rx="${n(0.25)}"`
+        + ` fill="${c.silk}" fill-opacity="0.5"/>`;
+      return `<g transform="translate(${n(cx0)} ${n(cy0)}) rotate(${n(angle12)})`
+        + ` scale(1 ${side})">`
+        + `<rect data-kind="part-body" x="${n(-bl / 2)}" y="${n(-bw / 2)}"`
+        + ` width="${n(bl)}" height="${n(h + bw)}" rx="${n(0.25)}" ${silk(c)}/>`
+        + term(-len12 / 2, 0) + term(len12 / 2, 0) + term(0, h)
+        // PIN 1, as a dot on the package — which is how the real part says it.
+        // The pads cannot: every land is square (a land has no pin 1 on a
+        // two-terminal passive), which left pins 1 and 2 as mirror images, and
+        // on an AO3401 those are the gate and the source. Placed on the body
+        // between the strips, in pin 1's half, so it is on silk rather than over
+        // a pad or a cut.
+        + `<circle data-kind="pin1-mark" cx="${n(-len12 / 2)}" cy="${n(h / 2)}"`
+        + ` r="${n(PITCH_MM * 0.13)}" fill="${c.silk}"/>`
+        + '</g>';
     }
     case 'line':
     default:
@@ -887,7 +937,7 @@ export function renderBoard(project, opts = {}) {
 
     const pins = resolvePins([pl], getPart);
     const pts = pins.map((p) => {
-      const q = holeToMm(p.col, p.row);
+      const q = padMm(p);
       return { x: mx(q.x), y: q.y };
     });
     if (!pts.length) continue;

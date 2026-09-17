@@ -3467,3 +3467,115 @@
     failures: 0
     at: '2026-08-31T21:33:16.705'
     commit: 5b8e08a-dirty
+- id: a-net-is-drawn-as-connected-with-nothing-recording-that-it-was-rung-out
+  type: new
+  what: a net that exists in copper cannot be marked as verified in the built article, so an unfitted
+    wire is indistinguishable from a fitted one
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - src/model/views.js
+  test:
+    command: null
+    criterion: null
+    runs: 1
+  trial: null
+  fix: null
+- id: there-is-no-sot23-so-a-mosfet-is-drawn-as-a-to92
+  type: new
+  what: the catalogue has no SMT semiconductor package, so a SOT-23 MOSFET goes down with a TO-92 outline
+    the builder does not have in hand
+  spec: docs/specs/sot23-and-accepted-findings.md
+  files:
+  - src/parts/library.js
+  - src/model/rotate.js
+  - src/render/svg.js
+  - src/net/drc.js
+  test:
+    command:
+    - node
+    - tests/parts/test_sot23.mjs
+    criterion: a sot23 exists as a copper-side 2+1 part with pin 3 drawn half a hole along its strip,
+      derives one knife cut, has the real part's handedness in the underside view, and raises pad-over-cut
+      and pad-between-strips where it cannot be built
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-sot23-so-a-mosfet-is-drawn-as-a-to92.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T07:31:12.780'
+    commit: d120cc9-dirty
+  fix:
+    file: .proofs/there-is-no-sot23-so-a-mosfet-is-drawn-as-a-to92.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T07:33:41.062'
+    commit: d120cc9-dirty
+- id: a-board-cannot-say-a-finding-is-intended
+  type: new
+  what: a deliberate tie such as gate-to-source trips short-across-part as a permanent error, and there
+    is no way for the board to accept that one finding on that one placement with a reason
+  spec: docs/specs/sot23-and-accepted-findings.md
+  files:
+  - src/net/drc.js
+  - src/model/ops.js
+  - src/model/board.js
+  - src/model/views.js
+  test:
+    command: null
+    criterion: null
+    runs: 1
+  trial: null
+  fix: null
+- id: a-sot23-drawing-does-not-say-which-end-is-pin-1
+  type: bug
+  what: "every land on a SOT-23 is drawn square, so pins 1 and 2 are indistinguishable \u2014 on an AO3401\
+    \ that is gate against source"
+  spec: docs/specs/sot23-and-accepted-findings.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/parts/test_sot23.mjs
+    criterion: a SOT-23 carries a pin 1 mark nearer pin 1 than pin 2, in the top and underside views,
+      at rot 0 and 180
+    runs: 1
+  trial:
+    file: .proofs/a-sot23-drawing-does-not-say-which-end-is-pin-1.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T07:34:55.067'
+    commit: d120cc9-dirty
+  fix:
+    file: .proofs/a-sot23-drawing-does-not-say-which-end-is-pin-1.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T07:35:08.787'
+    commit: d120cc9-dirty
+- id: the-part-library-has-never-been-committed
+  type: bug
+  what: a global gitignore rule for Python packaging, parts/, matches src/parts and tests/parts, so the
+    part library, the device catalogue and their tests have never been in git
+  spec: docs/specs/sot23-and-accepted-findings.md
+  files:
+  - .gitignore
+  test:
+    command:
+    - bash
+    - -c
+    - 'for f in src/parts/*.js tests/parts/*.mjs; do git ls-files --error-unmatch "$f" >/dev/null 2>&1
+      || { echo "untracked: $f"; bad=1; }; done; exit ${bad:-0}'
+    criterion: src/parts/library.js, src/parts/devices.js and every tests/parts file are tracked by git
+    runs: 1
+  trial:
+    file: .proofs/the-part-library-has-never-been-committed.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T07:36:56.752'
+    commit: d120cc9-dirty
+  fix: null
