@@ -96,6 +96,14 @@ s.check('THE EDITOR MUTATES NOTHING ITSELF', () => {
     [/\bp\.wires\s*=\s/, 'assignment to p.wires'],
     [/\bp\.breaks\s*=\s/, 'assignment to p.breaks'],
     [/\bp\.placements\[[^\]]+\]\s*=\s/, 'assignment into p.placements[]'],
+    // HOWEVER IT IS SPELLED. The Focus panel wrote `state.project.breaks =`,
+    // which the patterns above could not see — the check was written to catch
+    // exactly that edit and missed it on a spelling. And net names written with
+    // setNetLabel skip ops.setLabel's rules the same way.
+    [/\bstate\.project\.(placements|wires|breaks)\s*=\s/, 'assignment to state.project.<list>'],
+    [/\bstate\.project\.(placements|wires|breaks)\[[^\]]+\]\s*=\s/, 'assignment into state.project.<list>[]'],
+    [/\bstate\.project\.(placements|wires|breaks)\.(push|splice)\(/, 'push/splice on state.project.<list>'],
+    [/\bsetNetLabel\(/, 'setNetLabel called directly'],
   ];
   const found = offenders.filter(([re]) => re.test(src)).map(([, what]) => what);
   eq(found, [], `public/app.js edits the project directly: ${found.join(', ')}`);

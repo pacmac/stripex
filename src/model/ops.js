@@ -17,7 +17,7 @@
 
 import { makeProject, nextWireRef, nextPartRef, validateProject } from './board.js';
 import { getPart, hasPart, isSurfaceMount, defaultRotOf, SIDES } from '../parts/library.js';
-import { applyPlacementEdit } from './edit.js';
+import { applyPlacementEdit, applyWireEdit } from './edit.js';
 import { getDevice, placementFor } from '../parts/devices.js';
 import { resolvePins, isRotation } from './rotate.js';
 import { segments, segmentIndex, holeKey } from '../net/segments.js';
@@ -151,6 +151,38 @@ export function addPart(project, { part, at, rot: asked, span, width, device, si
   const bad = validateProject(next);
   if (bad.length) return fail('invalid', bad[0].message);
   return { project: next, ref: pl.ref };
+}
+
+// Edit one field of a placed part — ref, value, silk, rotation, side, position,
+// span, width, cuts — through the Focus panel's own rules, and then the board's:
+// a ref renamed onto another part's is refused here, not discovered on save.
+// The editor wrote these straight into state.project, which is the shape of
+// the-inspector-still-cuts-copper-by-hand.
+export function editPart(project, ref, field, value) {
+  const i = (project.placements ?? []).findIndex((x) => x.ref === ref);
+  if (i < 0) return fail('no-such-ref', `${JSON.stringify(ref)} is not on this board`);
+  const { placement, error } = applyPlacementEdit(project.placements[i], getPart, field, value);
+  if (error) return fail('refused', error);
+  const next = clone(project);
+  next.placements[i] = placement;
+  const bad = validateProject(next);
+  if (bad.length) return fail('invalid', bad[0].message);
+  return { project: next, ref: placement.ref };
+}
+
+// Edit one field of a pen wire — ref, colour, an end — through the Focus panel's
+// rules and then the board's. The ends are checked by validateProject as they
+// were; addWire's free-hole rules still apply only when a wire is drawn.
+export function editWire(project, ref, field, value) {
+  const i = (project.wires ?? []).findIndex((x) => x.ref === ref);
+  if (i < 0) return fail('no-such-ref', `${JSON.stringify(ref)} is not a wire on this board`);
+  const { wire, error } = applyWireEdit(project.wires[i], field, value);
+  if (error) return fail('refused', error);
+  const next = clone(project);
+  next.wires[i] = wire;
+  const bad = validateProject(next);
+  if (bad.length) return fail('invalid', bad[0].message);
+  return { project: next, ref: wire.ref };
 }
 
 // Move a placed part to the other side of the board. Through the same edit the
@@ -503,6 +535,8 @@ const OPS = {
   addPart: (p, a) => addPart(p, a),
   removePart: (p, a) => removePart(p, a.ref),
   setSide: (p, a) => setSide(p, a.ref, a.side),
+  editPart: (p, a) => editPart(p, a.ref, a.field, a.value),
+  editWire: (p, a) => editWire(p, a.ref, a.field, a.value),
   movePart: (p, a) => movePart(p, a.ref, a.pin, a.to),
   addWire: (p, a) => addWire(p, a.from, a.to),
   removeWire: (p, a) => removeWire(p, a.ref),

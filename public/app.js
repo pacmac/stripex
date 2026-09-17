@@ -1528,7 +1528,10 @@ function paintNets() {
     b.addEventListener('click', () => {
       const [col, row] = b.dataset.clearLabel.split(',').map(Number);
       const name = state.project.netLabels?.[b.dataset.clearLabel]?.name ?? 'name';
-      state.project = setNetLabel(state.project, { col, row }, null);
+      // Through ops.setLabel, which lets a clear through on a dead hole.
+      const out = ops.setLabel(state.project, { col, row }, { name: '' });
+      if (out.error) return say(out.error);
+      state.project = out.project;
       commit(`cleared ${name}, which named nothing`);
     });
   }
@@ -1536,9 +1539,12 @@ function paintNets() {
   for (const input of $('#tab-nets').querySelectorAll('[data-netname]')) {
     input.addEventListener('change', (e) => {
       const [col, row] = e.target.dataset.netname.split(',').map(Number);
-      const existing = effectiveBreaks(state.project) && labelAt(col, row);
-      state.project = setNetLabel(state.project, { col, row },
-        { ...existing, name: e.target.value.trim() });
+      const existing = labelAt(col, row);
+      // Through ops.setLabel, so the mouse and the API name a net by one rule.
+      const out = ops.setLabel(state.project, { col, row },
+        { name: e.target.value.trim(), colour: existing.colour });
+      if (out.error) return say(out.error);
+      state.project = out.project;
       commit(e.target.value.trim() ? `net named ${e.target.value.trim()}` : 'net name cleared');
     });
   }
@@ -1546,8 +1552,10 @@ function paintNets() {
     sw.addEventListener('click', (e) => {
       const [col, row] = e.currentTarget.dataset.netcolour.split(',').map(Number);
       const existing = labelAt(col, row);
-      state.project = setNetLabel(state.project, { col, row },
-        { ...existing, colour: e.currentTarget.dataset.hex || undefined });
+      const out = ops.setLabel(state.project, { col, row },
+        { name: existing.name, colour: e.currentTarget.dataset.hex || undefined });
+      if (out.error) return say(out.error);
+      state.project = out.project;
       commit('net colour changed');
     });
   }
@@ -1694,9 +1702,11 @@ function paintInspectorFrom() {
            their copper.</p>
          <button id="delBreak">Restore the copper</button>`;
     $('#delBreak')?.addEventListener('click', () => {
-      state.project.breaks = state.project.breaks.filter(
-        (b) => !(b.row === row && b.x === x),
-      );
+      // Through ops.clearBreak. This wrote state.project.breaks directly, and
+      // the check written to catch that only knew the spelling `p.breaks`.
+      const out = ops.clearBreak(state.project, { row, x });
+      if (out.error) return say(out.error);
+      state.project = out.project;
       state.selection = null;
       commit(`restored the copper at row ${row}`);
     });
@@ -1741,16 +1751,12 @@ function paintInspectorFrom() {
 
     for (const sw of el.querySelectorAll('[data-wswatch]')) {
       sw.addEventListener('click', (e) => {
-        const j = state.project.wires.findIndex((x) => x.ref === state.selection?.ref);
-        if (j < 0) return;
-        const { wire, error } = applyWireEdit(
-          state.project.wires[j], e.currentTarget.dataset.wswatch,
-          e.currentTarget.dataset.hex,
-        );
-        if (error) { $('#editError').textContent = error; return; }
-        state.project.wires[j] = wire;
+        const out = ops.editWire(state.project, state.selection?.ref,
+          e.currentTarget.dataset.wswatch, e.currentTarget.dataset.hex);
+        if (out.error) { $('#editError').textContent = out.error; return; }
+        state.project = out.project;
         inspectorShape = null;
-        commit(`${wire.ref} ${e.currentTarget.dataset.wswatch} `
+        commit(`${out.ref} ${e.currentTarget.dataset.wswatch} `
           + `${e.currentTarget.dataset.hex || 'default'}`);
       });
     }
@@ -1759,13 +1765,11 @@ function paintInspectorFrom() {
       input.addEventListener('change', (e) => {
         const field = e.target.dataset.wedit;
         // Same as for placements: read the current wire, not a captured copy.
-        const j = state.project.wires.findIndex((x) => x.ref === state.selection?.ref);
-        if (j < 0) return;
-        const { wire, error } = applyWireEdit(state.project.wires[j], field, e.target.value);
-        if (error) { syncInspectorValues(true); $('#editError').textContent = error; return; }
-        state.project.wires[j] = wire;
-        if (field === 'ref') state.selection = { kind: 'wire', ref: wire.ref };
-        commit(`${wire.ref} ${field} = ${e.target.value}`);
+        const out = ops.editWire(state.project, state.selection?.ref, field, e.target.value);
+        if (out.error) { syncInspectorValues(true); $('#editError').textContent = out.error; return; }
+        state.project = out.project;
+        if (field === 'ref') state.selection = { kind: 'wire', ref: out.ref };
+        commit(`${out.ref} ${field} = ${e.target.value}`);
       });
     }
     return;
@@ -1820,16 +1824,13 @@ function paintInspectorFrom() {
   // The side choice: one click, one commit, one undo step.
   for (const b of el.querySelectorAll('[data-edit-side]')) {
     b.addEventListener('click', (e) => {
-      const i2 = state.project.placements.findIndex((x) => x.ref === state.selection?.ref);
-      if (i2 < 0) return;
+      const ref = state.selection?.ref;
       const value = e.currentTarget.dataset.editSide;
-      const { placement, error } = applyPlacementEdit(
-        state.project.placements[i2], getPart, 'side', value,
-      );
-      if (error) { $('#editError').textContent = error; return; }
-      state.project.placements[i2] = placement;
+      const out = ops.setSide(state.project, ref, value);
+      if (out.error) { $('#editError').textContent = out.error; return; }
+      state.project = out.project;
       inspectorShape = null;          // which button is lit changed, so repaint
-      commit(`${placement.ref} to the ${value === 'top' ? 'top' : 'copper side'}`);
+      commit(`${ref} to the ${value === 'top' ? 'top' : 'copper side'}`);
     });
   }
 
@@ -1838,15 +1839,12 @@ function paintInspectorFrom() {
     sw.addEventListener('click', (e) => {
       const field = e.currentTarget.dataset.swatch;
       const hex = e.currentTarget.dataset.hex;
-      const i2 = state.project.placements.findIndex((x) => x.ref === state.selection?.ref);
-      if (i2 < 0) return;
-      const { placement, error } = applyPlacementEdit(
-        state.project.placements[i2], getPart, field, hex,
-      );
-      if (error) { $('#editError').textContent = error; return; }
-      state.project.placements[i2] = placement;
+      const ref = state.selection?.ref;
+      const out = ops.editPart(state.project, ref, field, hex);
+      if (out.error) { $('#editError').textContent = out.error; return; }
+      state.project = out.project;
       inspectorShape = null;          // the swatch selection changed, so repaint
-      commit(`${placement.ref} ${field} ${hex || 'default'}`);
+      commit(`${ref} ${field} ${hex || 'default'}`);
     });
   }
 
@@ -1859,19 +1857,19 @@ function paintInspectorFrom() {
       // captured copy goes stale: editing span would write back a placement
       // still carrying the width from before the last two edits, silently
       // undoing them.
-      const i2 = state.project.placements.findIndex((x) => x.ref === state.selection?.ref);
-      if (i2 < 0) return;
-      const current = state.project.placements[i2];
-      const { placement, error } = applyPlacementEdit(current, getPart, field, value);
-      if (error) {
+      // Through ops.editPart: the same rules, plus the board's own — a ref
+      // renamed onto another part's is refused here rather than on save.
+      const out = ops.editPart(state.project, state.selection?.ref, field, value);
+      if (out.error) {
         // Put the rejected value back — including into the focused field, which
         // is the one that holds it — and leave the field itself alone so the
         // user can correct it without clicking back in.
         syncInspectorValues(true);
-        $('#editError').textContent = error;
+        $('#editError').textContent = out.error;
         return;
       }
-      state.project.placements[i2] = placement;
+      state.project = out.project;
+      const placement = state.project.placements.find((x) => x.ref === out.ref);
       if (field === 'ref') state.selection = { kind: 'part', ref: placement.ref };
       // The autoBreak checkbox changes whether the hint below it applies, so the
       // panel's shape changed and it has to be rebuilt rather than value-synced.

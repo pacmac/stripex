@@ -2578,12 +2578,28 @@
   spec: docs/specs/editor-on-ops.md
   files:
   - public/app.js
+  - src/model/ops.js
   test:
-    command: null
-    criterion: no editor path mutates the project except through ops, however the project is spelled
+    command:
+    - node
+    - tests/model/test_headless_build.mjs
+    criterion: 'public/app.js writes no project list directly under any spelling and never calls setNetLabel
+      itself: breaks, placement edits and net names all go through ops'
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/the-inspector-still-cuts-copper-by-hand.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:09:58.068'
+    commit: f2edf6c-dirty
+  fix:
+    file: .proofs/the-inspector-still-cuts-copper-by-hand.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:13:27.282'
+    commit: f2edf6c-dirty
 - id: the-focus-panel-does-not-say-where-a-pin-name-came-from
   type: new
   what: "A placement now carries pinSource and unverifiedPins and the board draws the doubt, but the Focus\
