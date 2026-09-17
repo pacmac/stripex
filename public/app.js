@@ -1785,7 +1785,12 @@ function paintInspectorFrom() {
     + ` value="${val}" ${extra}>`;
 
   el.innerHTML = `
-    <div class="field"><span>Part</span><span>${escapeHtml(part.name)}</span></div>
+    <div class="field"><span>Part</span><span>${escapeHtml(
+    // The device when it is one — a TMC2209 read as "DIP / IC socket" — and
+    // the footprint beside it, which is still worth knowing.
+    pl.device && getDevice(pl.device)
+      ? `${getDevice(pl.device).name} (${part.name})`
+      : part.name)}</span></div>
     ${pl.pinSource ? `<p class="hint" data-focus-pinsource><b>Pin names from</b>
       ${escapeHtml(pl.pinSource)}</p>` : ''}
     ${pl.unverifiedPins?.length ? `<p class="hint" data-focus-unverified style="color:var(--warning)">

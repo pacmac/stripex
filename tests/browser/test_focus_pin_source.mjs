@@ -64,6 +64,7 @@ s.check('A CATALOGUE PART SHOWS ITS PIN SOURCE AND UNVERIFIED PINS; A PLAIN PART
     return page.evaluate(() => ({
       source: document.querySelector('#tab-inspect [data-focus-pinsource]')?.innerText ?? null,
       unverified: document.querySelector('#tab-inspect [data-focus-unverified]')?.innerText ?? null,
+      part: document.querySelector('#tab-inspect .field span:nth-child(2)')?.innerText ?? null,
     }));
   };
   try {
@@ -78,7 +79,11 @@ s.check('A CATALOGUE PART SHOWS ITS PIN SOURCE AND UNVERIFIED PINS; A PLAIN PART
   ok(/SilentStepStick/.test(r.chip.source ?? ''), `the TMC2209 says where its names came from: "${r.chip.source}"`);
   ok(/NC3/.test(r.chip.unverified ?? '') && /NC4/.test(r.chip.unverified ?? ''),
     `and names NC3 and NC4 as unverified: "${r.chip.unverified}"`);
-  eq(r.res, { source: null, unverified: null }, 'a plain resistor shows neither');
+  eq({ source: r.res.source, unverified: r.res.unverified }, { source: null, unverified: null },
+    'a plain resistor shows neither');
+  // Found looking at the screenshot: a TMC2209 was called "DIP / IC socket".
+  ok(/TMC2209/.test(r.chip.part ?? ''), `Focus names the device, not its footprint: "${r.chip.part}"`);
+  eq(r.res.part, 'Resistor (axial)', 'a plain part keeps its own name');
   eq(errs, [], 'no page errors');
 });
 

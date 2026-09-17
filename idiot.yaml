@@ -4223,8 +4223,22 @@
   files:
   - public/app.js
   test:
-    command: null
-    criterion: null
+    command:
+    - node
+    - tests/browser/test_focus_pin_source.mjs
+    criterion: Focus names a placed device by the device's name and a plain part by its part name
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/focus-names-a-device-by-its-footprint.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:22:22.673'
+    commit: 452eee8-dirty
+  fix:
+    file: .proofs/focus-names-a-device-by-its-footprint.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:24:12.080'
+    commit: 452eee8-dirty
