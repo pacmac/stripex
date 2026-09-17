@@ -380,6 +380,12 @@ s.check('EVERY ICON-ONLY BUTTON HAS A NAME', async () => {
   try {
     await page.goto(base);
     await page.waitForSelector('#boardWrap svg');
+    // Theme and the file actions live in the More menu (toolbar-fits.md). Open
+    // it, so they are checked as drawn rather than skipped as hidden.
+    if (await page.locator('#more').count()) {
+      await page.locator('#more').click();
+      await page.waitForTimeout(150);
+    }
     const bad = await page.evaluate(() => {
       const out = [];
       for (const b of document.querySelectorAll('.bar button')) {

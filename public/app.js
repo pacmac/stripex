@@ -2194,6 +2194,11 @@ function paintCards() {
   // inputs and read as a second, disagreeing copy of them.
   const label = $('#boardLabel');
   if (label) label.textContent = named ? state.project.name : 'Boards';
+  // The label is capped with an ellipsis so a long name cannot push the toolbar
+  // off the screen; the whole name is the button's tooltip.
+  $('#boards')?.setAttribute('title', named
+    ? `${state.project.name} — pick a board, or start a new one`
+    : 'Pick a board, or start a new one');
   syncBoardSize();
 
   // The list / tiles toggle, top right of the Library header. Only while the
@@ -2877,6 +2882,33 @@ function boot() {
     } else if (side.dataset.devside === sideOf(base)) delete devEditing.side;
     else devEditing.side = side.dataset.devside;
     paintDeviceEditor(!$('#devRevert').hidden ? false : null);
+  });
+
+  // THE MORE MENU. Positioned FIXED from its button — the bar scrolls sideways
+  // and clips anything absolutely placed inside it — and closed by a choice, by
+  // Escape, or by a click anywhere else. Its items keep their own handlers,
+  // below; this only opens and closes it. See docs/specs/toolbar-fits.md.
+  const moreBtn = $('#more');
+  const moreMenu = $('#moreMenu');
+  const setMore = (open) => {
+    moreMenu.hidden = !open;
+    moreBtn.setAttribute('aria-expanded', String(open));
+    if (!open) return;
+    const r = moreBtn.getBoundingClientRect();
+    moreMenu.style.top = `${Math.round(r.bottom + 4)}px`;
+    moreMenu.style.right = `${Math.max(8, Math.round(window.innerWidth - r.right))}px`;
+  };
+  moreBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setMore(moreMenu.hidden);
+  });
+  // A choice closes it after its own handler has run.
+  moreMenu.addEventListener('click', () => setMore(false));
+  document.addEventListener('click', (e) => {
+    if (!moreMenu.hidden && !moreMenu.contains(e.target) && e.target !== moreBtn) setMore(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !moreMenu.hidden) setMore(false);
   });
 
   $('#theme').addEventListener('click', () => {

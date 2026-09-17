@@ -63,7 +63,12 @@ async function onScreen(fn, { theme = 'light' } = {}) {
     await page.goto(base);
     await page.waitForSelector('#boardWrap svg');
     await page.waitForTimeout(600);
-    if (theme === 'dark') { await page.locator('#theme').click(); await page.waitForTimeout(200); }
+    // Theme lives in the More menu (toolbar-fits.md).
+    if (theme === 'dark') {
+      await page.locator('#more').click();
+      await page.locator('#theme').click();
+      await page.waitForTimeout(200);
+    }
     if (!await page.locator('[data-card="library"].is-open').count()) {
       await page.locator('[data-cardtoggle="library"]').click();
     }

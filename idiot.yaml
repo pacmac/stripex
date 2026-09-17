@@ -3941,17 +3941,33 @@
   type: bug
   what: 'the toolbar is 1655px wide, so below 1920px its last buttons scroll out of sight: at 1440 theme,
     download, open, restore, export and print are all hidden'
-  spec: docs/specs/print-sheet.md
+  spec: docs/specs/toolbar-fits.md
   files:
   - public/index.html
   - public/style.css
   - public/app.js
   test:
-    command: null
-    criterion: null
+    command:
+    - node
+    - tests/browser/test_toolbar_fits.mjs
+    criterion: at 1440 and 1600 with a long board name no toolbar button is out of sight; a More menu
+      holds theme, save, load, restore, export, opens, closes on Escape and on a choice, and the choice
+      works; the board's full name is its tooltip
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/the-toolbar-hides-print-below-1600px.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:49:00.148'
+    commit: b59c66c-dirty
+  fix:
+    file: .proofs/the-toolbar-hides-print-below-1600px.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:53:33.941'
+    commit: b59c66c-dirty
 - id: print-is-a-header-dialog-that-forgets-and-has-no-tables
   type: bug
   what: print lives behind a header button in a dialog, forgets every choice, cannot choose which layers

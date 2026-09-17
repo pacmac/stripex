@@ -49,6 +49,9 @@
        stroke-linecap="round" stroke-linejoin="round">
       <path d="M4 12a8 8 0 1 0 2.34-5.66"/><path d="M4 4v5h5"/><path d="M12 8v4l3 2"/>
     </g>
+    <g id="i-more" fill="currentColor" stroke="none">
+      <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+    </g>
     <!-- A wire link: a straight, stiff wire between two pads — the pen wire's
          icon is the curved one. -->
     <g id="i-link" fill="none" stroke="currentColor" stroke-width="2"
@@ -238,22 +241,33 @@
   </div>
 
   <div class="group">
-    <button id="theme" class="iconbtn" title="Light / dark" aria-label="Light or dark theme">
-      <svg class="ico" viewBox="0 0 24 24"><use href="#i-theme"/></svg></button>
-    <!-- Download / upload a COPY. The board itself lives on the server and
-         saves itself; these are for handing someone a file. -->
-    <button id="save" class="iconbtn" title="Download a copy of this board as a file"
-      aria-label="Download a copy">
-      <svg class="ico" viewBox="0 0 24 24"><use href="#i-download"/></svg></button>
-    <button id="load" class="iconbtn" title="Open a board from a file on this machine"
-      aria-label="Open from a file">
-      <svg class="ico" viewBox="0 0 24 24"><use href="#i-upload"/></svg></button>
-    <button id="restore" class="iconbtn" title="Go back to an earlier snapshot"
-      aria-label="Restore an earlier snapshot">
-      <svg class="ico" viewBox="0 0 24 24"><use href="#i-restore"/></svg></button>
-    <button id="export" class="iconbtn" title="Export the board as an SVG"
-      aria-label="Export as SVG">
-      <svg class="ico" viewBox="0 0 24 24"><use href="#i-export"/></svg></button>
+    <!-- MORE: the display and file actions, used least while laying out a
+         board, behind one button so the toolbar fits at 1440. They keep their
+         ids, so every handler still finds them. The menu is position:fixed
+         because this bar scrolls sideways and would clip anything inside it.
+         See docs/specs/toolbar-fits.md — and to reverse, move these five back
+         out and delete the menu. -->
+    <button id="more" class="iconbtn" title="Theme, download, open, restore, export"
+      aria-label="More" aria-haspopup="menu" aria-expanded="false" aria-controls="moreMenu">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-more"/></svg></button>
+    <div id="moreMenu" class="menu-pop" role="menu" hidden>
+      <button id="theme" role="menuitem" title="Light / dark" aria-label="Light or dark theme">
+        <svg class="ico" viewBox="0 0 24 24"><use href="#i-theme"/></svg><span>Light / dark</span></button>
+      <!-- Download / upload a COPY. The board itself lives on the server and
+           saves itself; these are for handing someone a file. -->
+      <button id="save" role="menuitem" title="Download a copy of this board as a file"
+        aria-label="Download a copy">
+        <svg class="ico" viewBox="0 0 24 24"><use href="#i-download"/></svg><span>Download a copy</span></button>
+      <button id="load" role="menuitem" title="Open a board from a file on this machine"
+        aria-label="Open from a file">
+        <svg class="ico" viewBox="0 0 24 24"><use href="#i-upload"/></svg><span>Open from a file</span></button>
+      <button id="restore" role="menuitem" title="Go back to an earlier snapshot"
+        aria-label="Restore an earlier snapshot">
+        <svg class="ico" viewBox="0 0 24 24"><use href="#i-restore"/></svg><span>Restore a snapshot</span></button>
+      <button id="export" role="menuitem" title="Export the board as an SVG"
+        aria-label="Export as SVG">
+        <svg class="ico" viewBox="0 0 24 24"><use href="#i-export"/></svg><span>Export as SVG</span></button>
+    </div>
   </div>
 </header>
 

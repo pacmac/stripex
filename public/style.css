@@ -511,6 +511,44 @@ main {
 
 /* Continuous saving that shows no sign of itself is indistinguishable from no
    saving — which is exactly how it was read. */
+/* THE MORE MENU, and the two savings that let the toolbar fit at 1440 — see
+   docs/specs/toolbar-fits.md. */
+.menu-pop {
+  position: fixed;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+.menu-pop[hidden] { display: none; }
+.menu-pop button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  text-align: left;
+  background: transparent;
+  border-color: transparent;
+}
+.menu-pop button:hover { background: var(--panel-2); border-color: transparent; color: var(--accent); }
+.menu-pop .ico { width: 18px; height: 18px; flex: 0 0 auto; }
+/* A long board name is cut with an ellipsis; its whole name is the tooltip. */
+#boardLabel {
+  display: inline-block;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.bar #cols, .bar #rows { width: 50px; }
+
 .save-state {
   font-size: 11px;
   color: var(--ink-dim);
