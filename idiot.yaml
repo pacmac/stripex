@@ -2892,16 +2892,30 @@
     \ reads as empty. On the SMT 555 it names column 7 \u2014 the DIP's own spot-face column, between\
     \ its two pin columns, whose holes are dead and which cannot be removed. A true statement that invites\
     \ a wrong conclusion, in the one query whose whole job is to point at waste."
-  spec: docs/specs/board-queries-and-resize.md
+  spec: docs/specs/usage-covered.md
   files:
   - src/model/views.js
   test:
-    command: null
-    criterion: a column or row covered by a placement's body is not reported as empty, or is reported
-      separately from one that is genuinely free
+    command:
+    - node
+    - tests/model/test_usage_covered.mjs
+    criterion: a column or row inside any placement's pin rectangle is reported in coveredColumns/coveredRows
+      with its refs and not in emptyColumns/emptyRows; a free one is still empty
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/usage-calls-a-column-empty-when-a-package-is-sitting-on-it.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:24:40.422'
+    commit: 39e7aa5-dirty
+  fix:
+    file: .proofs/usage-calls-a-column-empty-when-a-package-is-sitting-on-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:26:32.849'
+    commit: 39e7aa5-dirty
 - id: the-jst-shroud-is-drawn-far-smaller-than-the-real-connector
   type: bug
   what: 'The JST XH body is drawn from invented proportions, not the datasheet. Measured against the KiCad
