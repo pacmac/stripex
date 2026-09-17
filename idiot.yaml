@@ -4298,3 +4298,31 @@
     failures: 0
     at: '2026-09-17T16:33:37.025'
     commit: a4fd5ef-dirty
+- id: an-edit-during-a-save-is-never-saved
+  type: bug
+  what: saveToServer returns when a save is already in flight and nothing asks again, so an edit made
+    during a slow save never reaches the server while the indicator says saved
+  spec: docs/specs/edit-during-save.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_edit_during_save.mjs
+    criterion: with every save response held back 2 s, an edit made during the first save reaches the
+      server
+    runs: 1
+  trial:
+    file: .proofs/an-edit-during-a-save-is-never-saved.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:34:13.588'
+    commit: 63428b7-dirty
+  fix:
+    file: .proofs/an-edit-during-a-save-is-never-saved.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:37:53.403'
+    commit: 63428b7-dirty

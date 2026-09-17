@@ -280,6 +280,8 @@ let saveTimer = null;
 let saving = false;
 // The project JSON of the save in flight, if any — its echo is ours.
 let inFlightSave = null;
+// A save was asked for while another was running; run it when that one ends.
+let saveQueued = false;
 // An edit that arrived before the board was open. Flushed once, by
 // connectBoards, and only if it really happened — see the comment there.
 let savePending = false;
@@ -315,7 +317,13 @@ function showSaveState(kind) {
 }
 
 async function saveToServer() {
-  if (!state.slug || saving) return;
+  if (!state.slug) return;
+  // A SAVE ASKED FOR WHILE ONE IS RUNNING IS REMEMBERED, NOT DROPPED. This used
+  // to return, and nothing asked again: an edit made during a slow save stayed
+  // on screen, the indicator went to "saved", and the server never had it.
+  // One queued save is enough — it sends the whole project, every edit made in
+  // the meantime included. See docs/specs/edit-during-save.md.
+  if (saving) { saveQueued = true; return; }
   saving = true;
   // WHAT THIS SAVE SENT, so its echo on the live feed is recognised. When the
   // feed's message beat the PUT's response, the editor took its own save for
@@ -353,6 +361,10 @@ async function saveToServer() {
   } finally {
     saving = false;
     inFlightSave = null;
+    if (saveQueued) {
+      saveQueued = false;
+      scheduleSave();
+    }
   }
 }
 
