@@ -31,8 +31,8 @@
     exit: 0
     runs: 1
     failures: 0
-    at: '2026-08-30T19:03:46.808'
-    commit: 0bd7f40-dirty
+    at: '2026-09-17T16:09:12.185'
+    commit: 8113b6c-dirty
 - id: there-is-no-board-editor
   type: new
   what: 'There is no way to see or edit a stripboard layout: no renderer, no server, no tools for parts,
@@ -2992,7 +2992,13 @@
     failures: 1
     at: '2026-08-31T09:36:15.531'
     commit: 8b7669e-dirty
-  fix: null
+  fix:
+    file: .proofs/the-right-angle-jst-is-too-long-and-sits-behind-its-pins.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:09:04.372'
+    commit: 8113b6c-dirty
 - id: opening-a-board-writes-it-back-to-the-server
   type: bug
   what: "A fresh browser that opens a board issues a PUT with no interaction at all \u2014 measured with\

@@ -1,0 +1,2 @@
+$ node tests/render/test_jst_dimensions.mjs
+jst-dimensions: 12/12 checks passed
