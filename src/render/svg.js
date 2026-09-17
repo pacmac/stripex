@@ -978,6 +978,43 @@ export function renderBoard(project, opts = {}) {
     }
   }
 
+  // A PART LABEL TAKES THE FIRST FREE PLACE AROUND ITS PART. They were all put
+  // above the first pin, so on a dense board "LED1L4" and "R3 330R" printed over
+  // each other. Each label now tries above its first pin (where it always went,
+  // so an uncrowded board looks exactly as before), above the middle of its
+  // pins, below, right, then left, and takes the first that no label already
+  // placed overlaps. The box is estimated from the text — there is no text
+  // measurement here — at 0.55 of the font size per character. See
+  // docs/specs/labels-dont-collide.md.
+  // The row and column label bands are NOT reserved here. Tried: a part on the
+  // top row then put its ref below itself — for a long link, rows away and over
+  // pads — which read worse than a ref brushing the faint column numbers.
+  const labelBoxes = [];
+  const placeLabel = (text, fs, pts) => {
+    const w = text.length * fs * 0.55;
+    const xs = pts.map((q) => q.x);
+    const ys = pts.map((q) => q.y);
+    const minX = Math.min(...xs); const maxX = Math.max(...xs);
+    const minY = Math.min(...ys); const maxY = Math.max(...ys);
+    const midX = (minX + maxX) / 2; const midY = (minY + maxY) / 2;
+    const gap = PITCH_MM * 0.5;
+    const candidates = [
+      { x: pts[0].x, y: minY - gap, anchor: 'middle' },
+      { x: midX, y: minY - gap, anchor: 'middle' },
+      { x: midX, y: maxY + gap + fs * 0.8, anchor: 'middle' },
+      { x: maxX + gap, y: midY + fs * 0.3, anchor: 'start' },
+      { x: minX - gap, y: midY + fs * 0.3, anchor: 'end' },
+    ];
+    const boxOf = (cand) => {
+      const x0 = cand.anchor === 'middle' ? cand.x - w / 2 : cand.anchor === 'end' ? cand.x - w : cand.x;
+      return { x0, x1: x0 + w, y0: cand.y - fs * 0.8, y1: cand.y + fs * 0.2 };
+    };
+    const clear = (b) => labelBoxes.every((o) => !(b.x0 < o.x1 && o.x0 < b.x1 && b.y0 < o.y1 && o.y0 < b.y1));
+    const pick = candidates.find((cand) => clear(boxOf(cand))) ?? candidates[0];
+    labelBoxes.push(boxOf(pick));
+    return pick;
+  };
+
   // 6. components. The underside view drops bodies — you are looking at the
   //    copper you have to solder, and a picture of the parts is in the way.
   for (const pl of project.placements ?? []) {
@@ -1089,10 +1126,13 @@ export function renderBoard(project, opts = {}) {
       // one would be a new way of being unreadable.
       out.push('</g>');
       if (L.labels) {
+        const text = pl.value ? `${pl.ref} ${pl.value}` : pl.ref;
+        const fs = PITCH_MM * 0.6;
+        const at = placeLabel(text, fs, pts);
         out.push(`<text data-kind="part-label" data-ref="${esc(pl.ref)}"`
-          + ` x="${n(pts[0].x)}" y="${n(Math.min(...pts.map((p) => p.y)) - PITCH_MM * 0.5)}"`
-          + ` font-size="${n(PITCH_MM * 0.6)}" fill="${c.ink}" text-anchor="middle"`
-          + ` font-family="sans-serif">${esc(pl.value ? `${pl.ref} ${pl.value}` : pl.ref)}</text>`);
+          + ` x="${n(at.x)}" y="${n(at.y)}"`
+          + ` font-size="${n(fs)}" fill="${c.ink}" text-anchor="${at.anchor}"`
+          + ` font-family="sans-serif">${esc(text)}</text>`);
       }
     }
     // Pads, at the silkscreen weight so they are as legible as the outline

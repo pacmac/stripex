@@ -2708,15 +2708,30 @@
   what: 'On a board with parts close together the ref/value text overlaps: ''LED1L4'' and ''R3 330R''
     printed over the LED, ''C2 10n'' across the chip. Nothing positions a label with regard to any other
     label.'
-  spec: docs/specs/silkscreen-components.md
+  spec: docs/specs/labels-dont-collide.md
   files:
   - src/render/svg.js
   test:
-    command: null
-    criterion: adjacent parts' refs and values do not overlap on a dense board
+    command:
+    - node
+    - tests/render/test_label_collisions.mjs
+    criterion: on a dense board no two part labels' estimated boxes overlap, and a lone part's label stays
+      above its first pin
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/refs-and-values-collide-with-each-other.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:38:56.197'
+    commit: ca5d1d5-dirty
+  fix:
+    file: .proofs/refs-and-values-collide-with-each-other.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:43:15.534'
+    commit: ca5d1d5-dirty
 - id: renaming-a-board-someone-has-open-resurrects-it-under-the-old-name
   type: bug
   what: rename moves the file, but an editor with that board open keeps its slug and its next save re-creates
