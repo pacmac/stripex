@@ -2664,17 +2664,30 @@
     \ body.radius declared on every can part in the library is never read. A capacitor placed with a 13-hole\
     \ lead run is drawn as a 33mm disc covering a third of the board and hiding the copper under it. No\
     \ real capacitor grows because you spread its leads."
-  spec: docs/specs/silkscreen-components.md
+  spec: docs/specs/can-body-size.md
   files:
   - src/render/svg.js
-  - src/parts/library.js
   test:
-    command: null
-    criterion: a can body is drawn at the size the library declares, growing with lead pitch only up to
-      that, and body.radius is actually read
+    command:
+    - node
+    - tests/render/test_can_size.mjs
+    criterion: 'a can is drawn at min(half its lead box, declared radius x pitch): an electrolytic at
+      2 or 13 holes is 1.2 holes, an LED 0.9, and the extent follows the drawing'
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/a-can-body-is-drawn-as-wide-as-its-leads-are-spread.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:17:03.196'
+    commit: d010b5e-dirty
+  fix:
+    file: .proofs/a-can-body-is-drawn-as-wide-as-its-leads-are-spread.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:19:12.761'
+    commit: d010b5e-dirty
 - id: refs-and-values-collide-with-each-other
   type: bug
   what: 'On a board with parts close together the ref/value text overlaps: ''LED1L4'' and ''R3 330R''

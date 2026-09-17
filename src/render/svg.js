@@ -260,6 +260,19 @@ const JST_RAMP_PROUD_MM = PITCH_MM * 0.26;
 // make twice — it is `rotate(angle)` applied to the same local rectangle. An
 // earlier version of this assumed the body always grew toward -y and was wrong
 // at rot 180.
+// A ROUND BODY'S RADIUS. Sized by the longer side of its lead box, as it always
+// was — a radial can covers both leads — but NEVER beyond the radius the library
+// declares. It used to be only the first half: the declared body.radius was
+// never read, and an electrolytic with its leads 13 holes apart was a 33 mm
+// disc over a third of the board. No capacitor grows because its leads are
+// spread. A body that declares no radius (the ceramic disc) is unchanged.
+// See docs/specs/can-body-size.md.
+function roundRadiusMm(part, box) {
+  const fromLeads = Math.max(box.w, box.h) / 2;
+  const declared = part.body?.radius != null ? part.body.radius * PITCH_MM : Infinity;
+  return Math.min(fromLeads, declared);
+}
+
 function bodyCornersMm(part, pl, pts, box) {
   const shape = part.body?.shape ?? 'blob';
   const a = pts[0];
@@ -267,12 +280,12 @@ function bodyCornersMm(part, pl, pts, box) {
   const len = Math.hypot(b.x - a.x, b.y - a.y);
 
   if (shape === 'can' || shape === 'blob') {
-    // A round body is sized by the LONGER side of its box, so it exceeds the box
-    // across the short axis — which the drawing says in as many words.
-    const r = Math.max(box.w, box.h) / 2;
+    // The same radius the drawing uses, and the lead box as well: a can capped
+    // at its declared size no longer reaches its own spread-out leads.
+    const r = roundRadiusMm(part, box);
     const cx = box.x + box.w / 2;
     const cy = box.y + box.h / 2;
-    return [[cx - r, cy - r], [cx + r, cy + r]];
+    return [[cx - r, cy - r], [cx + r, cy + r], [box.x, box.y], [box.x + box.w, box.y + box.h]];
   }
   if (shape === 'hole') {
     const r = (part.body.radius ?? 1.4) * PITCH_MM * 0.5;
@@ -377,8 +390,9 @@ function bodyFor(part, pts, c, box, pl = {}) {
       // 2.54 mm disc that does not even reach its own pins.
       //
       // It follows that a round body can exceed its courtyard across the short
-      // axis. That is what a big capacitor actually does on a board.
-      const r = Math.max(box.w, box.h) / 2;
+      // axis. That is what a big capacitor actually does on a board — up to the
+      // size the library declares, and no further (roundRadiusMm).
+      const r = roundRadiusMm(part, box);
       const mark = part.body.polarised
         ? `<text x="${n(cx - r * 0.5)}" y="${n(cy + r * 0.3)}" font-size="${n(r * 0.9)}"`
           + ` fill="${c.silk}" text-anchor="middle" font-family="sans-serif">+</text>`
