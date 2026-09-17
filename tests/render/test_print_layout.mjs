@@ -41,9 +41,10 @@ s.check('FILL GIVES BOTH VIEWS ONE SCALE, THE LARGEST THAT FITS', () => {
   const lay = P.printLayout({ drawing: d, sides: 'both', size: 'fill' });
   eq(lay.fits, true, 'fill always fits');
   eq(lay.views[0].widthMm, lay.views[1].widthMm, 'top and underside printed the same size');
-  const { w, h } = P.printableMm({ views: 2 });
-  const usedW = lay.views[0].widthMm;
-  const usedH = lay.views.reduce((a, v) => a + v.heightMm, 0);
+  // The views' own block — they may sit side by side now (build-sheet-design.md).
+  const { w, h } = P.printableMm({ views: 2, arrangement: lay.arrangement });
+  const usedW = lay.viewsWidthMm ?? lay.views[0].widthMm;
+  const usedH = lay.viewsHeightMm ?? lay.views.reduce((a, v) => a + v.heightMm, 0);
   ok(usedW <= w + 1e-6 && usedH <= h + 1e-6, `inside the printable area: ${usedW} x ${usedH} in ${w} x ${h}`);
   ok(Math.abs(usedW - w) < 1e-6 || Math.abs(usedH - h) < 1e-6, 'and touching one of its limits, so it is the largest');
   // A small board is scaled UP to fill, not left at actual size.
@@ -75,13 +76,39 @@ s.check('ONE PAGE FITS THE VIEWS AND THE TABLES ON ONE SHEET; WITH NO TABLES IT 
   const d = drawingOf(12, 19);
   const one = P.printLayout({ drawing: d, sides: 'both', size: 'onepage', tablesMm: tables });
   const fill = P.printLayout({ drawing: d, sides: 'both', size: 'fill' });
-  const area = P.printableMm({ views: 2 });
-  const used = one.views.reduce((a, v) => a + v.heightMm, 0) + tables;
+  const area = P.printableMm({ views: 2, arrangement: one.arrangement });
+  const used = (one.viewsHeightMm ?? one.views.reduce((a, v) => a + v.heightMm, 0)) + tables;
   ok(used <= area.h + 1e-6, `views ${used - tables} + tables ${tables} fit in ${area.h}`);
   ok(one.scale < fill.scale, `and it is smaller than fill: ${one.scale} < ${fill.scale}`);
   ok(/one A4 sheet/.test(one.message), `says so: "${one.message}"`);
   eq(P.printLayout({ drawing: d, sides: 'both', size: 'onepage', tablesMm: 0 }).scale, fill.scale,
     'with no tables, One page is Fill');
+});
+
+// ------------------------------------------------------ build-sheet-design.md
+
+s.check('A TALL BOARD PRINTS ITS TWO VIEWS SIDE BY SIDE, LARGER THAN STACKED', () => {
+  // 12 x 34: 51 x 91 mm drawn. 12 x 19 is not tall — its gutters make it square.
+  const d = drawingOf(12, 34);
+  const auto =P.printLayout({ drawing: d, sides: 'both', size: 'fill' });
+  const stacked = P.printLayout({ drawing: d, sides: 'both', size: 'fill', arrangement: 'column' });
+  eq(auto.arrangement, 'row', 'side by side');
+  ok(auto.scale > stacked.scale, `larger than stacked: ${auto.scale.toFixed(2)} > ${stacked.scale.toFixed(2)}`);
+  // A wide board still stacks.
+  eq(P.printLayout({ drawing: drawingOf(40, 8), sides: 'both', size: 'fill' }).arrangement, 'column',
+    'a wide board stacks');
+});
+
+s.check('NARROW TABLES PACK INTO ONE ROW: AS TALL AS THE TALLER, NOT BOTH ADDED', () => {
+  ok(typeof P.tablesBlockMm === 'function' && typeof P.tableSizeMm === 'function', 'tablesBlockMm and tableSizeMm exist');
+  if (typeof P.tablesBlockMm !== 'function') return;
+  const bom = { head: ['Qty', 'Refs', 'Value', 'Part'], rows: Array.from({ length: 6 }, (_, i) => ['1', `R${i + 1}`, '10k', 'Resistor (axial)']) };
+  const cuts = { head: ['Where', 'Cut'], rows: Array.from({ length: 10 }, (_, i) => [`D${i + 1}`, 'spot-face']) };
+  const a = P.tableSizeMm(bom);
+  const b = P.tableSizeMm(cuts);
+  ok(a.w + b.w + P.TABLE_GAP_MM <= P.printableMm().w, `they fit side by side: ${a.w.toFixed(0)} + ${b.w.toFixed(0)} mm`);
+  eq(P.tablesBlockMm([bom, cuts]), P.TABLE_GAP_MM + Math.max(a.h, b.h), 'one row, the taller one\'s height');
+  ok(a.w < 120, `a small BOM is well under the page's width: ${a.w.toFixed(0)} mm`);
 });
 
 process.exit((await s.run()) ? 0 : 1);

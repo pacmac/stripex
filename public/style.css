@@ -1208,62 +1208,99 @@ button.primary {
   width: 210mm;
   min-height: 297mm;
   margin: 0 auto;
-  /* The same 6 mm as @page and PRINT_MARGIN_MM (print-view-2.md). */
-  padding: 6mm;
-  box-sizing: border-box;
   background: #fff;
-  color: #000;
   box-shadow: 0 2px 14px rgba(0, 0, 0, 0.3);
-  font: 10pt/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 .pv-page.is-mono svg { filter: grayscale(1); }
 
-/* On the page, on screen and on paper alike.
+/* THE BUILD SHEET, on screen and on paper alike (build-sheet-design.md).
+ * Paper and ink only — it must survive a black-and-white printer — so there is
+ * no accent: ink #000, secondary ink #555, hairlines #BBB. The one bold thing is
+ * the tick box on every table row.
  *
- * EVERY HEIGHT HERE IS ALSO IN src/render/print.js — HEADER_MM, CAPTION_MM,
- * GAP_MM and the TABLE_* constants — because One page reserves room for the
- * tables by computing it, and a height the arithmetic does not know is how a
- * sheet quietly spills onto a second page. Change one, change the other.
+ * EVERY HEIGHT AND GAP HERE IS ALSO IN src/render/print.js — HEADER_MM,
+ * CAPTION_MM, GAP_MM, PRINT_MARGIN_MM and the TABLE_* constants — because One
+ * page computes the room the tables take before it scales the board, and a
+ * height the arithmetic does not know is how a sheet spills onto a second page.
  *
- * THE SHEET IS 198 mm WIDE, stated: A4 inside 6 mm margins. With no width of its
- * own it took the window's, and its table printed 423 mm wide. */
-.pv-sheet, #printSheet { width: 198mm; box-sizing: border-box; }
-.printhead { display: flex; gap: 14px; align-items: baseline; height: 10mm; overflow: hidden; }
-.printhead span { color: #444; }
+ * THE SHEET IS A4 WIDE AND PADS ITS OWN 6 mm. Not an @page margin: that margin
+ * is where the browser prints its date, tab title and footer, and the print
+ * dialog's margin setting replaces it. */
+.pv-sheet, #printSheet {
+  width: 210mm;
+  padding: 6mm;
+  box-sizing: border-box;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  background: #fff;
+  color: #000;
+  font: 8.5pt/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.printhead {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: baseline;
+  column-gap: 4mm;
+  height: 10mm;
+  padding-bottom: 2mm;
+  border-bottom: 0.25mm solid #bbb;
+  box-sizing: border-box;
+  align-content: end;
+  overflow: hidden;
+}
+.ph-scale { color: #555; justify-self: start; white-space: nowrap; }
+.ph-title { font-size: 14pt; font-weight: 700; justify-self: center; white-space: nowrap; letter-spacing: -0.01em; }
+.ph-date { color: #555; justify-self: end; white-space: nowrap; }
+.printviews { display: flex; justify-content: center; align-items: flex-start; gap: 6mm; }
+.printviews.is-column { flex-direction: column; align-items: center; }
 .printview { margin: 0; break-inside: avoid; }
-.printview + .printview { margin-top: 6mm; }
-.printview figcaption { height: 6mm; line-height: 6mm; font-size: 9pt; color: #333; overflow: hidden; }
 .printview svg { display: block; }
-.printtable { margin: 4mm 0 0; break-inside: auto; }
-.printtable h3 { height: 7mm; line-height: 7mm; font-size: 10pt; margin: 0; overflow: hidden; }
-.printtable table { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 9pt; }
-/* Line height is the row height LESS its 0.2 mm border: measured, a 5.5 mm line
-   with its border made a 5.76 mm row, and a one-page sheet came out 1.3 mm over
-   and printed on two. */
-.printtable th { line-height: 5.8mm; padding: 0 2mm; text-align: left; border-bottom: 0.2mm solid #000; box-sizing: border-box; }
-.printtable td { line-height: 5.3mm; padding: 0 2mm; text-align: left; vertical-align: top;
-  border-bottom: 0.2mm solid #999; overflow-wrap: anywhere; box-sizing: border-box; }
+.printview figcaption { height: 6mm; line-height: 6mm; text-align: center; color: #555; overflow: hidden; }
+.printtables { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4mm; margin-top: 4mm; }
+.printtable { flex: none; break-inside: auto; }
+.printtable h3 { height: 6mm; line-height: 6mm; font-size: 9.5pt; font-weight: 700; margin: 0; overflow: hidden; white-space: nowrap; }
+.printtable table { border-collapse: collapse; table-layout: fixed; width: auto; }
+/* Heights are line + padding + rule: a head row 3.8 + 1.0 + 0.3 = 5.1 mm, a body
+   row 3.8 + 1.0 + 0.2 = 5.0 mm, and each wrapped line 3.8 mm more. Measured
+   before: a rule left out of the sum put a one-page sheet 1.3 mm over. */
+.printtable th, .printtable td {
+  line-height: 3.8mm;
+  padding: 0.5mm 2mm;
+  text-align: left;
+  vertical-align: top;
+  box-sizing: border-box;
+}
+.printtable th { font-weight: 700; border-bottom: 0.3mm solid #000; white-space: nowrap; overflow: hidden; }
+.printtable td { border-bottom: 0.2mm solid #bbb; overflow-wrap: anywhere; }
+.printtable .tick { padding: 0.5mm 0 0.5mm 0; }
+.printtable td.tick i {
+  display: block;
+  width: 3mm;
+  height: 3mm;
+  margin-top: 0.4mm;
+  border: 0.3mm solid #000;
+  box-sizing: border-box;
+}
 .printtable tr { break-inside: avoid; }
-.printnone { height: 5.5mm; line-height: 5.5mm; font-size: 9pt; color: #555; margin: 0; }
+.printnone { height: 5mm; line-height: 5mm; color: #555; margin: 0; }
 
 /* The sheet is nothing on screen and everything on paper. */
 #printSheet { display: none; }
 
 @media print {
-  /* Peter: "a 6mm margin is needed all around." PRINT_MARGIN_MM is the same. */
-  @page { size: A4 portrait; margin: 6mm; }
+  /* No margin box, so no browser header or footer: the sheet pads itself. */
+  @page { size: A4 portrait; margin: 0; }
   html, body {
     height: auto !important;
     overflow: visible !important;
     background: #fff !important;
     display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   body > *:not(#printSheet) { display: none !important; }
-  #printSheet {
-    display: block !important;
-    color: #000;
-    font: 10pt/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  }
+  #printSheet { display: block !important; }
   /* The sheet's own styles are shared with the on-screen preview, above. */
   /* Black and white greys the colours a board carries itself as well. */
   #printSheet.is-mono svg { filter: grayscale(1); }

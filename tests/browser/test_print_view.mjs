@@ -216,8 +216,11 @@ s.check('LAYERS PER SIDE, A 198 mm SHEET, AND ONE PAGE REALLY IS ONE PAGE', asyn
       const pxmm = 96 / 25.4;
       const sheet = document.querySelector('#printSheet');
       const t = sheet.querySelector('table');
+      const cs = getComputedStyle(sheet);
+      // The CONTENT width: the sheet now pads its own 6 mm (build-sheet-design.md).
+      const inner = sheet.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
       return {
-        sheet: Math.round(sheet.getBoundingClientRect().width / pxmm),
+        sheet: Math.round(inner / pxmm),
         table: t ? Math.round(t.getBoundingClientRect().width / pxmm) : null,
       };
     });
@@ -233,6 +236,124 @@ s.check('LAYERS PER SIDE, A 198 mm SHEET, AND ONE PAGE REALLY IS ONE PAGE', asyn
   ok(r.onepage, 'there is a One page choice');
   eq(r.pages, 1, 'both sides and the BOM print on one A4 page');
   eq(errs, [], 'no page errors');
+});
+
+// ------------------------------------------------------ build-sheet-design.md
+let buildSheetRun = null;
+const buildSheet = () => {
+  buildSheetRun ??= (async () => {
+    const made = await post('/api/boards', { name: 'Build Sheet Board', cols: 12, rows: 34 });
+    await post(`/api/boards/${made.slug}/ops`, { ops: [
+      ...[3, 5, 7, 9].map((col, i) => ({ op: 'addPart', part: 'res-axial', at: { col, row: 2 + i }, value: `${i + 1}k` })),
+      { op: 'setBreak', row: 14, x: 4, at: 'hole' },
+      { op: 'setBreak', row: 15, x: 6, at: 'gap' },
+    ] });
+
+    const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+    const page = await context.newPage();
+    page.setDefaultTimeout(4000);
+    page.setDefaultNavigationTimeout(20000);
+    const errs = [];
+    page.on('pageerror', (e) => errs.push(e.message));
+    const r = {};
+    try {
+      await page.addInitScript((slug) => {
+        localStorage.setItem('stripex.openBoard', slug);
+        localStorage.setItem('stripex.print', JSON.stringify({ colour: 'colour', sides: 'both', size: 'onepage',
+          tables: { bom: true, cuts: true, wires: false } }));
+        window.print = () => {};
+      }, made.slug);
+      await page.goto(base);
+      await page.waitForSelector('#boardWrap [data-kind="part"]');
+      await page.waitForTimeout(500);
+      r.titleBefore = await page.title();
+      await page.locator('.viewbtn[data-view="print"]').click();
+      await page.waitForTimeout(400);
+      await page.locator('#pvPrint').click();
+      await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+      r.titleDuring = await page.title();
+      await page.emulateMedia({ media: 'print' });
+      r.sheet = await page.evaluate(() => {
+        const pxmm = 96 / 25.4;
+        const mm = (v) => Math.round((v / pxmm) * 10) / 10;
+        let pageMargin = null;
+        for (const sheetRule of document.styleSheets) {
+          let rules;
+          try { rules = sheetRule.cssRules; } catch { continue; }
+          for (const rule of rules) {
+            if (rule.media && [...rule.media].includes('print')) {
+              for (const inner of rule.cssRules) if (inner.type === CSSRule.PAGE_RULE) pageMargin = inner.style.marginTop;
+            }
+          }
+        }
+        const s = document.querySelector('#printSheet');
+        const sr = s.getBoundingClientRect();
+        const pad = parseFloat(getComputedStyle(s).paddingLeft);
+        const title = s.querySelector('.ph-title')?.getBoundingClientRect();
+        const date = s.querySelector('.ph-date')?.getBoundingClientRect();
+        const tables = [...s.querySelectorAll('table')].map((t) => t.getBoundingClientRect());
+        const rows = [...s.querySelectorAll('tbody tr')];
+        const svgs = [...s.querySelectorAll('svg')].map((x) => x.getBoundingClientRect());
+        return {
+          pageMargin,
+          padMm: mm(pad),
+          titleOffCentreMm: title ? mm(Math.abs((title.left + title.right) / 2 - (sr.left + sr.right) / 2)) : null,
+          dateFromRightMm: date ? mm(Math.abs(sr.right - pad - date.right)) : null,
+          tableWidthsMm: tables.map((t) => mm(t.width)),
+          tablesSideBySide: tables.length >= 2 && Math.abs(tables[0].top - tables[1].top) < 2,
+          rowsWithTicks: rows.filter((tr) => tr.querySelector('td.tick')).length,
+          rows: rows.length,
+          viewsSideBySide: svgs.length === 2 && Math.abs(svgs[0].top - svgs[1].top) < 2,
+        };
+      });
+      const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+      r.pages = (pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+      await page.emulateMedia({ media: 'screen' });
+      await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+      r.titleAfter = await page.title();
+    } finally { await context.close(); }
+
+    r.errs = errs;
+    return r;
+  })();
+  return buildSheetRun;
+};
+
+s.check('NO BROWSER MARGIN BOX, AND THE SHEET PADS ITS OWN 6 mm', async () => {
+  // Peter: "there are still no margins when printing. you can remove the date /
+  // time and "stripex - stripboard editor" printed in the header ... and omit
+  // the footer." Those are the browser's, drawn in the @page margin.
+  needBrowser();
+  const r = await buildSheet();
+  eq(r.sheet.pageMargin, '0px', '@page leaves no margin box, so the browser prints no header or footer');
+  eq(r.sheet.padMm, 6, 'and the sheet pads its own 6 mm');
+  eq(r.titleDuring, 'Build Sheet Board', 'the tab title is the board\'s name while printing');
+  eq(r.titleAfter, r.titleBefore, 'and is put back afterwards');
+  eq(r.errs, [], 'no page errors');
+});
+
+s.check('THE TITLE IS CENTRED AND THE DATE IS AT THE RIGHT', async () => {
+  needBrowser();
+  const r = await buildSheet();
+  ok(r.sheet.titleOffCentreMm !== null && r.sheet.titleOffCentreMm <= 2, `the title is centred: ${r.sheet.titleOffCentreMm} mm off`);
+  ok(r.sheet.dateFromRightMm !== null && r.sheet.dateFromRightMm <= 1, `the date is at the right: ${r.sheet.dateFromRightMm} mm in`);
+});
+
+s.check('TABLES ARE COMPACT, SIDE BY SIDE, WITH A TICK BOX ON EVERY ROW, AND STILL ONE PAGE', async () => {
+  // Peter: "the Bill of materials does not need to be full page width. and
+  // looks terrible because of all of the whitespace padding."
+  needBrowser();
+  const r = await buildSheet();
+  ok(r.sheet.tableWidthsMm[0] < 120, `the BOM is not page width: ${r.sheet.tableWidthsMm[0]} mm`);
+  eq(r.sheet.tablesSideBySide, true, 'the BOM and the cut list sit side by side');
+  eq(r.sheet.rowsWithTicks, r.sheet.rows, `every table row has a tick box: ${r.sheet.rowsWithTicks}/${r.sheet.rows}`);
+  eq(r.pages, 1, 'still one A4 page');
+});
+
+s.check('A TALL BOARD\'S TWO VIEWS SIT SIDE BY SIDE', async () => {
+  needBrowser();
+  const r = await buildSheet();
+  eq(r.sheet.viewsSideBySide, true, 'side by side');
 });
 
 const okAll = await s.run();

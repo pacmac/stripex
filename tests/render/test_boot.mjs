@@ -72,6 +72,7 @@ async function bootOnce(storeSeed) {
   globalThis.window = {
     matchMedia: () => ({ matches: false }),
     prompt: () => null,
+    addEventListener() {},
     URL: { createObjectURL: () => 'blob:x', revokeObjectURL() {} },
   };
   globalThis.Blob = class { constructor() {} };

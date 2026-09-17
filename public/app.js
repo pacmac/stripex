@@ -6,7 +6,7 @@
 // rather than recomputing layout — one description of where things are.
 
 import { renderBoard, DEFAULT_LAYERS, drawingExtentMm } from '/src/render/svg.js';
-import { printLayout, viewBoxSize, cutRows, wireRows, tablesHeightMm } from '/src/render/print.js';
+import { printLayout, viewBoxSize, cutRows, wireRows, tableSizeMm, tablesBlockMm } from '/src/render/print.js';
 import { PITCH_MM } from '/src/model/geometry.js';
 import { findingsFor, netsFor, runList, bomFor } from '/src/model/views.js';
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
@@ -655,32 +655,20 @@ const printSvg = (view, theme) => renderBoard(state.project, {
 
 // The chosen tables' rows, built once: the sheet prints them, and One page
 // needs their count to leave room for them.
-// Each table's column widths are stated (percent of the 198 mm sheet), so a cell's
-// width — and so how many lines a long ref list wraps to — is known.
+// Each column's width in mm comes from tableSizeMm, so the sheet and One page's
+// arithmetic agree on how wide a table is and how many lines a ref list wraps to.
 const printTables = () => [
   printPrefs.tables.bom && { id: 'bom', title: 'Bill of materials', head: ['Qty', 'Refs', 'Value', 'Part'],
-    widths: [8, 42, 18, 32],
     rows: bomFor(state.project).map((r) => [String(r.qty), r.refs.join(', '), r.value, r.part]) },
   printPrefs.tables.cuts && { id: 'cuts', title: 'Cut list', head: ['Where', 'Cut'],
-    widths: [50, 50],
     rows: cutRows(state.project).map((c) => [c.where, c.kind]) },
   printPrefs.tables.wires && { id: 'wires', title: 'Wire runs', head: ['Ref', 'From', 'To'],
-    widths: [34, 33, 33],
     rows: wireRows(state.project).map((w) => [w.ref, w.from, w.to]) },
 ].filter(Boolean);
 
-// The LINES a table's body takes, not its rows: a cell wraps when its text is
-// longer than its column holds. 9 pt text is estimated at 0.5 characters per mm
-// — deliberately fewer than it fits, so One page errs toward a little space
-// left over rather than a second page.
-const tableLines = (t) => t.rows.reduce((sum, row) => sum + Math.max(1, ...row.map((cell, i) => {
-  const chars = Math.max(1, Math.floor(((198 * t.widths[i]) / 100 - 4) * 0.5));
-  return Math.ceil(String(cell).length / chars) || 1;
-})), 0);
-
 const printLayoutFor = (theme, tables) => printLayout({
   drawing: viewBoxSize(printSvg('top', theme)), sides: printPrefs.sides, size: printPrefs.size,
-  tablesMm: tablesHeightMm(tables.map(tableLines)),
+  tablesMm: tablesBlockMm(tables),
 });
 
 // ONE SHEET, built here and used twice: once into the preview, once onto paper.
@@ -691,26 +679,34 @@ function printSheetHtml() {
   const tables = printTables();
   const lay = printLayoutFor(theme, tables);
   const caption = {
-    top: 'Top — the component side',
-    underside: 'Bot — the copper side, mirrored',
+    top: 'Top, component side',
+    underside: 'Bottom, copper side, mirrored',
   };
   const scaleText = printPrefs.size === 'actual'
-    ? 'actual size — one hole is 2.54 mm'
-    : `scaled to ${Math.round(lay.scale * 100)}%`;
-  const table = (id, title, head, rows, widths) => `<section class="printtable"><h3>${title}</h3>${rows.length
-    ? `<table data-table="${id}"><colgroup>${widths.map((w) => `<col style="width:${w}%">`).join('')}</colgroup>`
-      + `<thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead>`
-      + `<tbody>${rows.map((row) => `<tr>${row.map((c) => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
-    : '<p class="printnone">None on this board.</p>'}</section>`;
+    ? 'Actual size'
+    : `${Math.round(lay.scale * 100)}%, one hole is ${(2.54 * lay.scale).toFixed(1)} mm`;
+  // A tick box first on every row: a build sheet is worked down part by part
+  // and cut by cut, with a pencil.
+  const table = (t) => {
+    const { w, cols } = tableSizeMm(t);
+    return `<section class="printtable" style="width:${w}mm"><h3>${t.title}</h3>${t.rows.length
+      ? `<table data-table="${t.id}"><colgroup>${cols.map((c) => `<col style="width:${c}mm">`).join('')}</colgroup>`
+        + `<thead><tr><th class="tick"></th>${t.head.map((h) => `<th>${h}</th>`).join('')}</tr></thead>`
+        + `<tbody>${t.rows.map((row) => `<tr><td class="tick"><i></i></td>${
+          row.map((c) => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+      : '<p class="printnone">None on this board.</p>'}</section>`;
+  };
+  const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  const html = `<header class="printhead"><b>${escapeHtml(state.project.name || 'board')}</b>`
-    + `<span>${new Date().toISOString().slice(0, 10)}</span><span>${scaleText}</span></header>`
-    + lay.views.map((v) => `<figure class="printview"><figcaption>${caption[v.view]}</figcaption>${
+  const html = `<header class="printhead"><span class="ph-scale">${scaleText}</span>`
+    + `<b class="ph-title">${escapeHtml(state.project.name || 'Untitled board')}</b>`
+    + `<span class="ph-date">${date}</span></header>`
+    + `<div class="printviews is-${lay.arrangement}">${lay.views.map((v) => `<figure class="printview">${
       // Millimetres on the element: the drawing's own units, so actual size
       // really is one hole to 2.54 mm on the paper.
       printSvg(v.view, theme).replace('width="100%" height="100%"',
-        `width="${v.widthMm}mm" height="${v.heightMm}mm"`)}</figure>`).join('')
-    + tables.map((t) => table(t.id, t.title, t.head, t.rows, t.widths)).join('');
+        `width="${v.widthMm}mm" height="${v.heightMm}mm"`)}<figcaption>${caption[v.view]}</figcaption></figure>`).join('')}</div>`
+    + (tables.length ? `<div class="printtables">${tables.map(table).join('')}</div>` : '');
   return { html, mono, lay };
 }
 
@@ -3116,6 +3112,20 @@ function boot() {
     sheet.innerHTML = html;
     sheet.classList.toggle('is-mono', mono);
     window.print();
+  });
+  // A browser that still prints its own header (Firefox, with its checkbox on)
+  // prints the tab title: make that the board's name, not the editor's.
+  let titleBeforePrint = null;
+  window.addEventListener('beforeprint', () => {
+    // Only the first of a nested pair: a second beforeprint would save the
+    // board's name as the title to put back.
+    if (titleBeforePrint !== null) return;
+    titleBeforePrint = document.title;
+    document.title = state.project?.name || document.title;
+  });
+  window.addEventListener('afterprint', () => {
+    if (titleBeforePrint !== null) document.title = titleBeforePrint;
+    titleBeforePrint = null;
   });
 
   document.addEventListener('keydown', (e) => {

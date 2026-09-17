@@ -1,0 +1,15 @@
+$ bash -c node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit $((a || b))
+FAIL  A TALL BOARD PRINTS ITS TWO VIEWS SIDE BY SIDE, LARGER THAN STACKED
+      side by side: expected "row", got undefined
+FAIL  NARROW TABLES PACK INTO ONE ROW: AS TALL AS THE TALLER, NOT BOTH ADDED
+      tablesBlockMm and tableSizeMm exist: expected truthy, got falsy
+print-layout: 6/8 checks passed
+FAIL  NO BROWSER MARGIN BOX, AND THE SHEET PADS ITS OWN 6 mm
+      @page leaves no margin box, so the browser prints no header or footer: expected "0px", got "6mm"
+FAIL  THE TITLE IS CENTRED AND THE DATE IS AT THE RIGHT
+      the title is centred: null mm off: expected truthy, got falsy
+FAIL  TABLES ARE COMPACT, SIDE BY SIDE, WITH A TICK BOX ON EVERY ROW, AND STILL ONE PAGE
+      the BOM is not page width: 198 mm: expected truthy, got falsy
+FAIL  A TALL BOARD'S TWO VIEWS SIT SIDE BY SIDE
+      side by side: expected true, got false
+print-view: 2/6 checks passed

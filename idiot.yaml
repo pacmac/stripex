@@ -4452,3 +4452,126 @@
     failures: 0
     at: '2026-09-17T17:49:04.495'
     commit: ed55254-dirty
+- id: the-printed-sheet-gets-browser-headers-and-no-margins
+  type: bug
+  what: the browser prints its own date, tab title and footer in the @page margin, and the 6 mm margin
+    depends on the print dialog, so Peter's print had no margins
+  spec: docs/specs/build-sheet-design.md
+  files:
+  - public/style.css
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_print_view.mjs
+    criterion: 'test_print_view check NO BROWSER MARGIN BOX, AND THE SHEET PADS ITS OWN 6 mm passes: print-media
+      @page margin 0px, sheet padding 6 mm, tab title is the board name while printing'
+    runs: 1
+  trial:
+    file: .proofs/the-printed-sheet-gets-browser-headers-and-no-margins.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T18:00:47.595'
+    commit: f18d5e1-dirty
+  fix:
+    file: .proofs/the-printed-sheet-gets-browser-headers-and-no-margins.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T18:08:35.267'
+    commit: f18d5e1-dirty
+- id: the-print-header-is-not-title-centred-date-right
+  type: bug
+  what: the sheet header runs name, date and scale together on the left; Peter wants the title centred
+    and the date on the right
+  spec: docs/specs/build-sheet-design.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_print_view.mjs
+    criterion: 'test_print_view check THE TITLE IS CENTRED AND THE DATE IS AT THE RIGHT passes: title
+      <=2 mm off centre, date right edge <=1 mm from the content edge'
+    runs: 1
+  trial:
+    file: .proofs/the-print-header-is-not-title-centred-date-right.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T18:00:57.083'
+    commit: f18d5e1-dirty
+  fix:
+    file: .proofs/the-print-header-is-not-title-centred-date-right.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T18:08:46.196'
+    commit: f18d5e1-dirty
+- id: the-printed-tables-are-full-width-and-padded
+  type: bug
+  what: the printed tables span the whole page with loose padding, so a small BOM is mostly whitespace,
+    and tables are stacked instead of sitting side by side
+  spec: docs/specs/build-sheet-design.md
+  files:
+  - public/app.js
+  - public/style.css
+  - src/render/print.js
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit
+      $((a || b))
+    criterion: 'test_print_layout NARROW TABLES PACK INTO ONE ROW and test_print_view TABLES ARE COMPACT,
+      SIDE BY SIDE, WITH A TICK BOX ON EVERY ROW, AND STILL ONE PAGE pass: BOM under 120 mm, BOM and cuts
+      side by side, tick box on every row, one PDF page'
+    runs: 1
+  trial:
+    file: .proofs/the-printed-tables-are-full-width-and-padded.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T18:01:06.666'
+    commit: f18d5e1-dirty
+  fix:
+    file: .proofs/the-printed-tables-are-full-width-and-padded.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T18:08:56.417'
+    commit: f18d5e1-dirty
+- id: both-views-stack-even-when-side-by-side-is-bigger
+  type: new
+  what: Both always stacks the top and bottom views, so a tall board prints small with the page's width
+    unused
+  spec: docs/specs/build-sheet-design.md
+  files:
+  - src/render/print.js
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit
+      $((a || b))
+    criterion: test_print_layout A TALL BOARD PRINTS ITS TWO VIEWS SIDE BY SIDE, LARGER THAN STACKED and
+      test_print_view A TALL BOARD'S TWO VIEWS SIT SIDE BY SIDE pass
+    runs: 1
+  trial:
+    file: .proofs/both-views-stack-even-when-side-by-side-is-bigger.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T18:01:16.315'
+    commit: f18d5e1-dirty
+  fix:
+    file: .proofs/both-views-stack-even-when-side-by-side-is-bigger.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T18:09:06.284'
+    commit: f18d5e1-dirty
