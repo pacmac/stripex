@@ -3567,15 +3567,22 @@
     command:
     - bash
     - -c
-    - 'for f in src/parts/*.js tests/parts/*.mjs; do git ls-files --error-unmatch "$f" >/dev/null 2>&1
-      || { echo "untracked: $f"; bad=1; }; done; exit ${bad:-0}'
-    criterion: src/parts/library.js, src/parts/devices.js and every tests/parts file are tracked by git
+    - 'n=0; t=0; for f in src/parts/*.js tests/parts/*.mjs; do t=$((t+1)); if git ls-files --error-unmatch
+      "$f" >/dev/null 2>&1; then n=$((n+1)); else echo "untracked: $f"; fi; done; echo "tracked $n of
+      $t"; [ "$n" -eq "$t" ]'
+    criterion: every file under src/parts and tests/parts is tracked by git, reported as a count
     runs: 1
   trial:
     file: .proofs/the-part-library-has-never-been-committed.trial.txt
     exit: 1
     runs: 1
     failures: 1
-    at: '2026-09-17T07:36:56.752'
-    commit: d120cc9-dirty
-  fix: null
+    at: '2026-09-17T07:37:41.227'
+    commit: 2b8f22c-dirty
+  fix:
+    file: .proofs/the-part-library-has-never-been-committed.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T07:37:44.366'
+    commit: 2b8f22c-dirty
