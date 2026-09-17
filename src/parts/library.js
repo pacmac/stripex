@@ -160,7 +160,9 @@ export const PARTS = {
   to92: {
     id: 'to92',
     category: 'semiconductor',
-    name: 'Transistor (TO-92)',
+    // Named by PACKAGE. A TO-92 holds a BJT, a FET, a 78L05 or a reference
+    // diode equally; what is in it belongs to a device entry.
+    name: 'TO-92, 3 pins',
     refPrefix: 'Q',
     kind: 'component',
     parametric: null,
@@ -174,7 +176,7 @@ export const PARTS = {
   to220: {
     id: 'to220',
     category: 'semiconductor',
-    name: 'Regulator / transistor (TO-220)',
+    name: 'TO-220, 3 pins',
     refPrefix: 'Q',
     kind: 'component',
     parametric: null,
@@ -274,8 +276,11 @@ export const PARTS = {
   sot23: {
     id: 'sot23',
     category: 'smt',
-    name: 'SOT-23 transistor',
-    refPrefix: 'Q',
+    // Named by package, not function: Peter, "could be a FET, a Transistor, a
+    // Regulator, a Diode." For the same reason it takes the generic U; a
+    // device entry says Q or D when it knows.
+    name: 'SOT-23, 3 pins',
+    refPrefix: 'U',
     kind: 'component',
     side: 'copper',
     requiresBreak: true,

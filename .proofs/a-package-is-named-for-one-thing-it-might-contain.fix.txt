@@ -1,0 +1,2 @@
+$ node tests/parts/test_sot23.mjs
+sot23: 10/10 checks passed

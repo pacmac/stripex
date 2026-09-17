@@ -114,6 +114,20 @@ s.check('THE DRAWING SAYS WHICH END IS PIN 1', () => {
   }
 });
 
+s.check('A PACKAGE IS NAMED FOR ITS SHAPE, NOT FOR ONE THING IT MIGHT HOLD', () => {
+  // Peter: "not sure that should be named transistor, could be a FET, a
+  // Transistor, a Regulator, a Diode." The same is true of a TO-92 (a 78L05 is
+  // one) and a TO-220. What the part IS belongs to a device entry.
+  for (const [id, code] of [['sot23', /SOT-23/], ['to92', /TO-92/], ['to220', /TO-220/]]) {
+    const name = lib.getPart(id).name;
+    ok(code.test(name), `${id} is named by its package: "${name}"`);
+    ok(!/transistor|regulator|diode|fet|mosfet/i.test(name), `${id} names no function: "${name}"`);
+  }
+  // A bare SOT-23 has no function to take a letter from, so it takes the
+  // generic one; a device entry supplies Q, D or U for what is really in it.
+  eq(lib.getPart('sot23').refPrefix, 'U', 'sot23 takes the generic prefix');
+});
+
 s.check('A CORRECTLY CUT SOT-23 IS CLEAN', () => {
   const cuts = brk.requiredBreaks(Q(0), lib.getPart);
   const c = codes(cuts, [Q(0)]);

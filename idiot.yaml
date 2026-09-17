@@ -3586,3 +3586,31 @@
     failures: 0
     at: '2026-09-17T07:37:44.366'
     commit: 2b8f22c-dirty
+- id: a-package-is-named-for-one-thing-it-might-contain
+  type: bug
+  what: SOT-23, TO-92 and TO-220 are named as transistors or regulators, but each package holds FETs,
+    BJTs, regulators and diodes alike, and the SOT-23 defaults to Q
+  spec: docs/specs/sot23-and-accepted-findings.md
+  files:
+  - src/parts/library.js
+  test:
+    command:
+    - node
+    - tests/parts/test_sot23.mjs
+    criterion: sot23, to92 and to220 are named by package with no function in the name, and sot23 defaults
+      to U
+    runs: 1
+  trial:
+    file: .proofs/a-package-is-named-for-one-thing-it-might-contain.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T07:58:31.106'
+    commit: 15a1ccb-dirty
+  fix:
+    file: .proofs/a-package-is-named-for-one-thing-it-might-contain.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T07:59:47.685'
+    commit: 15a1ccb-dirty
