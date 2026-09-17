@@ -3937,3 +3937,64 @@
     failures: 0
     at: '2026-09-17T13:26:50.027'
     commit: c02c12b-dirty
+- id: the-toolbar-hides-print-below-1600px
+  type: bug
+  what: 'the toolbar is 1655px wide, so below 1920px its last buttons scroll out of sight: at 1440 theme,
+    download, open, restore, export and print are all hidden'
+  spec: docs/specs/print-sheet.md
+  files:
+  - public/index.html
+  - public/style.css
+  - public/app.js
+  test:
+    command: null
+    criterion: null
+    runs: 1
+  trial: null
+  fix: null
+- id: print-is-a-header-dialog-that-forgets-and-has-no-tables
+  type: bug
+  what: print lives behind a header button in a dialog, forgets every choice, cannot choose which layers
+    print, and prints no BOM, cut list or wire runs; the underside view is labelled Underside, not Bot
+  spec: docs/specs/print-view.md
+  files:
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  - src/model/views.js
+  - src/render/print.js
+  test:
+    command: null
+    criterion: null
+    runs: 1
+  trial: null
+  fix: null
+- id: card-listeners-pile-up-so-a-layer-toggle-hangs
+  type: bug
+  what: "paintLayers and paintRules add a change listener to their card body on every repaint; draw()\
+    \ repaints Layers on every change, so handlers accumulate and one toggle runs one full redraw per\
+    \ edit made so far \u2014 302ms rising to 2382ms in eight toggles on the Yagi board"
+  spec: docs/specs/left-panel-cards.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_card_listeners.mjs
+    criterion: after a session of repaints, one layer toggle writes the layer settings once, and the Rules
+      card carries one change listener rather than one per repaint
+    runs: 1
+  trial:
+    file: .proofs/card-listeners-pile-up-so-a-layer-toggle-hangs.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:31:47.349'
+    commit: 85f8aa1-dirty
+  fix:
+    file: .proofs/card-listeners-pile-up-so-a-layer-toggle-hangs.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:37:27.929'
+    commit: 85f8aa1-dirty

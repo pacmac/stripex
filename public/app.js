@@ -573,6 +573,17 @@ function scrollSelectionIntoPanel() {
   panel.scrollTop += row.getBoundingClientRect().top - panel.getBoundingClientRect().top;
 }
 
+// A layer switched on or off. Attached ONCE to the Layers card body, in
+// buildCards — see the note in paintLayers for what repeating it cost.
+function onLayerChange(e) {
+  const key = e.target.dataset.layer;
+  if (!key) return;
+  state.layers[key] = e.target.checked;
+  try { localStorage.setItem(LAYER_KEY, JSON.stringify(state.layers)); } catch { /* full */ }
+  const off = LAYER_ROWS.filter(([k]) => !state.layers[k]).map(([, l]) => l.toLowerCase());
+  draw(off.length ? `hidden: ${off.join(', ')}` : 'all layers shown');
+}
+
 function paintLayers() {
   const body = $('[data-cardbody="layers"]');
   if (!body) return;
@@ -584,14 +595,12 @@ function paintLayers() {
       <span>${label}</span>
     </label>`).join('')}</div>
     ${hidden ? '<button id="layersAll" class="linky">show every layer</button>' : ''}`;
-  body.addEventListener('change', (e) => {
-    const key = e.target.dataset.layer;
-    if (!key) return;
-    state.layers[key] = e.target.checked;
-    try { localStorage.setItem(LAYER_KEY, JSON.stringify(state.layers)); } catch { /* full */ }
-    const off = LAYER_ROWS.filter(([k]) => !state.layers[k]).map(([, l]) => l.toLowerCase());
-    draw(off.length ? `hidden: ${off.join(', ')}` : 'all layers shown');
-  });
+  // NO LISTENER ON `body` HERE. The body survives this repaint — only its
+  // children are replaced — and draw() repaints this card on every change, so a
+  // listener added here was added again every time: one toggle ran one full
+  // redraw per edit so far, 768 of them after eight toggles, which is the hang
+  // Peter hit. It is attached once, in buildCards (onLayerChange). The button
+  // below is new each time, so its listener is not.
   $('#layersAll')?.addEventListener('click', () => {
     state.layers = { ...DEFAULT_LAYERS };
     try { localStorage.setItem(LAYER_KEY, JSON.stringify(state.layers)); } catch { /* full */ }
@@ -2019,6 +2028,12 @@ function buildCards() {
       <div class="card-body" data-cardbody="${c.id}" hidden></div>
     </section>`).join('');
 
+  // A card body's own change listeners, attached ONCE, here, where the bodies are
+  // made. They were added inside paintLayers and paintRules, which run on every
+  // repaint, and piled up until a layer toggle hung the page.
+  $('[data-cardbody="layers"]').addEventListener('change', onLayerChange);
+  $('[data-cardbody="rules"]').addEventListener('change', onRuleChange);
+
   for (const b of $('#cards').querySelectorAll('[data-cardtoggle]')) {
     b.addEventListener('click', () => {
       // Opened by hand stays open until a tool that owns a card is armed.
@@ -2083,6 +2098,28 @@ function paintCards() {
 // "this list will grow so it needs to be configurable" has to mean. Three
 // checkboxes typed in here would be a second list of rules, disagreeing with the
 // first within a month.
+// A rule changed. Attached ONCE to the Rules card body, in buildCards.
+function onRuleChange(e) {
+  const id = e.target.dataset.rule;
+  if (!id) return;
+  const def = RULE_DEFS.find((d) => d.id === id);
+  if (!def) return;
+  const patch = def.kind === 'boolean'
+    ? { [id]: e.target.checked }
+    // A dotted id is a path: netClasses.power becomes {netClasses:{power:[...]}}
+    : pathPatch(id, e.target.value.split('\n').map((s) => s.trim()).filter(Boolean));
+  const out = ops.setRules(state.project, patch);
+  // REFUSED, NOT SWALLOWED. A pattern that does not compile is a rule that
+  // would silently never fire; the status line is where the person who just
+  // typed it is still looking.
+  if (out.error) { paintRules(); return say(out.error); }
+  state.project = out.project;
+  commit(def.kind === 'boolean'
+    ? `${def.label}: ${e.target.checked ? 'on' : 'off'}`
+    : `${def.label} updated`);
+  paintRules();
+}
+
 function paintRules() {
   const body = $('[data-cardbody="rules"]');
   if (!body) return;
@@ -2116,27 +2153,8 @@ function paintRules() {
   body.innerHTML = `<div class="rules">${RULE_DEFS.map(row).join('')}</div>
     ${Object.keys(own).length ? '<button id="rulesReset" class="linky">back to the defaults</button>' : ''}`;
 
-  body.addEventListener('change', (e) => {
-    const id = e.target.dataset.rule;
-    if (!id) return;
-    const def = RULE_DEFS.find((d) => d.id === id);
-    if (!def) return;
-    const patch = def.kind === 'boolean'
-      ? { [id]: e.target.checked }
-      // A dotted id is a path: netClasses.power becomes {netClasses:{power:[...]}}
-      : pathPatch(id, e.target.value.split('\n').map((s) => s.trim()).filter(Boolean));
-    const out = ops.setRules(state.project, patch);
-    // REFUSED, NOT SWALLOWED. A pattern that does not compile is a rule that
-    // would silently never fire; the status line is where the person who just
-    // typed it is still looking.
-    if (out.error) { paintRules(); return say(out.error); }
-    state.project = out.project;
-    commit(def.kind === 'boolean'
-      ? `${def.label}: ${e.target.checked ? 'on' : 'off'}`
-      : `${def.label} updated`);
-    paintRules();
-  });
-
+  // No listener on `body` here, for the reason paintLayers gives: the body
+  // survives the repaint. onRuleChange is attached once, in buildCards.
   $('#rulesReset')?.addEventListener('click', () => {
     const next = JSON.parse(JSON.stringify(state.project));
     delete next.rules;
