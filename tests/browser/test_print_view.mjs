@@ -93,7 +93,8 @@ s.check('TOP | BOT | PRINT, A PANEL IN THE BOARD\'S PLACE, PRINT TOP RIGHT, TABL
       await page.locator('#printView [data-print-sides="both"]').click();
       await page.locator('#printView [data-print-size="fill"]').click();
       await page.locator('#printView input[data-print-table="bom"]').check();
-      await page.locator('#printView input[data-print-layer="edgeLabels"]').uncheck();
+      // Off for both sides — each side has its own column now (print-view-2.md).
+      for (const box of await page.locator('#printView input[data-print-layer="edgeLabels"]').all()) await box.uncheck();
       await page.waitForTimeout(400);
       r.preview = await page.evaluate(() => ({
         views: [...document.querySelectorAll('#pvPreview svg')].map((x) => x.getAttribute('data-view')),
@@ -112,7 +113,7 @@ s.check('TOP | BOT | PRINT, A PANEL IN THE BOARD\'S PLACE, PRINT TOP RIGHT, TABL
         mono: document.querySelector('#printView [data-print-colour="mono"]')?.classList.contains('is-on'),
         fill: document.querySelector('#printView [data-print-size="fill"]')?.classList.contains('is-on'),
         bom: document.querySelector('#printView input[data-print-table="bom"]')?.checked,
-        edgeLabels: document.querySelector('#printView input[data-print-layer="edgeLabels"]')?.checked,
+        edgeLabels: [...document.querySelectorAll('#printView input[data-print-layer="edgeLabels"]')].some((x) => x.checked),
       }));
 
       await page.locator('#pvPrint').click();
@@ -151,6 +152,86 @@ s.check('TOP | BOT | PRINT, A PANEL IN THE BOARD\'S PLACE, PRINT TOP RIGHT, TABL
   eq(r.sheetSame, true, 'what prints is exactly the preview');
   eq(r.printMedia, { sheet: true, editor: false }, 'under print media only the sheet shows');
   eq(r.back, { panel: false, board: true }, 'Top brings the board back');
+  eq(errs, [], 'no page errors');
+});
+
+// ---------------------------------------------------------- print-view-2.md
+s.check('LAYERS PER SIDE, A 198 mm SHEET, AND ONE PAGE REALLY IS ONE PAGE', async () => {
+  // Peter: "I need to set what layers are visible for top/bot seperatly", "a
+  // 6mm margin is needed all around", "the table width appears not to be
+  // correct width for A4 paper", "an option to fit on 1 page would be good as
+  // now it flows onto 2 pages, with ONLY the BOM selected".
+  needBrowser();
+  const made = await post('/api/boards', { name: 'print-view-2', cols: 12, rows: 19 });
+  await post(`/api/boards/${made.slug}/ops`, { ops: [3, 5, 7, 9].map((col, i) => (
+    { op: 'addPart', part: 'res-axial', at: { col, row: 2 + i }, value: `${i + 1}k` })) });
+
+  const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+  const page = await context.newPage();
+  page.setDefaultTimeout(4000);
+  page.setDefaultNavigationTimeout(20000);
+  const errs = [];
+  page.on('pageerror', (e) => errs.push(e.message));
+  const r = {};
+  try {
+    await page.addInitScript((slug) => {
+      localStorage.setItem('stripex.openBoard', slug);
+      window.print = () => {};
+    }, made.slug);
+    await page.goto(base);
+    await page.waitForSelector('#boardWrap [data-kind="part"]');
+    await page.waitForTimeout(500);
+    await page.locator('.viewbtn[data-view="print"]').click();
+    await page.waitForTimeout(400);
+
+    const grid = page.locator('#printView input[data-print-layer="edgeLabels"][data-side]');
+    r.columns = await grid.evaluateAll((els) => els.map((e) => e.dataset.side).sort());
+    if (r.columns.length === 2) {
+      await page.locator('#printView [data-print-sides="both"]').click();
+      for (const box of await page.locator('#printView input[data-print-layer="edgeLabels"]').all()) await box.check();
+      await page.locator('#printView input[data-print-layer="edgeLabels"][data-side="underside"]').uncheck();
+      await page.waitForTimeout(300);
+      r.split = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#pvPreview svg')]
+        .map((svg) => [svg.getAttribute('data-view'), svg.querySelectorAll('[data-kind="edge-label"]').length > 0])));
+    }
+    const onepage = page.locator('#printView [data-print-size="onepage"]');
+    r.onepage = await onepage.count();
+    if (r.onepage) await onepage.click();
+    const bom = page.locator('#printView input[data-print-table="bom"]');
+    await bom.check();
+    for (const t of ['cuts', 'wires']) await page.locator(`#printView input[data-print-table="${t}"]`).uncheck();
+    await page.waitForTimeout(300);
+    await page.reload();
+    await page.waitForSelector('#boardWrap [data-kind="part"]');
+    await page.locator('.viewbtn[data-view="print"]').click();
+    await page.waitForTimeout(400);
+    r.rememberedSplit = await page.evaluate(() => ({
+      top: document.querySelector('#printView input[data-print-layer="edgeLabels"][data-side="top"]')?.checked,
+      underside: document.querySelector('#printView input[data-print-layer="edgeLabels"][data-side="underside"]')?.checked,
+    }));
+
+    await page.locator('#pvPrint').click();
+    await page.emulateMedia({ media: 'print' });
+    r.widths = await page.evaluate(() => {
+      const pxmm = 96 / 25.4;
+      const sheet = document.querySelector('#printSheet');
+      const t = sheet.querySelector('table');
+      return {
+        sheet: Math.round(sheet.getBoundingClientRect().width / pxmm),
+        table: t ? Math.round(t.getBoundingClientRect().width / pxmm) : null,
+      };
+    });
+    const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+    r.pages = (pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+  } finally { await context.close(); }
+
+  eq(r.columns, ['top', 'underside'], 'each layer has a Top and a Bot checkbox');
+  eq(r.split, { top: true, underside: false }, 'row/column labels on the top view only');
+  eq(r.rememberedSplit, { top: true, underside: false }, 'and the split is remembered');
+  eq(r.widths.sheet, 198, 'the sheet is 198 mm wide: A4 inside 6 mm margins');
+  ok(r.widths.table !== null && r.widths.table <= 198, `the table is no wider: ${r.widths.table} mm`);
+  ok(r.onepage, 'there is a One page choice');
+  eq(r.pages, 1, 'both sides and the BOM print on one A4 page');
   eq(errs, [], 'no page errors');
 });
 

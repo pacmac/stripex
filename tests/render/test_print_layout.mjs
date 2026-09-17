@@ -59,4 +59,29 @@ s.check('BLACK AND WHITE IS A THEME: WHITE BOARD, BLACK INK', () => {
   ok(/data-kind="substrate"[^>]*fill="#ffffff"/i.test(svg), 'and the renderer uses it');
 });
 
+// ---------------------------------------------------------- print-view-2.md
+
+s.check('6 mm MARGINS: THE PRINTABLE AREA IS 198 mm WIDE', () => {
+  eq(P.PRINT_MARGIN_MM, 6, 'a 6 mm margin');
+  eq(P.printableMm({ views: 1 }).w, 198, '210 - 12');
+});
+
+s.check('ONE PAGE FITS THE VIEWS AND THE TABLES ON ONE SHEET; WITH NO TABLES IT IS FILL', () => {
+  ok(typeof P.tablesHeightMm === 'function', 'tablesHeightMm exists');
+  if (typeof P.tablesHeightMm !== 'function') return;
+  eq(P.tablesHeightMm([]), 0, 'no tables take no height');
+  const tables = P.tablesHeightMm([12]);                  // a 12-row BOM
+  ok(tables > 0, `a 12-row table has a height: ${tables} mm`);
+  const d = drawingOf(12, 19);
+  const one = P.printLayout({ drawing: d, sides: 'both', size: 'onepage', tablesMm: tables });
+  const fill = P.printLayout({ drawing: d, sides: 'both', size: 'fill' });
+  const area = P.printableMm({ views: 2 });
+  const used = one.views.reduce((a, v) => a + v.heightMm, 0) + tables;
+  ok(used <= area.h + 1e-6, `views ${used - tables} + tables ${tables} fit in ${area.h}`);
+  ok(one.scale < fill.scale, `and it is smaller than fill: ${one.scale} < ${fill.scale}`);
+  ok(/one A4 sheet/.test(one.message), `says so: "${one.message}"`);
+  eq(P.printLayout({ drawing: d, sides: 'both', size: 'onepage', tablesMm: 0 }).scale, fill.scale,
+    'with no tables, One page is Fill');
+});
+
 process.exit((await s.run()) ? 0 : 1);

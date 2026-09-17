@@ -4341,3 +4341,114 @@
     failures: 0
     at: '2026-09-17T16:37:53.403'
     commit: 63428b7-dirty
+- id: a-board-has-nowhere-to-put-a-build-note
+  type: new
+  what: a board cannot carry free text that is not a net name, so build notes (e.g. 'Rp1M+Rs220k AT DOOR'
+    on rakio-2-cam-top) go into net labels and trip net-name-conflict
+  spec: docs/specs/build-notes.md
+  files:
+  - src/model/board.js
+  - src/model/ops.js
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command: null
+    criterion: null
+    runs: 1
+  trial: null
+  fix: null
+- id: print-layers-cannot-differ-between-top-and-bot
+  type: new
+  what: the print view has one set of layers for both sides; Peter needs a Top column and a Bot column
+  spec: docs/specs/print-view-2.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit
+      $((a || b))
+    criterion: 'print-view-2.md: per-side layer columns remembered; 6 mm margins and a 198 mm sheet with
+      tables no wider; a One page size whose A4 PDF of both sides plus the BOM is one page'
+    runs: 1
+  trial:
+    file: .proofs/print-layers-cannot-differ-between-top-and-bot.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T17:40:58.954'
+    commit: ed55254-dirty
+  fix:
+    file: .proofs/print-layers-cannot-differ-between-top-and-bot.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T17:48:48.467'
+    commit: ed55254-dirty
+- id: the-print-sheet-has-no-a4-width-or-6mm-margin
+  type: bug
+  what: the print sheet has no width of its own, so under print media it and its table are 423 mm wide
+    while the views are 121 mm; margins are 10 mm, Peter needs 6
+  spec: docs/specs/print-view-2.md
+  files:
+  - src/render/print.js
+  - public/style.css
+  - public/app.js
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit
+      $((a || b))
+    criterion: 'print-view-2.md: per-side layer columns remembered; 6 mm margins and a 198 mm sheet with
+      tables no wider; a One page size whose A4 PDF of both sides plus the BOM is one page'
+    runs: 1
+  trial:
+    file: .proofs/the-print-sheet-has-no-a4-width-or-6mm-margin.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T17:41:06.357'
+    commit: ed55254-dirty
+  fix:
+    file: .proofs/the-print-sheet-has-no-a4-width-or-6mm-margin.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T17:48:56.453'
+    commit: ed55254-dirty
+- id: print-cannot-fit-board-and-tables-on-one-page
+  type: new
+  what: there is no size choice that fits the views and the tables on one A4 sheet; both sides with only
+    a small BOM prints on 2 pages
+  spec: docs/specs/print-view-2.md
+  files:
+  - src/render/print.js
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit
+      $((a || b))
+    criterion: 'print-view-2.md: per-side layer columns remembered; 6 mm margins and a 198 mm sheet with
+      tables no wider; a One page size whose A4 PDF of both sides plus the BOM is one page'
+    runs: 1
+  trial:
+    file: .proofs/print-cannot-fit-board-and-tables-on-one-page.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T17:41:14.870'
+    commit: ed55254-dirty
+  fix:
+    file: .proofs/print-cannot-fit-board-and-tables-on-one-page.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T17:49:04.495'
+    commit: ed55254-dirty

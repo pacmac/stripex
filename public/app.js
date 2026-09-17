@@ -6,7 +6,7 @@
 // rather than recomputing layout — one description of where things are.
 
 import { renderBoard, DEFAULT_LAYERS, drawingExtentMm } from '/src/render/svg.js';
-import { printLayout, viewBoxSize, cutRows, wireRows } from '/src/render/print.js';
+import { printLayout, viewBoxSize, cutRows, wireRows, tablesHeightMm } from '/src/render/print.js';
 import { PITCH_MM } from '/src/model/geometry.js';
 import { findingsFor, netsFor, runList, bomFor } from '/src/model/views.js';
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
@@ -610,20 +610,31 @@ function scrollSelectionIntoPanel() {
 const PRINT_KEY = 'stripex.print';
 const PRINT_LAYERS = LAYER_ROWS.filter(([k]) => k !== 'drc');
 
+// LAYERS PER SIDE. Peter: "I need to set what layers are visible for top/bot
+// seperatly (i.e 2 cols of checkboxes, 1 for top and 1 for bottome." So the
+// print layers are { top: {...}, underside: {...} }. A preference saved before
+// that — one flat set — applies to both, so nobody loses what they had chosen.
+const PRINT_SIDES = ['top', 'underside'];
 const printPrefs = (() => {
+  const screen = Object.fromEntries(PRINT_LAYERS.map(([k]) => [k, state.layers?.[k] !== false]));
   const base = {
     colour: 'colour',
     sides: 'both',
     size: 'actual',
-    layers: Object.fromEntries(PRINT_LAYERS.map(([k]) => [k, state.layers?.[k] !== false])),
+    layers: { top: { ...screen }, underside: { ...screen } },
     tables: { bom: false, cuts: false, wires: false },
   };
   try {
     const raw = JSON.parse(localStorage.getItem(PRINT_KEY) ?? 'null');
     if (raw && typeof raw === 'object') {
+      const saved = raw.layers ?? {};
+      const perSide = saved.top || saved.underside;
       return {
         ...base, ...raw,
-        layers: { ...base.layers, ...(raw.layers ?? {}) },
+        layers: {
+          top: { ...base.layers.top, ...(perSide ? saved.top ?? {} : saved) },
+          underside: { ...base.layers.underside, ...(perSide ? saved.underside ?? {} : saved) },
+        },
         tables: { ...base.tables, ...(raw.tables ?? {}) },
       };
     }
@@ -637,12 +648,39 @@ function savePrintPrefs() {
 
 // The drawing for paper: the print layers, never the check markers, never a
 // selection or a lit net — those belong to editing, not to a build sheet.
+// Each view with its OWN side's layers.
 const printSvg = (view, theme) => renderBoard(state.project, {
-  view, theme, layers: { ...DEFAULT_LAYERS, ...printPrefs.layers, drc: false },
+  view, theme, layers: { ...DEFAULT_LAYERS, ...printPrefs.layers[view], drc: false },
 });
 
-const printLayoutFor = (theme) => printLayout({
+// The chosen tables' rows, built once: the sheet prints them, and One page
+// needs their count to leave room for them.
+// Each table's column widths are stated (percent of the 198 mm sheet), so a cell's
+// width — and so how many lines a long ref list wraps to — is known.
+const printTables = () => [
+  printPrefs.tables.bom && { id: 'bom', title: 'Bill of materials', head: ['Qty', 'Refs', 'Value', 'Part'],
+    widths: [8, 42, 18, 32],
+    rows: bomFor(state.project).map((r) => [String(r.qty), r.refs.join(', '), r.value, r.part]) },
+  printPrefs.tables.cuts && { id: 'cuts', title: 'Cut list', head: ['Where', 'Cut'],
+    widths: [50, 50],
+    rows: cutRows(state.project).map((c) => [c.where, c.kind]) },
+  printPrefs.tables.wires && { id: 'wires', title: 'Wire runs', head: ['Ref', 'From', 'To'],
+    widths: [34, 33, 33],
+    rows: wireRows(state.project).map((w) => [w.ref, w.from, w.to]) },
+].filter(Boolean);
+
+// The LINES a table's body takes, not its rows: a cell wraps when its text is
+// longer than its column holds. 9 pt text is estimated at 0.5 characters per mm
+// — deliberately fewer than it fits, so One page errs toward a little space
+// left over rather than a second page.
+const tableLines = (t) => t.rows.reduce((sum, row) => sum + Math.max(1, ...row.map((cell, i) => {
+  const chars = Math.max(1, Math.floor(((198 * t.widths[i]) / 100 - 4) * 0.5));
+  return Math.ceil(String(cell).length / chars) || 1;
+})), 0);
+
+const printLayoutFor = (theme, tables) => printLayout({
   drawing: viewBoxSize(printSvg('top', theme)), sides: printPrefs.sides, size: printPrefs.size,
+  tablesMm: tablesHeightMm(tables.map(tableLines)),
 });
 
 // ONE SHEET, built here and used twice: once into the preview, once onto paper.
@@ -650,7 +688,8 @@ const printLayoutFor = (theme) => printLayout({
 function printSheetHtml() {
   const mono = printPrefs.colour === 'mono';
   const theme = mono ? 'mono' : 'light';
-  const lay = printLayoutFor(theme);
+  const tables = printTables();
+  const lay = printLayoutFor(theme, tables);
   const caption = {
     top: 'Top — the component side',
     underside: 'Bot — the copper side, mirrored',
@@ -658,8 +697,9 @@ function printSheetHtml() {
   const scaleText = printPrefs.size === 'actual'
     ? 'actual size — one hole is 2.54 mm'
     : `scaled to ${Math.round(lay.scale * 100)}%`;
-  const table = (id, title, head, rows) => `<section class="printtable"><h3>${title}</h3>${rows.length
-    ? `<table data-table="${id}"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead>`
+  const table = (id, title, head, rows, widths) => `<section class="printtable"><h3>${title}</h3>${rows.length
+    ? `<table data-table="${id}"><colgroup>${widths.map((w) => `<col style="width:${w}%">`).join('')}</colgroup>`
+      + `<thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead>`
       + `<tbody>${rows.map((row) => `<tr>${row.map((c) => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
     : '<p class="printnone">None on this board.</p>'}</section>`;
 
@@ -670,12 +710,7 @@ function printSheetHtml() {
       // really is one hole to 2.54 mm on the paper.
       printSvg(v.view, theme).replace('width="100%" height="100%"',
         `width="${v.widthMm}mm" height="${v.heightMm}mm"`)}</figure>`).join('')
-    + (printPrefs.tables.bom ? table('bom', 'Bill of materials', ['Qty', 'Refs', 'Value', 'Part'],
-      bomFor(state.project).map((r) => [String(r.qty), r.refs.join(', '), r.value, r.part])) : '')
-    + (printPrefs.tables.cuts ? table('cuts', 'Cut list', ['Where', 'Cut'],
-      cutRows(state.project).map((c) => [c.where, c.kind])) : '')
-    + (printPrefs.tables.wires ? table('wires', 'Wire runs', ['Ref', 'From', 'To'],
-      wireRows(state.project).map((w) => [w.ref, w.from, w.to])) : '');
+    + tables.map((t) => table(t.id, t.title, t.head, t.rows, t.widths)).join('');
   return { html, mono, lay };
 }
 
@@ -690,17 +725,23 @@ function paintPrintView() {
       b.setAttribute('aria-pressed', String(on));
     }
   }
+  // A grid: one row per layer, a Top column and a Bot column.
   const layers = $('#pvLayers');
   if (!layers.children.length) {
-    layers.innerHTML = PRINT_LAYERS.map(([k, label]) => `<label>
-      <input type="checkbox" data-print-layer="${k}"> ${escapeHtml(label)}</label>`).join('');
+    layers.innerHTML = `<span class="pv-grid-head">Layer</span><span class="pv-grid-head">Top</span>`
+      + '<span class="pv-grid-head">Bot</span>'
+      + PRINT_LAYERS.map(([k, label]) => `<span class="pv-grid-name">${escapeHtml(label)}</span>${
+        PRINT_SIDES.map((side) => `<input type="checkbox" data-print-layer="${k}" data-side="${side}"
+          aria-label="${escapeHtml(label)} on the ${side === 'top' ? 'top' : 'bottom'} view">`).join('')}`).join('');
   }
-  for (const box of panel.querySelectorAll('[data-print-layer]')) box.checked = printPrefs.layers[box.dataset.printLayer] !== false;
+  for (const box of panel.querySelectorAll('[data-print-layer]')) {
+    box.checked = printPrefs.layers[box.dataset.side]?.[box.dataset.printLayer] !== false;
+  }
   for (const box of panel.querySelectorAll('[data-print-table]')) box.checked = Boolean(printPrefs.tables[box.dataset.printTable]);
 
   const { html, mono, lay } = printSheetHtml();
   $('#pvFit').textContent = lay.message;
-  $('#pvFit').classList.toggle('is-warn', !lay.fits);
+  $('#pvFit').classList.toggle('is-warn', !lay.fits || lay.readable === false);
   const page = $('#pvPreview .pv-page');
   page.classList.toggle('is-mono', mono);
   $('#pvPreview .pv-sheet').innerHTML = html;
@@ -3062,7 +3103,7 @@ function boot() {
   });
   $('#printView').addEventListener('change', (e) => {
     const { printLayer, printTable } = e.target.dataset;
-    if (printLayer) printPrefs.layers[printLayer] = e.target.checked;
+    if (printLayer) printPrefs.layers[e.target.dataset.side][printLayer] = e.target.checked;
     else if (printTable) printPrefs.tables[printTable] = e.target.checked;
     else return;
     savePrintPrefs();

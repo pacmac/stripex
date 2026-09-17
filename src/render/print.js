@@ -32,7 +32,27 @@ export function wireRows(project) {
 }
 
 export const A4_MM = { w: 210, h: 297 };
-export const PRINT_MARGIN_MM = 10;
+// Peter: "a 6mm margin is needed all around." The same number is the @page
+// margin in the stylesheet and the preview page's padding.
+export const PRINT_MARGIN_MM = 6;
+
+// A TABLE'S HEIGHT, COMPUTED NOT GUESSED. The stylesheet gives a table's title,
+// header row and body rows these exact heights, so One page can reserve room for
+// the tables before it scales the board. Change one, change the other.
+export const TABLE_GAP_MM = 4;
+export const TABLE_TITLE_MM = 7;
+export const TABLE_HEAD_MM = 6;
+export const TABLE_ROW_MM = 5.5;
+// Room left over on a One page sheet for the browser's pixel rounding.
+export const ONE_PAGE_SLACK_MM = 3;
+// Below this a printed hole is too small to build from, and One page says so.
+export const MIN_READABLE_PITCH_MM = 1.5;
+
+// The height the chosen tables will take, given each table's body row count.
+// A table with no rows still prints its title and a "None" line.
+export const tablesHeightMm = (rowCounts = []) => rowCounts
+  .reduce((sum, rows) => sum + TABLE_GAP_MM + TABLE_TITLE_MM
+    + (rows ? TABLE_HEAD_MM + rows * TABLE_ROW_MM : TABLE_ROW_MM), 0);
 // The name, date and scale line at the top of the sheet.
 export const HEADER_MM = 10;
 // "Top — the component side" above each view.
@@ -60,7 +80,7 @@ const mm = (v) => (Math.round(v * 10) / 10).toString();
 
 // { drawing: {w, h} mm, sides: 'top' | 'underside' | 'both', size: 'actual' | 'fill' }
 // -> { views: [{ view, widthMm, heightMm }], scale, fits, need, message }
-export function printLayout({ drawing, sides = 'both', size = 'actual' } = {}) {
+export function printLayout({ drawing, sides = 'both', size = 'actual', tablesMm = 0 } = {}) {
   const names = sides === 'both' ? ['top', 'underside'] : [sides === 'underside' ? 'underside' : 'top'];
   const n = names.length;
   const area = printableMm({ views: n });
@@ -70,7 +90,36 @@ export function printLayout({ drawing, sides = 'both', size = 'actual' } = {}) {
   let scale = 1;
   let fits;
   let message;
-  if (size === 'fill') {
+  let readable = true;
+  if (size === 'onepage') {
+    // ONE PAGE: the views scaled by one factor, the largest at which they AND
+    // the chosen tables fit on one A4 sheet. Peter: "an option to fit on 1 page
+    // would be good as now it flows onto 2 pages, with ONLY the BOM selected".
+    //
+    // Less ONE_PAGE_SLACK_MM when there are tables: every table row is rounded
+    // to device pixels, and those add up — measured once at 1.3 mm over, on two
+    // pages. With no tables there is nothing to accumulate: Fill came out at
+    // 284.99 of 285 mm on three board shapes, one page each, so One page is Fill.
+    const room = area.h - tablesMm - (tablesMm > 0 ? ONE_PAGE_SLACK_MM : 0);
+    if (room <= 0) {
+      scale = Math.min(area.w / need.w, area.h / need.h);
+      fits = false;
+      message = `The tables alone need ${mm(tablesMm)} mm, more than one A4 sheet holds — `
+        + 'they will run onto a second page.';
+    } else {
+      scale = Math.min(area.w / need.w, room / need.h);
+      fits = true;
+      message = `Scaled to ${Math.round(scale * 100)}% so the board and its tables fit on one A4 sheet `
+        + `— one hole is ${mm(PITCH_MM * scale)} mm.`;
+      // One page, as asked — but say when that has made the board unusable.
+      // Seen on the Yagi board with all three tables: 26%, a hole 0.6 mm.
+      if (PITCH_MM * scale < MIN_READABLE_PITCH_MM) {
+        readable = false;
+        message += ' That is too small to build from: turn a table off, or use Fill the page '
+          + 'and let the tables run onto a second sheet.';
+      }
+    }
+  } else if (size === 'fill') {
     // ONE scale for every view — the largest at which they all fit — so the top
     // and the underside print the same size and compare hole for hole.
     scale = Math.min(area.w / need.w, area.h / need.h);
@@ -90,6 +139,7 @@ export function printLayout({ drawing, sides = 'both', size = 'actual' } = {}) {
     views: names.map((view) => ({ view, widthMm: drawing.w * scale, heightMm: drawing.h * scale })),
     scale,
     fits,
+    readable,
     need,
     message,
   };
