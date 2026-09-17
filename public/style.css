@@ -919,6 +919,26 @@ button.primary {
   min-width: 0;
 }
 .devfield.devwide { grid-column: 1 / -1; }
+
+/* A SEGMENTED CHOICE — one row, joined, the chosen one lit in the accent the
+   tools use. Pins run: across, along, either. */
+.devseg { display: flex; }
+.devseg-opt {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 5px 6px;
+  border-radius: 0;
+  margin-left: -1px;
+  font-size: 12px;
+}
+.devseg-opt:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
+.devseg-opt:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+.devseg-opt.is-on {
+  position: relative;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
 .devlabel { font-size: 11px; color: var(--ink-dim); }
 .devhint { font-size: 10px; color: var(--ink-dim); opacity: 0.85; }
 .devcolour input[type="color"] { width: 54px; height: 26px; padding: 1px; }

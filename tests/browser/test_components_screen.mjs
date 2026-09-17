@@ -528,6 +528,35 @@ s.check('THE DRAWING FILLS ITS PANE AND THE CALLOUTS ARE LEGIBLE', async () => {
   ok(r.gap > 6, `the two callout columns do not touch: ${r.gap.toFixed(1)}px between them`);
 });
 
+s.check('PINS RUN IS ONE CHOICE ON ONE ROW, AND CHOOSING TURNS THE PREVIEW', async () => {
+  // Peter: "each lib item needs to somehow identify it's pin -> strip
+  // orientation." The field reused a class that a later rule turns into a
+  // column, so the three options stacked full width — found in the screenshot.
+  needBrowser();
+  const r = await onScreen(async (page) => {
+    await page.locator('#devList [data-device="tmc2209"]').click();
+    await page.waitForTimeout(400);
+    const buttons = page.locator('#devEdit [data-pinsrun]');
+    const n = await buttons.count();
+    if (!n) return { n };
+    const tops = await buttons.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+    const pads = async () => page.evaluate(() => [...document.querySelectorAll('#devPreview [data-kind="pad"]')]
+      .slice(0, 2).map((p) => Math.round(p.getBoundingClientRect().top)));
+    const before = await pads();
+    await page.locator('#devEdit [data-pinsrun="along"]').click();
+    await page.waitForTimeout(400);
+    const lit = await page.locator('#devEdit [data-pinsrun="along"]').getAttribute('aria-pressed');
+    const after = await pads();
+    return { n, tops, before, after, lit };
+  });
+  eq(r.n, 3, 'Across, Along, Either');
+  if (!r.n) return;
+  eq(new Set(r.tops).size, 1, `all three on one row: tops ${r.tops}`);
+  eq(r.lit, 'true', 'Along is lit once chosen');
+  ok(r.before[0] !== r.before[1], `across: pins 1 and 2 on different strips (${r.before})`);
+  eq(r.after[0], r.after[1], `along: pins 1 and 2 on one strip (${r.after})`);
+});
+
 const okAll = await s.run();
 if (browser) await browser.close();
 if (server) { mod?.closeLive?.(); server.close(); }

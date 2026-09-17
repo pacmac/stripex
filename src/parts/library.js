@@ -86,8 +86,10 @@ export const PARTS = {
     name: 'Wire link',
     refPrefix: 'L',
     kind: 'link',
-    // Across the strips. Along one, a link joins a segment to itself.
-    defaultRot: 90,
+    // Across the strips. Along one, a link joins a segment to itself. This was
+    // a typed `defaultRot: 90`; it is now the declaration the rotation is
+    // derived from, the same as every other part.
+    pinsRun: 'across',
     parametric: 'span',
     spanLabel: 'length in holes',
     defaultSpan: 2,
@@ -97,6 +99,7 @@ export const PARTS = {
   },
   'res-axial': {
     id: 'res-axial',
+    pinsRun: 'across',
     category: 'passive',
     name: 'Resistor (axial)',
     refPrefix: 'R',
@@ -110,6 +113,7 @@ export const PARTS = {
   },
   diode: {
     id: 'diode',
+    pinsRun: 'across',
     category: 'semiconductor',
     name: 'Diode (axial)',
     refPrefix: 'D',
@@ -123,6 +127,7 @@ export const PARTS = {
   },
   'cap-ceramic': {
     id: 'cap-ceramic',
+    pinsRun: 'across',
     category: 'passive',
     name: 'Capacitor (ceramic)',
     refPrefix: 'C',
@@ -136,6 +141,7 @@ export const PARTS = {
   },
   'cap-electro': {
     id: 'cap-electro',
+    pinsRun: 'across',
     category: 'passive',
     name: 'Capacitor (electrolytic)',
     refPrefix: 'C',
@@ -149,6 +155,7 @@ export const PARTS = {
   },
   led: {
     id: 'led',
+    pinsRun: 'across',
     category: 'semiconductor',
     name: 'LED',
     refPrefix: 'LED',
@@ -159,6 +166,7 @@ export const PARTS = {
   },
   to92: {
     id: 'to92',
+    pinsRun: 'across',
     category: 'semiconductor',
     // Named by PACKAGE. A TO-92 holds a BJT, a FET, a 78L05 or a reference
     // diode equally; what is in it belongs to a device entry.
@@ -175,6 +183,7 @@ export const PARTS = {
   },
   to220: {
     id: 'to220',
+    pinsRun: 'across',
     category: 'semiconductor',
     name: 'TO-220, 3 pins',
     refPrefix: 'Q',
@@ -189,6 +198,7 @@ export const PARTS = {
   },
   dip: {
     id: 'dip',
+    pinsRun: 'across',
     category: 'ic',
     name: 'DIP / IC socket',
     refPrefix: 'U',
@@ -213,6 +223,12 @@ export const PARTS = {
   },
   'smt-0603': {
     id: 'smt-0603',
+    // EITHER, and that is measured, not a shrug. Along one strip it straddles a
+    // knife cut; turned a quarter it bridges the gap between two adjacent strips
+    // and needs no cut at all — 1.6 mm reaches half a millimetre onto each. Both
+    // are built: 555-blinker-v2 has six at 90, rak4631-io has them both ways.
+    // Declaring one would warn on working boards. It still places at 0.
+    pinsRun: 'either',
     category: 'smt',
     name: 'SMT resistor 0603',
     refPrefix: 'R',
@@ -238,6 +254,8 @@ export const PARTS = {
   },
   'smt-0603-cap': {
     id: 'smt-0603-cap',
+    // Either way, as the resistor above.
+    pinsRun: 'either',
     category: 'smt',
     name: 'SMT capacitor 0603',
     refPrefix: 'C',
@@ -275,6 +293,8 @@ export const PARTS = {
   // two SOT-23 parts do not agree about it.
   sot23: {
     id: 'sot23',
+    // Pins 1 and 2 along one strip; pin 3 is on the next by construction.
+    pinsRun: 'along',
     category: 'smt',
     // Named by package, not function: Peter, "could be a FET, a Transistor, a
     // Regulator, a Diode." For the same reason it takes the generic U; a
@@ -295,6 +315,7 @@ export const PARTS = {
   },
   header: {
     id: 'header',
+    pinsRun: 'across',
     category: 'connector',
     name: 'Pin header',
     refPrefix: 'J',
@@ -316,6 +337,7 @@ export const PARTS = {
   // the device name so the difference is visible when you choose one.
   'jst-xh': {
     id: 'jst-xh',
+    pinsRun: 'across',
     category: 'connector',
     name: 'JST XH connector',
     refPrefix: 'J',
@@ -370,7 +392,39 @@ export const breakTypeOf = (part) => part.breakType ?? 'knife';
 // link ALONG a strip joins a segment to itself and does nothing — the DRC calls
 // it redundant. Across the strips is the only orientation in which a link is a
 // link, so it should not be the one you have to remember to ask for.
-export const defaultRotOf = (part) => part.defaultRot ?? 0;
+// THE ROTATION A PART IS PLACED AT, derived from which way its pins run.
+//
+// Peter: "90% of lib items I add and out by 90/270 degrees. each lib item needs
+// to somehow identify it's pin -> strip orientation." Every part defines its
+// pins along a row, so at 0 pins 1 and 2 share a strip, and only the wire link
+// said otherwise, with a typed 90.
+//
+// So a part declares `pinsRun` — `across` (each pin on its own strip), `along`
+// (the pins share a strip on purpose, which is then cut), or `either` (an 0603,
+// built both ways) — and this returns the first quarter turn at which pins 1
+// and 2 agree with it. Computed from the pins rather than looked up, so a part
+// whose pins run down a column gets the right answer without anyone knowing.
+// Strips run along rows. `either` places at 0, as it always has.
+//
+// `pinsRun` may be given to override the part's own — a device that says so.
+export const PINS_RUN = ['across', 'along', 'either'];
+
+export function defaultRotOf(part, pinsRun = part?.pinsRun) {
+  if (pinsRun !== 'across' && pinsRun !== 'along') return 0;
+  const pins = pinsOf(part).filter((p) => p.electrical !== false);
+  if (pins.length < 2) return 0;
+  const [a, b] = pins;
+  for (const rot of [0, 90, 180, 270]) {
+    // The same quarter turn resolvePins applies: (dx, dy) -> (-dy, dx) per 90.
+    const turn = (x, y) => (rot === 0 ? [x, y] : rot === 90 ? [-y, x] : rot === 180 ? [-x, -y] : [y, -x]);
+    const sameRow = turn(a.dx, a.dy)[1] === turn(b.dx, b.dy)[1];
+    if (sameRow === (pinsRun === 'along')) return rot;
+  }
+  return 0;
+}
+
+// Which way a PLACEMENT's pins are meant to run: its own word, or its part's.
+export const pinsRunOf = (placement, part) => placement?.pinsRun ?? part?.pinsRun ?? null;
 
 // Which tool choosing this part arms. Everything places; point to point wires.
 // The single way anything names a pin.
@@ -409,6 +463,7 @@ export function partList() {
     kind: p.kind,
     side: sideOf(p),
     requiresBreak: !!p.requiresBreak,
+    pinsRun: p.pinsRun ?? null,
     parametric: p.parametric,
     spanLabel: p.spanLabel ?? null,
     defaultSpan: p.defaultSpan ?? null,

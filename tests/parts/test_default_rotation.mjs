@@ -14,14 +14,13 @@ const s = suite('default-rotation');
 
 const B = { cols: 20, rows: 12, pattern: 'strip' };
 
-s.check('A WIRE LINK DECLARES 90 DEGREES', () => {
-  eq(lib.getPart('wire-link').defaultRot, 90, 'wire-link defaultRot');
-  eq(lib.defaultRotOf(lib.getPart('wire-link')), 90, 'through the helper');
-});
-
-s.check('a part that declares nothing is placed flat', () => {
-  eq(lib.defaultRotOf(lib.getPart('res-axial')), 0, 'resistor');
-  eq(lib.defaultRotOf(lib.getPart('dip')), 0, 'dip');
+// A wire link's 90 is no longer typed: it declares pinsRun 'across' and the
+// rotation is derived. The check that pinned the resistor and the DIP "flat" at
+// 0 asserted the defect Peter reported — every pin on one strip — and has gone.
+// See tests/parts/test_pins_run.mjs.
+s.check('A WIRE LINK DEFAULTS TO 90 DEGREES', () => {
+  eq(lib.getPart('wire-link').pinsRun, 'across', 'wire-link runs across the strips');
+  eq(lib.defaultRotOf(lib.getPart('wire-link')), 90, 'so it defaults to 90');
 });
 
 s.check('AT 90 A LINK BRIDGES TWO STRIPS, WHICH IS WHAT A LINK IS FOR', () => {

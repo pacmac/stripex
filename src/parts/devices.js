@@ -21,7 +21,7 @@
 // after the fact, changing the meaning of data that was valid when it was
 // written. Not again.
 
-import { getPart, hasPart } from './library.js';
+import { getPart, hasPart, PINS_RUN } from './library.js';
 import { resolvePins } from '../model/rotate.js';
 
 // PIN NUMBERING, EVERYWHERE HERE: down one side, then back up the other, which
@@ -209,6 +209,12 @@ export function validateDevice(d) {
     }
   }
 
+  // Which way its pins cross the strips, when it differs from its base part's.
+  // Absent means "as the base says". See docs/specs/pins-run-across-strips.md.
+  if (d.pinsRun != null && !PINS_RUN.includes(d.pinsRun)) {
+    return `${d.id}: pinsRun is ${JSON.stringify(d.pinsRun)}, and must be one of ${PINS_RUN.map((v) => `"${v}"`).join(', ')}`;
+  }
+
   const pins = d.pins ?? [];
   if (!Array.isArray(pins) || !pins.length) return `${d.id} has no pins`;
   const seen = new Set();
@@ -290,6 +296,9 @@ export function placementFor(deviceId, at, rot = 0, ref = null) {
   if (d.width != null) pl.width = d.width;
   if (d.silk) pl.silk = d.silk;
   if (d.autoBreak != null) pl.autoBreak = d.autoBreak;
+  // Only an OVERRIDE is copied: a device that says nothing leaves the placement
+  // to its part, so correcting a part's declaration corrects its devices too.
+  if (d.pinsRun != null) pl.pinsRun = d.pinsRun;
   // Which way a shrouded connector faces is a property of the thing on the
   // board, not of the catalogue it came from — so it is copied like everything
   // else here, and the drawing reads it off the placement.

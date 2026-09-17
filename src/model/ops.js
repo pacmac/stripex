@@ -16,7 +16,7 @@
 // be a slower way of making the same mistakes.
 
 import { makeProject, nextWireRef, nextPartRef, validateProject } from './board.js';
-import { getPart, hasPart, sideOf } from '../parts/library.js';
+import { getPart, hasPart, sideOf, defaultRotOf } from '../parts/library.js';
 import { getDevice, placementFor } from '../parts/devices.js';
 import { resolvePins, isRotation } from './rotate.js';
 import { segments, segmentIndex, holeKey } from '../net/segments.js';
@@ -95,8 +95,17 @@ export function freeHolesOn(project, ref, pin) {
 
 // ------------------------------------------------------------------ parts
 
-export function addPart(project, { part, at, rot = 0, span, width, device, silk, value } = {}) {
+export function addPart(project, { part, at, rot: asked, span, width, device, silk, value } = {}) {
   if (!onBoard(project, at)) return fail('off-board', `(${at?.col},${at?.row}) is not on this board`);
+  // NO ROTATION GIVEN means the one the part declares, not 0. At 0 every part in
+  // the catalogue lies with its pins along one strip. An explicit rot is always
+  // honoured. See docs/specs/pins-run-across-strips.md.
+  let rot = asked;
+  if (rot == null) {
+    const d = device ? getDevice(device) : null;
+    const base = d ? d.base : part;
+    rot = hasPart(base) ? defaultRotOf(getPart(base), d?.pinsRun ?? getPart(base).pinsRun) : 0;
+  }
   if (!isRotation(rot)) return fail('bad-rotation', `${rot} is not a rotation`);
 
   // A DEVICE BRINGS ITS OWN EVERYTHING. placementFor copies its span, width,

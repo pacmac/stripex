@@ -3618,15 +3618,35 @@
   type: bug
   what: only the wire link declares a default rotation, so every other part is placed at 0 with its pin
     row along one strip and every pin shorted to its neighbour
-  spec: docs/specs/sot23-and-accepted-findings.md
+  spec: docs/specs/pins-run-across-strips.md
   files:
   - src/parts/library.js
+  - src/parts/devices.js
+  - src/model/ops.js
+  - src/net/drc.js
+  - public/app.js
   test:
-    command: null
-    criterion: null
+    command:
+    - node
+    - tests/parts/test_pins_run.mjs
+    criterion: every part with a pin row declares pinsRun (across, along or either), its default rotation
+      is derived from it, devices may override and the override travels, addPart defaults from it, and
+      a placement turned against across/along warns pins-against-strips while either never does
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/a-part-does-not-say-which-way-its-pins-cross-the-strips.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T08:52:48.036'
+    commit: 8491894-dirty
+  fix:
+    file: .proofs/a-part-does-not-say-which-way-its-pins-cross-the-strips.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T08:52:53.249'
+    commit: 8491894-dirty
 - id: the-library-cannot-tell-one-item-from-the-next
   type: bug
   what: 'the Library card is similar grey text throughout: weak group headings, no footprints, devices
@@ -3657,3 +3677,32 @@
     failures: 0
     at: '2026-09-17T08:35:51.139'
     commit: 9faa0a2-dirty
+- id: the-pins-run-choice-stacks-its-buttons
+  type: bug
+  what: the Pins run choice on the Components screen borrowed the .cuts class, which a later rule makes
+    a column, so Across / Along / Either stack full-width instead of reading as one segmented choice
+  spec: docs/specs/pins-run-across-strips.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: Across / Along / Either sit on one row, the chosen one is lit, and choosing Along puts
+      pins 1 and 2 of the preview on one strip
+    runs: 1
+  trial:
+    file: .proofs/the-pins-run-choice-stacks-its-buttons.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T08:57:21.192'
+    commit: 8491894-dirty
+  fix:
+    file: .proofs/the-pins-run-choice-stacks-its-buttons.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T08:59:23.173'
+    commit: 8491894-dirty

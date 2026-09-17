@@ -939,6 +939,20 @@ function paintDeviceEditor(builtIn) {
         ${basePart?.defaultWidth != null
     ? field('width', capitalise(basePart.widthLabel ?? 'width'), d.width, 'number')
     : ''}
+        ${basePart?.pinsRun ? (() => {
+    // WHICH WAY THE PINS CROSS THE STRIPS. Peter: "each lib item needs to
+    // somehow identify it's pin -> strip orientation." Lit from the device's own
+    // word if it has one, the footprint's if not; a device only stores it when
+    // it differs, so correcting a footprint corrects the devices built on it.
+    const now = d.pinsRun ?? basePart.pinsRun;
+    const opt = (v, label) => `<button type="button" class="devseg-opt${now === v ? ' is-on' : ''}"
+      data-pinsrun="${v}" aria-pressed="${now === v}">${label}</button>`;
+    // Its own class: `.cuts` is also the layer list, which a later rule makes a
+    // column, and borrowing it stacked these three full width.
+    return `<div class="devfield"><span class="devlabel">Pins run</span>
+          <span class="devseg" role="group" aria-label="Pins run">${opt('across', 'Across')}${opt('along', 'Along')}${opt('either', 'Either')}</span>
+          <span class="devhint">${d.pinsRun ? 'set for this component' : 'as the footprint says'}</span></div>`;
+  })() : ''}
         ${field('refPrefix', 'Reference letter', d.refPrefix, 'text', 'U1, R1, J1 …')}
         <label class="devfield"><span class="devlabel">Silkscreen</span>
           <span class="devcolour"><input data-field="silk" type="color"
@@ -977,10 +991,10 @@ const capitalise = (s) => String(s ?? '').charAt(0).toUpperCase() + String(s ?? 
 // ROTATED, WHICH IS THE WHOLE POINT. Every device used to be previewed at rot 0,
 // so a DIP's pins ran ALONG the strips and every pin shorted to its neighbour.
 // Peter: "the DIP is mis-orientated ... with the strips being inline with the
-// pins instead of across them." A multi-pin package goes across the strips or it
-// does not work, so that is how it is shown — with the cuts the package itself
-// declares, which is what makes this a stripboard footprint rather than a
-// generic one.
+// pins instead of across them." It is shown the way it will place — across the
+// strips, or along one for an SMT package, as its `pinsRun` says — with the cuts
+// the package itself declares, which is what makes this a stripboard footprint
+// rather than a generic one.
 //
 // A SCRAP OF BOARD FOR ONE PART: the pins' own block plus one strip all round,
 // with the placement shifted onto it. Shared by this preview and the Library's
@@ -1027,8 +1041,12 @@ function paintDevicePreview() {
     ref: `${d.refPrefix ?? 'U'}1`,
     part: d.base,
     at: { col: 1, row: 1 },
-    rot: 90,
+    // At the rotation it will actually PLACE at, derived from which way its pins
+    // run. This was a hard-coded 90 — right for a DIP, and wrong for anything
+    // built on an SMT package, whose pins share a strip at 0.
+    rot: defaultRotOf(getPart(d.base), d.pinsRun),
   };
+  if (d.pinsRun) pl.pinsRun = d.pinsRun;
   if (d.span != null) pl.span = d.span;
   if (d.width != null) pl.width = d.width;
   if (d.silk) pl.silk = d.silk;
@@ -2071,7 +2089,9 @@ function pathPatch(id, value) {
 const thumbCache = new Map();
 
 function libraryThumb(item) {
-  const key = `${item.isDevice ? 'd' : 'p'}:${item.id}:${state.theme}`;
+  // A device's own pinsRun is in the key: changing it on the Components screen
+  // turns the footprint, and a cache keyed on id alone would keep the old one.
+  const key = `${item.isDevice ? `d:${getDevice(item.id)?.pinsRun ?? ''}` : 'p'}:${item.id}:${state.theme}`;
   if (thumbCache.has(key)) return thumbCache.get(key);
 
   let svg = '';
@@ -2080,7 +2100,7 @@ function libraryThumb(item) {
     const part = base ? getPart(base) : null;
     if (part && placesWith(part) !== 'wire') {
       const pl = item.isDevice
-        ? placementFor(item.id, { col: 0, row: 0 }, defaultRotOf(part), 'X1')
+        ? placementFor(item.id, { col: 0, row: 0 }, defaultRotOf(part, getDevice(item.id)?.pinsRun), 'X1')
         : { ref: 'X1', part: item.id, at: { col: 0, row: 0 }, rot: defaultRotOf(part) };
       const project = scrapProjectFor(pl);
       const e = drawingExtentMm(project, getPart);
@@ -2464,7 +2484,8 @@ function boot() {
       if (!d) return;
       state.device = d.id;
       state.part = d.base;
-      state.rot = defaultRotOf(getPart(d.base));
+      // The device's own word on which way its pins run, if it has one.
+      state.rot = defaultRotOf(getPart(d.base), d.pinsRun);
       buildPalette();
       paintLibrary();
       return setTool('place');
@@ -2597,6 +2618,16 @@ function boot() {
     if (e.target.dataset.field === 'base' || e.target.dataset.field === 'span'
       || e.target.dataset.field === 'width') paintDeviceEditor(!$('#devRevert').hidden ? false : null);
     else paintDevicePreview();
+  });
+  // Pins run across or along: stored only when it differs from the footprint.
+  $('#devEdit').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-pinsrun]');
+    if (!b) return;
+    devEditing = readDeviceForm();
+    const base = getPart(devEditing.base);
+    if (b.dataset.pinsrun === base?.pinsRun) delete devEditing.pinsRun;
+    else devEditing.pinsRun = b.dataset.pinsrun;
+    paintDeviceEditor(!$('#devRevert').hidden ? false : null);
   });
 
   $('#theme').addEventListener('click', () => {

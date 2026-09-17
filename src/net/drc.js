@@ -8,7 +8,7 @@
 import { segments, segmentIndex, holeKey } from './segments.js';
 import { resolvePins } from '../model/rotate.js';
 import { missingBreaks } from '../model/breaks.js';
-import { sideOf } from '../parts/library.js';
+import { sideOf, pinsRunOf } from '../parts/library.js';
 import { nets } from './derive.js';
 
 const err = (code, message, refs = [], holes = []) =>
@@ -171,6 +171,31 @@ export function drc(board, breaks = [], placements = [], getPart = null, wires =
           [pl.ref], group.map((p) => ({ col: p.col, row: p.row }))));
       }
     }
+  }
+
+  // --- which way the pins cross the strips ---------------------------------
+  //
+  // A part declares whether its pins run ACROSS the strips (each on its own) or
+  // ALONG one (sharing it, with a cut). A placement turned the other way is
+  // reported — as a WARNING, because a resistor laid along a strip over a cut
+  // is a real technique, and an error would make a working board read as
+  // broken. Pins 1 and 2 decide it, the same as the default rotation does.
+  for (const pl of placements) {
+    let part;
+    try { part = getPart(pl.part); } catch { continue; }
+    const want = pinsRunOf(pl, part);
+    // `either` is a real answer — an 0603 is built both ways — so it is never
+    // turned the wrong way.
+    if (want !== 'across' && want !== 'along') continue;
+    const own = pins.filter((p) => p.ref === pl.ref && p.electrical);
+    if (own.length < 2) continue;
+    const alongNow = own[0].row === own[1].row;
+    if (alongNow === (want === 'along')) continue;
+    out.push(warn('pins-against-strips',
+      want === 'across'
+        ? `${pl.ref} has pins ${own[0].pin} and ${own[1].pin} on one strip, but its pins go across the strips — turn it a quarter turn`
+        : `${pl.ref} has pins ${own[0].pin} and ${own[1].pin} on different strips, but its pins go along one strip — turn it a quarter turn`,
+      [pl.ref], own.slice(0, 2).map((p) => ({ col: p.col, row: p.row }))));
   }
 
   // --- off-grid pads --------------------------------------------------------
