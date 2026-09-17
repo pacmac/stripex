@@ -8,7 +8,7 @@
 import { segments, segmentIndex, holeKey } from './segments.js';
 import { resolvePins } from '../model/rotate.js';
 import { missingBreaks } from '../model/breaks.js';
-import { isSurfaceMount, pinsRunOf } from '../parts/library.js';
+import { isSurfaceMount, pinsRunOf, sideOf } from '../parts/library.js';
 import { nets } from './derive.js';
 
 const err = (code, message, refs = [], holes = []) =>
@@ -173,6 +173,46 @@ export function drc(board, breaks = [], placements = [], getPart = null, wires =
           `${pl.ref} has ${names} on the same strip segment — the part is shorted out`,
           [pl.ref], group.map((p) => ({ col: p.col, row: p.row }))));
       }
+    }
+  }
+
+  // --- two bodies in one place ---------------------------------------------
+  //
+  // Two parts on the same side of the board whose pin rectangles share area
+  // cannot both be built: a resistor over rows 4-9 and a capacitor over 6-8 in
+  // one column passed every check, and was only ever avoided by reading
+  // coordinates. The pin rectangle, not the drawn body, so it errs towards
+  // missing an overlap rather than inventing one. Wire links are left out —
+  // lying under a chip is what they are for. See docs/specs/body-overlap.md.
+  const rects = [];
+  for (const pl of placements) {
+    let part;
+    try { part = getPart(pl.part); } catch { continue; }
+    if (part.kind === 'link') continue;
+    const own = pins.filter((p) => p.ref === pl.ref && p.electrical);
+    if (!own.length) continue;
+    rects.push({
+      ref: pl.ref,
+      side: sideOf(part, pl),
+      c0: Math.min(...own.map((p) => p.col)),
+      c1: Math.max(...own.map((p) => p.col)),
+      r0: Math.min(...own.map((p) => p.row)),
+      r1: Math.max(...own.map((p) => p.row)),
+    });
+  }
+  for (let i = 0; i < rects.length; i += 1) {
+    for (let j = i + 1; j < rects.length; j += 1) {
+      const a = rects[i];
+      const b = rects[j];
+      if (a.side !== b.side) continue;
+      const c0 = Math.max(a.c0, b.c0);
+      const c1 = Math.min(a.c1, b.c1);
+      const r0 = Math.max(a.r0, b.r0);
+      const r1 = Math.min(a.r1, b.r1);
+      if (c0 > c1 || r0 > r1) continue;
+      out.push(err('bodies-overlap',
+        `${a.ref} and ${b.ref} are both on the ${a.side === 'copper' ? 'copper side' : 'top'} over row${r0 === r1 ? ` ${r0}` : `s ${r0}-${r1}`}, hole${c0 === c1 ? ` ${c0}` : `s ${c0}-${c1}`} — only one of them can be there`,
+        [a.ref, b.ref], [{ col: c0, row: r0 }, { col: c1, row: r1 }]));
     }
   }
 

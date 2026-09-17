@@ -2787,15 +2787,30 @@
     \ it \u2014 a resistor spanning rows 4-9 and a capacitor spanning 6-8 in the same column pass the\
     \ DRC, the rules and the netlist check. I avoided it by hand on every layout this session; the one\
     \ time I nearly shipped it the only evidence was reading the coordinates myself."
-  spec: docs/specs/cuts-and-mounting.md
+  spec: docs/specs/body-overlap.md
   files:
   - src/net/drc.js
   test:
-    command: null
-    criterion: two placements whose bodies occupy the same board area are reported as an error
+    command:
+    - node
+    - tests/net/test_body_overlap.mjs
+    criterion: two placements on the same side whose pin rectangles share area are a bodies-overlap error
+      naming both; links, opposite sides and parts that only touch are not
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/nothing-catches-two-part-bodies-in-the-same-column.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:14:11.254'
+    commit: b9ffe59-dirty
+  fix:
+    file: .proofs/nothing-catches-two-part-bodies-in-the-same-column.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:16:12.672'
+    commit: b9ffe59-dirty
 - id: polarity-is-never-checked-anywhere
   type: new
   what: "An LED with its anode on the 0V net and a polarised capacitor with + on 0V both pass every check\
