@@ -1057,6 +1057,9 @@ function paintDevicePreview() {
   try {
     el.innerHTML = renderBoard(p, {
       theme: state.theme,
+      // A copper-side part from the copper side: that is the face it is built
+      // from, and from the top a SOT-23 is its own mirror image.
+      view: sideOf(getPart(d.base)) === 'copper' ? 'underside' : 'top',
       layers: { ...DEFAULT_LAYERS, pinNames: false, netNames: false, drc: false, labels: false },
     });
   } catch (e) {
@@ -1126,12 +1129,31 @@ function numberThePads() {
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   });
   const midX = (Math.min(...centres.map((c) => c.x)) + Math.max(...centres.map((c) => c.x))) / 2;
+  const midY = (Math.min(...centres.map((c) => c.y)) + Math.max(...centres.map((c) => c.y))) / 2;
+
+  // WHICH LAYOUT THE PADS ALLOW. Reading inward from each pad needs two COLUMNS
+  // of pins with the package between them — a DIP. A single column has no
+  // inside, so its callouts stay to one side as before. Anything else — a
+  // SOT-23's 2+1, an 0603's two pads side by side — has no room between the
+  // pads at all: inward, pins 1 and 2 grew into each other and G vanished
+  // under S. Those go above or below their pad instead.
+  const columns = [];
+  for (const c of centres) {
+    const col = columns.find((g) => Math.abs(g.x - c.x) < 2);
+    if (col) col.n += 1; else columns.push({ x: c.x, n: 1 });
+  }
+  const twoColumns = columns.length === 2 && columns.every((g) => g.n >= 2);
+  const oneColumn = columns.length === 1;
+  const sideOfPad = (c) => {
+    if (twoColumns) return c.x < midX - 1 ? 'left' : 'right';
+    if (oneColumn) return 'right';
+    return c.y < midY - 1 ? 'above' : 'below';
+  };
 
   for (const [i, pad] of pads.entries()) {
     const c = centres[i];
     const top = `${(c.y - box.top) / box.height * 100}%`;
-    // A single-column part has no two sides, so everything goes right.
-    const side = centres.length > 2 && c.x < midX - 1 ? 'left' : 'right';
+    const side = sideOfPad(c);
 
     // ONE CALLOUT PER PIN, IN THE MARGIN, JUSTIFIED TOWARD THE BOARD.
     //
@@ -1151,8 +1173,17 @@ function numberThePads() {
     row.className = 'devcallout';
     row.dataset.side = side;
     row.style.top = top;
-    if (side === 'left') row.style.left = `${padPct}%`;
+    // Above or below: centred on the pad and lifted clear of it by the pad's OWN
+    // size. A fixed 14px was under half a pad at preview zoom, so each name sat
+    // on the pad it labels.
+    if (side === 'left' || side === 'above' || side === 'below') row.style.left = `${padPct}%`;
     else row.style.right = `${100 - padPct}%`;
+    if (side === 'above' || side === 'below') {
+      const clear = pad.getBoundingClientRect().height / 2 + 6;
+      row.style.transform = side === 'above'
+        ? `translate(-50%, calc(-100% - ${clear}px))`
+        : `translate(-50%, ${clear}px)`;
+    }
 
     const num = document.createElement('button');
     num.className = 'devbadge';
@@ -1177,7 +1208,8 @@ function numberThePads() {
     // document order; on the right it is reversed, so the number still ends up
     // against the pad. Peter's own diagram:
     //     | pin number name            name number pin |
-    if (side === 'left') { row.append(num, name); } else { row.append(name, num); }
+    // Above or below there is no inward, so it reads left to right: number, name.
+    if (side === 'right') { row.append(name, num); } else { row.append(num, name); }
     layer.appendChild(row);
   }
   host.appendChild(layer);

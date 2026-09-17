@@ -824,6 +824,9 @@ button.primary {
 .devcallout[data-side="left"] { margin-left: 11px; }
 .devcallout[data-side="right"] { margin-right: 11px; flex-direction: row; }
 .devcallout[data-side="right"] .devpinname { text-align: right; }
+/* A part with no two columns — a SOT-23's 2+1, an 0603 — has no room between its
+   pads, so its callouts sit centred above or below each pad. How far is set in
+   app.js from the pad's own size; a fixed distance here put names on the pads. */
 .devcallout .devbadge { position: static; transform: none; pointer-events: auto; }
 .devcallout[data-lit="true"] { z-index: 2; }
 

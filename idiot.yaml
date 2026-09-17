@@ -3734,3 +3734,60 @@
     failures: 0
     at: '2026-09-17T09:56:04.379'
     commit: f13a427-dirty
+- id: the-components-preview-garbles-a-sot23
+  type: bug
+  what: the Components preview lays every callout out as two columns, so a SOT-23's pin 1 name is hidden
+    under pin 2's, and a copper-side part is drawn from the top, mirrored
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: the SOT-23 MOSFET previews from the underside with G, S and D all visible and no two callouts
+      overlapping
+    runs: 1
+  trial:
+    file: .proofs/the-components-preview-garbles-a-sot23.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T09:59:09.864'
+    commit: b3bf1e0-dirty
+  fix:
+    file: .proofs/the-components-preview-garbles-a-sot23.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T10:01:26.688'
+    commit: b3bf1e0-dirty
+- id: a-sot23-callout-sits-on-its-own-pad
+  type: bug
+  what: the above/below callouts on a SOT-23 preview clear their pad by a fixed 14px, less than half a
+    pad at preview zoom, so each name sits over the pad it labels
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: on the SOT-23 MOSFET preview no callout overlaps any pad, as well as none overlapping another
+    runs: 1
+  trial:
+    file: .proofs/a-sot23-callout-sits-on-its-own-pad.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T10:04:14.215'
+    commit: b3bf1e0-dirty
+  fix:
+    file: .proofs/a-sot23-callout-sits-on-its-own-pad.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T10:05:21.756'
+    commit: b3bf1e0-dirty

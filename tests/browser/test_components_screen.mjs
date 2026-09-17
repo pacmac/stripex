@@ -557,6 +557,44 @@ s.check('PINS RUN IS ONE CHOICE ON ONE ROW, AND CHOOSING TURNS THE PREVIEW', asy
   eq(r.after[0], r.after[1], `along: pins 1 and 2 on one strip (${r.after})`);
 });
 
+s.check('A SOT-23 PREVIEWS FROM THE COPPER SIDE WITH EVERY PIN NAMED AND NO CALLOUT ON ANOTHER', async () => {
+  // Found looking at the new SOT-23 MOSFET: the callouts assumed a DIP's two
+  // columns, so pins 1 and 2 — side by side on one strip — grew into each
+  // other and G vanished under S. And a copper-side part was drawn from the
+  // top, mirrored, when the underside is the face it is built from.
+  needBrowser();
+  const r = await onScreen(async (page) => {
+    if (!await page.locator('#devList [data-device="sot23-mosfet"]').count()) return { missing: true };
+    await page.locator('#devList [data-device="sot23-mosfet"]').click();
+    await page.waitForTimeout(500);
+    return page.evaluate(() => {
+      const view = document.querySelector('#devPreview svg')?.getAttribute('data-view');
+      const names = [...document.querySelectorAll('.devpinname')]
+        .filter((e) => e.getBoundingClientRect().width > 0).map((e) => e.textContent.trim());
+      const boxes = [...document.querySelectorAll('.devcallout')].map((e) => e.getBoundingClientRect());
+      // And none lies on a PAD: a name over the pad it labels hides the thing
+      // it is pointing at. Found in the screenshot after the first fix.
+      const padBoxes = [...document.querySelectorAll('#devPreview [data-kind="pad"]')].map((e) => e.getBoundingClientRect());
+      const onPad = boxes.filter((a) => padBoxes.some((b) => a.left < b.right - 1 && b.left < a.right - 1
+        && a.top < b.bottom - 1 && b.top < a.bottom - 1)).length;
+      let overlaps = 0;
+      for (let i = 0; i < boxes.length; i += 1) {
+        for (let j = i + 1; j < boxes.length; j += 1) {
+          const a = boxes[i]; const b = boxes[j];
+          if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1) overlaps += 1;
+        }
+      }
+      return { view, names, overlaps, onPad };
+    });
+  });
+  ok(!r.missing, 'the SOT-23 MOSFET is listed');
+  if (r.missing) return;
+  eq(r.view, 'underside', 'drawn from the copper side');
+  eq([...r.names].sort(), ['D', 'G', 'S'], 'G, S and D are all visible');
+  eq(r.overlaps, 0, 'no callout lies on another');
+  eq(r.onPad, 0, 'no callout lies on a pad');
+});
+
 const okAll = await s.run();
 if (browser) await browser.close();
 if (server) { mod?.closeLive?.(); server.close(); }
