@@ -3909,3 +3909,31 @@
     failures: 0
     at: '2026-09-17T13:24:13.108'
     commit: c1ce68d-dirty
+- id: there-is-no-wire-link-button-beside-the-pen-wire
+  type: new
+  what: the toolbar arms a pen wire in one click but a wire link needs the Library
+  spec: docs/specs/wire-link-quick-button.md
+  files:
+  - public/index.html
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_wire_link_button.mjs
+    criterion: a wire link button sits after the pen wire, lights alone when clicked, marks the Library
+      item, places a wire-link at rot 90, and unlights when the pen wire is armed
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-wire-link-button-beside-the-pen-wire.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T13:25:01.996'
+    commit: c02c12b-dirty
+  fix:
+    file: .proofs/there-is-no-wire-link-button-beside-the-pen-wire.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T13:26:50.027'
+    commit: c02c12b-dirty

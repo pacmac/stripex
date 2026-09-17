@@ -2491,9 +2491,18 @@ function setTool(tool) {
   // only the one matching the armed cut lights up. Without the second test both
   // would light whenever break was armed, and the toolbar would be saying the
   // knife and the spot-face are the same thing.
+  // And a button that arms a particular PART — the wire link — lights only when
+  // that part is the one armed, with plain Place unlit, so one armed tool never
+  // shows as two lit buttons.
+  const quickParts = new Set([...document.querySelectorAll('.tool[data-quick-part]')]
+    .map((b) => b.dataset.quickPart));
+  const quickArmed = !state.device && quickParts.has(state.part);
   for (const b of document.querySelectorAll('.tool')) {
-    const mine = b.dataset.tool === tool
+    let mine = b.dataset.tool === tool
       && (!b.dataset.cut || b.dataset.cut === state.cut);
+    if (mine && b.dataset.tool === 'place') {
+      mine = b.dataset.quickPart ? quickArmed && b.dataset.quickPart === state.part : !quickArmed;
+    }
     b.classList.toggle('is-on', mine);
   }
   // Set here, the one place the armed tool changes, so the cursor cannot drift
@@ -2533,6 +2542,14 @@ function boot() {
       // A button that carries a cut style arms that style with the tool. Set
       // BEFORE setTool, which is what decides which of the two lights up.
       if (tool.dataset.cut) state.cut = tool.dataset.cut;
+      // A button that carries a part arms that part first, exactly as choosing
+      // it in the Library does: no device, its derived rotation.
+      if (tool.dataset.quickPart) {
+        state.part = tool.dataset.quickPart;
+        state.device = null;
+        state.rot = defaultRotOf(getPart(state.part));
+        buildPalette();
+      }
       return setTool(tool.dataset.tool);
     }
 

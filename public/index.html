@@ -49,6 +49,13 @@
        stroke-linecap="round" stroke-linejoin="round">
       <path d="M4 12a8 8 0 1 0 2.34-5.66"/><path d="M4 4v5h5"/><path d="M12 8v4l3 2"/>
     </g>
+    <!-- A wire link: a straight, stiff wire between two pads — the pen wire's
+         icon is the curved one. -->
+    <g id="i-link" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="4.5" r="2.5"/><circle cx="12" cy="19.5" r="2.5"/>
+      <path d="M12 7v10"/>
+    </g>
     <g id="i-print" fill="none" stroke="currentColor" stroke-width="2"
        stroke-linecap="round" stroke-linejoin="round">
       <path d="M6 9V3h12v6"/>
@@ -153,6 +160,13 @@
       aria-label="Place"><svg class="ico" viewBox="0 0 24 24"><use href="#i-place"/></svg></button>
     <button class="tool iconbtn" data-tool="wire" title="Draw a pen wire (W)"
       aria-label="Wire"><svg class="ico" viewBox="0 0 24 24"><use href="#i-wire"/></svg></button>
+    <!-- A WIRE LINK, one click away like the pen wire. Peter: "there needs to be
+         a quick action button for Wire Link, next to pen link." It arms Place
+         with the link, exactly as the Library does; data-quick-part rather than
+         data-part so nothing looking for Library items mistakes it for one. -->
+    <button class="tool iconbtn" data-tool="place" data-quick-part="wire-link"
+      title="Place a wire link — across the strips" aria-label="Wire link">
+      <svg class="ico" viewBox="0 0 24 24"><use href="#i-link"/></svg></button>
   </div>
 
   <div class="sep"></div>
