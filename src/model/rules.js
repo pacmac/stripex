@@ -20,7 +20,7 @@
 import { segments, segmentIndex, holeKey } from '../net/segments.js';
 import { effectiveBreaks } from './breaks.js';
 import { resolvePins } from './rotate.js';
-import { getPart, isSurfaceMount } from '../parts/library.js';
+import { getPart, isSurfaceMount, pinsOf } from '../parts/library.js';
 import { netLabelsAllByNet } from './nets.js';
 import { nets as deriveNets } from '../net/derive.js';
 
@@ -250,6 +250,55 @@ export function checkRules(project) {
           + 'power goes by wire link, not point to point',
           [w.ref], [{ col: h.col, row: h.row }]));
       }
+    }
+  }
+
+  // --- a polarised part the wrong way round, judged by net names ----------
+  //
+  // The LED on the first 555 board went in backwards and only reading which net
+  // each pin landed on caught it: a netlist states connectivity, not direction.
+  // Potential is not in the model, but some NAMES settle it — a positive pin on
+  // 0V or GND, or a negative pin on VCC or +5V, is the wrong way round. A
+  // warning, because it is inferred from a name, and silent on an unnamed net.
+  // See docs/specs/polarity-by-net-name.md.
+  {
+    const POSITIVE = new Set(['+', 'A']);
+    const NEGATIVE = new Set(['-', 'K']);
+    const GROUND = /^(0V|GND\d*|[AD]GND|VSS)$/i;
+    let segmentNet = null;
+    let labels = null;
+    const namesAt = (p) => {
+      if (!segmentNet) {
+        ({ segmentNet } = netsOf(project, segs));
+        labels = netLabelsAllByNet(project, segmentNet);
+      }
+      const segId = idx.get(holeKey(p.col, p.row));
+      const netId = segId && segmentNet[segId];
+      return netId ? (labels.get(netId) ?? []).map((l) => l.name).filter(Boolean) : [];
+    };
+    for (const pl of placements) {
+      let part;
+      try { part = getPart(pl.part); } catch { continue; }
+      // By the PART's own pin names, not a device's renamed ones.
+      const own = pinsOf(part, pl.span, pl.width);
+      if (!own.some((q) => POSITIVE.has(q.name)) || !own.some((q) => NEGATIVE.has(q.name))) continue;
+      const placed = pins.filter((q) => q.ref === pl.ref);
+      own.forEach((q, i) => {
+        const at = placed[i];
+        if (!at) return;
+        for (const name of namesAt(at)) {
+          const ground = GROUND.test(name);
+          const supply = !ground && netClassOf(name, rules) === 'power';
+          const wrong = (POSITIVE.has(q.name) && ground) || (NEGATIVE.has(q.name) && supply);
+          if (!wrong) continue;
+          out.push(finding('warning', 'polarity-reversed',
+            `${pl.ref} has its ${q.name === 'A' ? 'anode' : q.name === 'K' ? 'cathode' : q.name} `
+            + `on ${name}, which by its name is ${ground ? 'ground' : 'a supply'} — `
+            + 'it looks the wrong way round',
+            [pl.ref], [{ col: at.col, row: at.row }]));
+          break;
+        }
+      });
     }
   }
 
