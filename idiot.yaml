@@ -2845,16 +2845,30 @@
     \ in the project. The LED on the first 555 board was in backwards and only reading which net each\
     \ pin landed on caught it \u2014 the DRC, the design rules and the netlist check are all blind to\
     \ polarity because a netlist states connectivity and says nothing about direction."
-  spec: docs/specs/rules-and-ops.md
+  spec: docs/specs/polarity-by-net-name.md
   files:
   - src/model/rules.js
   test:
-    command: null
-    criterion: a polarised part whose cathode or minus sits on a higher-potential net than its anode or
-      plus is reported
+    command:
+    - node
+    - tests/model/test_polarity.mjs
+    criterion: a polarised part with its positive pin on a ground-named net or its negative pin on a supply-named
+      net is a polarity-reversed warning; right-way-round and unnamed nets are silent
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/polarity-is-never-checked-anywhere.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:27:28.656'
+    commit: a4fd5ef-dirty
+  fix:
+    file: .proofs/polarity-is-never-checked-anywhere.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:33:31.299'
+    commit: a4fd5ef-dirty
 - id: the-tightening-pass-has-no-query-behind-it
   type: new
   what: "Finding wasted columns and rows means listing what occupies each one. I wrote that by hand in\
@@ -4256,3 +4270,31 @@
     failures: 0
     at: '2026-09-17T16:24:12.080'
     commit: 452eee8-dirty
+- id: a-slow-saves-echo-wipes-undo
+  type: bug
+  what: when a save's response arrives after the live feed's echo of it, the editor takes its own save
+    for a foreign change, reloads, and history.reset() wipes undo
+  spec: docs/specs/save-echo.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_save_echo.mjs
+    criterion: with every save response held back 1.5 s, an edit is still undone by Ctrl+Z and no changed-on-the-server
+      banner appears
+    runs: 1
+  trial:
+    file: .proofs/a-slow-saves-echo-wipes-undo.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:30:27.491'
+    commit: a4fd5ef-dirty
+  fix:
+    file: .proofs/a-slow-saves-echo-wipes-undo.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:33:37.025'
+    commit: a4fd5ef-dirty

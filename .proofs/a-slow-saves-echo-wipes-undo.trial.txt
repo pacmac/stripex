@@ -1,0 +1,4 @@
+$ node tests/browser/test_save_echo.mjs
+FAIL  WITH A SLOW SAVE RESPONSE, AN EDIT CAN STILL BE UNDONE
+      and undo still puts it back after a slow save: expected "top", got "copper"
+save-echo: 0/1 checks passed

@@ -278,6 +278,8 @@ async function refreshBoards() {
 // write is a write.
 let saveTimer = null;
 let saving = false;
+// The project JSON of the save in flight, if any — its echo is ours.
+let inFlightSave = null;
 // An edit that arrived before the board was open. Flushed once, by
 // connectBoards, and only if it really happened — see the comment there.
 let savePending = false;
@@ -315,6 +317,11 @@ function showSaveState(kind) {
 async function saveToServer() {
   if (!state.slug || saving) return;
   saving = true;
+  // WHAT THIS SAVE SENT, so its echo on the live feed is recognised. When the
+  // feed's message beat the PUT's response, the editor took its own save for
+  // someone else's change, reloaded, and history.reset() wiped undo — Ctrl+Z
+  // silently did nothing. See docs/specs/save-echo.md.
+  inFlightSave = JSON.stringify(state.project);
   try {
     const { ok, status, body } = await api(`/api/boards/${state.slug}`, {
       method: 'PUT',
@@ -345,6 +352,7 @@ async function saveToServer() {
       + 'browser — nothing is lost, but nothing is being shared either.', 'warn');
   } finally {
     saving = false;
+    inFlightSave = null;
   }
 }
 
@@ -3189,6 +3197,13 @@ function connectLive() {
 // what arrived, and no heuristic can be told that.
 function applyFromFeed(msg) {
   if (msg.version === state.version) return;      // our own save coming back
+  // Our own save coming back BEFORE its response did: the same project we sent,
+  // with the version the server gave it. Adopt the version and nothing else —
+  // reloading it here reset the undo history. See docs/specs/save-echo.md.
+  if (inFlightSave && JSON.stringify(msg.project) === inFlightSave) {
+    state.version = msg.version;
+    return;
+  }
   const busy = state.wireStart || state.moveAnchor;
   if (busy) {
     state.incoming = msg;
