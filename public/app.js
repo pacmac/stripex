@@ -1786,6 +1786,12 @@ function paintInspectorFrom() {
 
   el.innerHTML = `
     <div class="field"><span>Part</span><span>${escapeHtml(part.name)}</span></div>
+    ${pl.pinSource ? `<p class="hint" data-focus-pinsource><b>Pin names from</b>
+      ${escapeHtml(pl.pinSource)}</p>` : ''}
+    ${pl.unverifiedPins?.length ? `<p class="hint" data-focus-unverified style="color:var(--warning)">
+      <b>Unverified: ${escapeHtml(pl.unverifiedPins.join(', '))}</b> — check
+      ${pl.unverifiedPins.length === 1 ? 'this' : 'these'} against the part before wiring to
+      ${pl.unverifiedPins.length === 1 ? 'it' : 'them'}.</p>` : ''}
     <div class="field"><span>Ref</span>
       <input data-edit="ref" value="${escapeHtml(pl.ref)}" style="width:90px"></div>
     <div class="field"><span>Value</span>

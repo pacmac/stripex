@@ -2604,15 +2604,30 @@
   type: new
   what: "A placement now carries pinSource and unverifiedPins and the board draws the doubt, but the Focus\
     \ panel \u2014 where a person reads a selected part \u2014 says neither."
-  spec: docs/specs/verified-pin-names.md
+  spec: docs/specs/focus-pin-source.md
   files:
   - public/app.js
   test:
-    command: null
-    criterion: selecting a device shows its pin source and names the unverified pins
+    command:
+    - node
+    - tests/browser/test_focus_pin_source.mjs
+    criterion: selecting a catalogue part shows its pin source and names its unverified pins in Focus;
+      a plain part shows neither
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/the-focus-panel-does-not-say-where-a-pin-name-came-from.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:19:54.184'
+    commit: fc04366-dirty
+  fix:
+    file: .proofs/the-focus-panel-does-not-say-where-a-pin-name-came-from.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:22:05.570'
+    commit: fc04366-dirty
 - id: the-catalogue-pinout-and-peters-board-disagree
   type: bug
   what: 'Adopting the tmc2209 device onto Peter''s own placement and comparing pin numbers with his net
@@ -4200,3 +4215,16 @@
     failures: 0
     at: '2026-09-17T15:57:46.498'
     commit: 4e33f24-dirty
+- id: focus-names-a-device-by-its-footprint
+  type: bug
+  what: selecting a device in Focus shows the Part as its footprint (DIP / IC socket) instead of the device
+    (TMC2209 SilentStepStick)
+  spec: docs/specs/focus-pin-source.md
+  files:
+  - public/app.js
+  test:
+    command: null
+    criterion: null
+    runs: 1
+  trial: null
+  fix: null

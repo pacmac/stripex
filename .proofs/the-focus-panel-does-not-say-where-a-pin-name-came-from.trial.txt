@@ -1,0 +1,4 @@
+$ node tests/browser/test_focus_pin_source.mjs
+FAIL  A CATALOGUE PART SHOWS ITS PIN SOURCE AND UNVERIFIED PINS; A PLAIN PART SHOWS NEITHER
+      the TMC2209 says where its names came from: "null": expected truthy, got falsy
+focus-pin-source: 0/1 checks passed
