@@ -2679,17 +2679,32 @@
     the board under the OLD name. Peter had 555-blinker open; renaming it to 555-blinker-v1 produced a
     second board, identical copper, called 555 blinker, 16 seconds later. The live feed tells the editor
     the board list changed and the editor does not follow the rename.
-  spec: docs/specs/live-board-feed.md
+  spec: docs/specs/rename-while-open.md
   files:
   - public/app.js
   - src/server/live.js
+  - src/server/index.js
   test:
-    command: null
-    criterion: renaming a board an open editor is showing moves that editor to the new slug, and no board
-      reappears under the old name
+    command:
+    - node
+    - tests/browser/test_rename_while_open.mjs
+    criterion: renamed over the API, an open editor adopts the new slug and name, saves an edit to the
+      renamed board with no NOT SAVED banner, and no board reappears under the old slug
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/renaming-a-board-someone-has-open-resurrects-it-under-the-old-name.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:03:12.579'
+    commit: 1e23457-dirty
+  fix:
+    file: .proofs/renaming-a-board-someone-has-open-resurrects-it-under-the-old-name.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:05:16.026'
+    commit: 1e23457-dirty
 - id: there-is-no-way-to-ask-what-a-stored-board-connects
   type: new
   what: "/api/check answers nets, findings and runList but takes a whole project in the body. A caller\

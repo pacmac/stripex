@@ -57,6 +57,8 @@ async function onBoard(fn) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
   page.setDefaultTimeout(4000);
+  // Loads get longer: under the full suite a page load can pass 4 s.
+  page.setDefaultNavigationTimeout(20000);
   const errs = [];
   page.on('pageerror', (e) => errs.push(e.message));
   try {

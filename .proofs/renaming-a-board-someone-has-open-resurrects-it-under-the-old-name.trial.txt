@@ -1,0 +1,4 @@
+$ node tests/browser/test_rename_while_open.mjs
+FAIL  RENAMED ELSEWHERE, THE OPEN EDITOR FOLLOWS, KEEPS SAVING, AND NOTHING COMES BACK
+      the editor remembers the new slug: expected "blinker-v1", got "blinker"
+rename-while-open: 0/1 checks passed

@@ -61,6 +61,8 @@ async function onScreen(fn) {
   // check for a control that does not exist yet waits thirty seconds, and eight
   // of those is a trial nobody watches to the end.
   page.setDefaultTimeout(4000);
+  // Loads get longer: under the full suite a page load can pass 4 s.
+  page.setDefaultNavigationTimeout(20000);
   const errs = [];
   page.on('pageerror', (e) => errs.push(e.message));
   try {

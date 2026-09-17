@@ -55,6 +55,8 @@ s.check('TOP | BOT | PRINT, A PANEL IN THE BOARD\'S PLACE, PRINT TOP RIGHT, TABL
   const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
   const page = await context.newPage();
   page.setDefaultTimeout(4000);
+  // Loads get longer: under the full suite a page load can pass 4 s.
+  page.setDefaultNavigationTimeout(20000);
   const errs = [];
   page.on('pageerror', (e) => errs.push(e.message));
   const r = {};

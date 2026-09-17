@@ -196,8 +196,12 @@ app.put('/api/boards/:slug', (req, res) => {
 });
 
 app.post('/api/boards/:slug/rename', (req, res) => {
-  try { return res.json(boards.rename(boardsDir(), req.params.slug, String(req.body?.name ?? ''))); }
-  catch (e) { return boardError(res, e); }
+  try {
+    const out = boards.rename(boardsDir(), req.params.slug, String(req.body?.name ?? ''));
+    // Tell every open editor, so one showing the old slug follows it.
+    live?.renamed?.(req.params.slug, out.slug, out.name, out.version);
+    return res.json(out);
+  } catch (e) { return boardError(res, e); }
 });
 
 // A board BUILT over HTTP, rather than clicked.

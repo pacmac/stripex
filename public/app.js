@@ -3138,6 +3138,29 @@ function connectLive() {
       paintCards();
       return;
     }
+    // OUR BOARD WAS RENAMED ELSEWHERE. Follow it: the new slug, the new name
+    // and the version the rename wrote. Staying on the old slug made every save
+    // after it fail with "there is no board called …" — and before the version
+    // guard, it recreated the board under its old name. The name is taken too,
+    // or the next save would write the old one back. See rename-while-open.md.
+    if (msg.type === 'renamed' && msg.from === state.slug) {
+      state.slug = msg.to;
+      state.version = msg.version;
+      state.project = { ...state.project, name: msg.name };
+      try { localStorage.setItem(OPEN_KEY, msg.to); } catch { /* a bookmark */ }
+      paintCards();
+      say(`this board was renamed to ${msg.name}`);
+      // A save that failed because the board "did not exist" goes again, now
+      // aimed at where it is.
+      if (state.serverError) {
+        state.serverError = null;
+        for (const el of document.querySelectorAll('.banner')) {
+          if (/NOT SAVED/.test(el.textContent)) el.remove();
+        }
+      }
+      scheduleSave();
+      return;
+    }
     if (msg.type !== 'board' || msg.slug !== state.slug) return;
     applyFromFeed(msg);
   });

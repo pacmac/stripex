@@ -111,6 +111,13 @@ export function attachLive(server, { dirFor } = {}) {
     // than waiting for the filesystem to notice. The watcher is the safety net,
     // not the only route.
     announce: (slug) => bump(slug),
+    // A RENAME, SAID AS ONE. The list alone cannot tell an open editor that its
+    // board moved rather than vanished, so it stayed on the old slug and every
+    // save after it failed. See docs/specs/rename-while-open.md.
+    renamed: (from, to, name, version) => {
+      broadcast({ type: 'renamed', from, to, name, version });
+      broadcast({ type: 'boards', boards: listOf() });
+    },
     close: () => {
       for (const t of pending.values()) clearTimeout(t);
       pending.clear();
