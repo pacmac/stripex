@@ -1617,16 +1617,31 @@
   type: new
   what: "drc() is a single 209-line function with comment-separated sections, so a new check \u2014 netlist\
     \ conformance among them \u2014 is another branch inside it rather than a new file."
-  spec: docs/specs/architecture-for-netlist.md
+  spec: docs/specs/drc-as-a-list-of-rules.md
   files:
   - src/net/drc.js
   test:
-    command: null
-    criterion: rules are separate functions in a list that drc() runs, and each existing finding still
-      comes out with the same code and severity
+    command:
+    - node
+    - tests/net/test_drc_rules.mjs
+    criterion: 'tests/net/test_drc_rules.mjs passes: RULES is a list of at least nine named rule functions,
+      drcContext builds the context one rule can be run over alone, and the fixture board still produces
+      exactly its 25 findings in order'
     runs: 1
-  trial: null
-  fix: null
+  trial:
+    file: .proofs/drc-is-one-function-not-a-list-of-rules.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-19T12:35:13.450'
+    commit: 132f4d0-dirty
+  fix:
+    file: .proofs/drc-is-one-function-not-a-list-of-rules.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-19T12:38:36.536'
+    commit: 132f4d0-dirty
 - id: the-device-catalogue-is-unreachable-and-its-one-entry-is-guesswork
   type: new
   what: Nothing imports devices.js, so no device can be placed from the editor; its only entry is a TMC2209

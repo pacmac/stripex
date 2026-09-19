@@ -1,0 +1,2 @@
+$ node tests/net/test_drc_rules.mjs
+drc-rules: 3/3 checks passed
