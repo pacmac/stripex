@@ -15,7 +15,7 @@ starts from evidence rather than from a fresh opinion.
 | | |
 |---|---|
 | step 6, the rule list | `07d0a59` — `drc()` builds a context once and runs `RULES`, a list of named functions. Netlist conformance is now one entry rather than another branch |
-| step 4, splitting `app.js` | started: `56bd82c`… the Print view is `public/print-view.js` (`132f4d0` is unrelated). app.js 3358 → 3174 lines, and `tests/render/test_editor_modules.mjs` holds the limit that closes it: no file in `public/` over about 400 lines |
+| step 4, splitting `app.js` | started at `ddb0e10` — the Print view is `public/print-view.js`, app.js 3358 → 3174 lines. `tests/render/test_editor_modules.mjs` holds the limit that closes it: no file in `public/` over about 400 lines, so it stays red until the rest follow |
 
 ## What is already right, with the measurement
 
