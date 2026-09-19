@@ -4618,3 +4618,33 @@
     failures: 0
     at: '2026-09-19T12:33:03.505'
     commit: 37febfc-dirty
+- id: the-toolbar-clips-its-last-buttons-at-1280
+  type: bug
+  what: at 1280 px the toolbar needs 1426 px, so Components and More are past the bar's right edge; at
+    1152 Boards goes too. Fixing it at 1440 left the narrower widths alone
+  spec: docs/specs/toolbar-fits.md
+  files:
+  - public/style.css
+  - public/index.html
+  test:
+    command:
+    - node
+    - tests/browser/test_toolbar_fits.mjs
+    criterion: 'tests/browser/test_toolbar_fits.mjs passes at 1152, 1280, 1440 and 1600: with a long board
+      name no toolbar button lies past the bar''s right edge, and the More menu still holds Theme, Download,
+      Open, Restore and Export'
+    runs: 1
+  trial:
+    file: .proofs/the-toolbar-clips-its-last-buttons-at-1280.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-19T12:40:35.745'
+    commit: 07d0a59-dirty
+  fix:
+    file: .proofs/the-toolbar-clips-its-last-buttons-at-1280.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-19T12:43:40.348'
+    commit: 07d0a59-dirty

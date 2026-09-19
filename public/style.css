@@ -549,6 +549,26 @@ main {
 }
 .bar #cols, .bar #rows { width: 50px; }
 
+/* A NARROW WINDOW SHEDS WORDS, NOT BUTTONS. With everything spelled out the bar
+   needs 1426 px, so at 1280 Components and More were past its right edge and at
+   1152 Boards went too — the same fault the More menu fixed at 1440, one size
+   down. Nothing is removed and nothing moves: the words go, in the order they
+   are least needed, and every button keeps its icon, its tooltip and its place.
+   See docs/specs/toolbar-fits.md. */
+@media (max-width: 1400px) {
+  #components span { display: none; }
+  .bar .bar-word { display: none; }
+  #boardLabel { max-width: 84px; }
+}
+@media (max-width: 1240px) {
+  /* The board's name is still on the Board card and in this button's tooltip. */
+  #boardLabel { display: none; }
+  .save-state { min-width: 0; }
+  /* 7 px over at 1152 with everything else done, which is a scroll bar. */
+  .bar { gap: 6px; }
+  .group, .tools { gap: 4px; }
+}
+
 .save-state {
   font-size: 11px;
   color: var(--ink-dim);

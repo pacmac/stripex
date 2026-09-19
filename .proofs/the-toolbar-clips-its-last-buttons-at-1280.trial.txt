@@ -1,0 +1,6 @@
+$ node tests/browser/test_toolbar_fits.mjs
+FAIL  AT 1152px NOTHING IN THE TOOLBAR IS OUT OF SIGHT, WITH A LONG BOARD NAME
+      no button past the bar's edge at 1152: expected [], got ["boards","components","more"]
+FAIL  AT 1280px NOTHING IN THE TOOLBAR IS OUT OF SIGHT, WITH A LONG BOARD NAME
+      no button past the bar's edge at 1280: expected [], got ["components","more"]
+toolbar-fits: 3/5 checks passed

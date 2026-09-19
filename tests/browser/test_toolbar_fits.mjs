@@ -67,7 +67,7 @@ const hiddenButtons = (page) => page.evaluate(() => {
     .map((b) => b.id || b.getAttribute('aria-label') || b.textContent.trim());
 });
 
-for (const width of [1440, 1600]) {
+for (const width of [1152, 1280, 1440, 1600]) {
   s.check(`AT ${width}px NOTHING IN THE TOOLBAR IS OUT OF SIGHT, WITH A LONG BOARD NAME`, async () => {
     needBrowser();
     const r = await at(width, async (page) => ({ hidden: await hiddenButtons(page) }));

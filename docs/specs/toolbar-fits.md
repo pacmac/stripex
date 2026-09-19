@@ -44,6 +44,27 @@ click elsewhere.
 **To reverse:** move the five buttons out of `#moreMenu` back into their group in
 `index.html`, and delete the menu.
 
+## And at 1280 and 1152 — measured 2026-09-19
+
+Fixing 1440 left the narrower widths alone: with every word spelled out the bar needs
+**1426 px**, so at 1280 Components and More were past its right edge, and at 1152 Boards went
+too.
+
+**A narrow window sheds words, not buttons.** Nothing is removed and nothing moves — every
+button keeps its icon, its tooltip and its place, and the words go in the order they are least
+needed:
+
+| below | what goes |
+|---|---|
+| 1400 px | the word *Components*, the word *Board* before the size inputs, and the board name capped at 84 px |
+| 1240 px | the board name itself (still on the Board card and in the button's tooltip), the save state's reserved width, and 2 px off each gap |
+
+Measured after: the bar's natural width equals the window's at 1920, 1600, 1440, 1280 and
+1152, and nothing is clipped at any of them.
+
+**To reverse:** delete the two media queries in `style.css` and the `bar-word` span in
+`index.html`.
+
 ## Files
 
 | file | change |
