@@ -15,7 +15,7 @@
 // zones, duplicate declarations, a typo in top-level code. It does NOT prove
 // the editor works, and nothing here should be read as saying so.
 
-import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { suite, eq, ok } from '../run.mjs';
@@ -78,14 +78,22 @@ async function bootOnce(storeSeed) {
   globalThis.Blob = class { constructor() {} };
   globalThis.CSS = { escape: (x) => String(x) };
 
-  // app.js imports with absolute /src/... specifiers, which the server resolves
-  // and node cannot. Rewrite them to real paths and evaluate the result.
-  const src = readFileSync(new URL('public/app.js', root), 'utf8')
-    .replace(/from '\/src\//g, `from '${new URL('src/', root).pathname}`);
+  // The editor's modules import with absolute /src/... specifiers, which the
+  // server resolves and node cannot. Every file in public/ is rewritten into one
+  // temp directory, so app.js's './print-view.js' still finds its sibling and
+  // both of them find src/.
+  const srcDir = new URL('src/', root).pathname;
   const dir = mkdtempSync(join(tmpdir(), 'stripex-boot-'));
-  const file = join(dir, 'app.mjs');
-  writeFileSync(file, src);
-  await import(`${file}?t=${Date.now()}`);
+  const publicDir = new URL('public/', root);
+  let entry = null;
+  for (const name of readdirSync(publicDir).filter((f) => f.endsWith('.js'))) {
+    const text = readFileSync(new URL(name, publicDir), 'utf8')
+      .replace(/from '\/src\//g, `from '${srcDir}`);
+    const out = join(dir, name === 'app.js' ? 'app.mjs' : name);
+    writeFileSync(out, text);
+    if (name === 'app.js') entry = out;
+  }
+  await import(`${entry}?t=${Date.now()}`);
 }
 
 s.check('THE EDITOR BOOTS ON AN EMPTY STORE', async () => {

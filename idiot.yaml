@@ -1580,11 +1580,19 @@
   files:
   - public/app.js
   test:
-    command: null
-    criterion: state, painters and tools are separate modules and no single editor file exceeds about
-      400 lines
+    command:
+    - node
+    - tests/render/test_editor_modules.mjs
+    criterion: 'tests/render/test_editor_modules.mjs passes: every file in public/ is at most 420 lines,
+      and the print view is its own module that app.js imports'
     runs: 1
-  trial: null
+  trial:
+    file: .proofs/app-js-is-a-third-of-the-codebase.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-19T12:45:01.442'
+    commit: 56bd82c-dirty
   fix: null
 - id: providesegmentnet-writes-a-global-nothing-reads
   type: bug

@@ -7,8 +7,15 @@ Peter, 2026-08-30: *"I plan on adding a lot of new features, including component
 one, creating of a new design from a netlist… does the current architecture etc CLEAN and does
 it support extending the functionality easily?"*
 
-This is the measured answer, and the work it implies. **Nothing here is done.** It is written
-down so the next session starts from evidence rather than from a fresh opinion.
+This is the measured answer, and the work it implies. It is written down so the next session
+starts from evidence rather than from a fresh opinion.
+
+**What has been done since, with its commit** — the rest is still open:
+
+| | |
+|---|---|
+| step 6, the rule list | `07d0a59` — `drc()` builds a context once and runs `RULES`, a list of named functions. Netlist conformance is now one entry rather than another branch |
+| step 4, splitting `app.js` | started: `56bd82c`… the Print view is `public/print-view.js` (`132f4d0` is unrelated). app.js 3358 → 3174 lines, and `tests/render/test_editor_modules.mjs` holds the limit that closes it: no file in `public/` over about 400 lines |
 
 ## What is already right, with the measurement
 
