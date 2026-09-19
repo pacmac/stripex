@@ -1,0 +1,4 @@
+$ node tests/render/test_label_collisions.mjs
+FAIL  NO LABEL PRINTS OVER ANOTHER PART'S PAD
+      no label sits on another part's pad: expected [], got ["L5 on a pad at 6.3,14.0","L6 on a pad at 24.1,11.4"]
+label-collisions: 2/3 checks passed

@@ -4349,8 +4349,6 @@
   files:
   - src/model/board.js
   - src/model/ops.js
-  - src/render/svg.js
-  - public/app.js
   test:
     command: null
     criterion: null
@@ -4575,3 +4573,33 @@
     failures: 0
     at: '2026-09-17T18:09:06.284'
     commit: f18d5e1-dirty
+- id: a-parts-ref-prints-over-another-parts-pad
+  type: bug
+  what: 'a part label goes half a pitch above its first pin, which is where the pad of the part above
+    it in the same column is: on the Yagi board L5, L6 and J2 each print over a neighbour''s pad, and
+    on paper there is no way to move it'
+  spec: docs/specs/labels-clear-of-pads.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_label_collisions.mjs
+    criterion: 'tests/render/test_label_collisions.mjs check NO LABEL PRINTS OVER ANOTHER PART''S PAD
+      passes: on the Yagi''s own arrangement of links either side of a gap in one column, no label box
+      overlaps a drawn pad that is not its own'
+    runs: 1
+  trial:
+    file: .proofs/a-parts-ref-prints-over-another-parts-pad.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-19T12:25:52.668'
+    commit: 37febfc-dirty
+  fix:
+    file: .proofs/a-parts-ref-prints-over-another-parts-pad.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-19T12:33:03.505'
+    commit: 37febfc-dirty

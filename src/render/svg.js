@@ -989,6 +989,35 @@ export function renderBoard(project, opts = {}) {
   // The row and column label bands are NOT reserved here. Tried: a part on the
   // top row then put its ref below itself — for a long link, rows away and over
   // pads — which read worse than a ref brushing the faint column numbers.
+  //
+  // A PAD IS OCCUPIED TOO. Measured on the Yagi board: L5, L6 and J2 each sat on
+  // the pad of the part above them in the same column, because the place above a
+  // part's first pin is the place below its neighbour's last one. A label over
+  // an outline is still legible; a label over a pad hides the hole you have to
+  // find. Every placement's pads are worked out BEFORE any label is placed, so a
+  // label avoids a part drawn after it as well as one drawn before.
+  // See docs/specs/labels-clear-of-pads.md.
+  // A BODY IS PREFERRED CLEAR, NOT REQUIRED. Ink over an outline is legible, so
+  // a body only breaks a tie: L6 moved off a pad and landed in the middle of
+  // U1's package, where it read as U1's own label. Every candidate is tried
+  // against pads AND bodies first; only if none is free are bodies dropped.
+  const padBoxes = [];
+  const bodyBoxes = [];
+  for (const pl of project.placements ?? []) {
+    let part;
+    try { part = getPart(pl.part); } catch { continue; }
+    if (!(part.kind === 'link' ? L.links : L.components)) continue;
+    const ps = resolvePins([pl], getPart).map((p) => {
+      const q = padMm(p);
+      return { x: mx(q.x), y: q.y };
+    });
+    if (!ps.length) continue;
+    for (const q of ps) padBoxes.push({ ...q, r: PAD_R_MM });
+    // A link is a wire, not a package: its own line is no obstacle to a label.
+    if (part.kind === 'link') continue;
+    const b = footprintBoxFromPoints(ps);
+    bodyBoxes.push({ x0: b.x, x1: b.x + b.w, y0: b.y, y1: b.y + b.h, pts: ps });
+  }
   const labelBoxes = [];
   const placeLabel = (text, fs, pts) => {
     const w = text.length * fs * 0.55;
@@ -1004,13 +1033,29 @@ export function renderBoard(project, opts = {}) {
       { x: midX, y: maxY + gap + fs * 0.8, anchor: 'middle' },
       { x: maxX + gap, y: midY + fs * 0.3, anchor: 'start' },
       { x: minX - gap, y: midY + fs * 0.3, anchor: 'end' },
+      // Beside the first pin, then a whole hole further out above and below.
+      // Without these, a part in a crowded corner — R3 on the 555 board — found
+      // its five places all taken and fell back onto a neighbour's pad.
+      { x: maxX + gap, y: pts[0].y + fs * 0.3, anchor: 'start' },
+      { x: minX - gap, y: pts[0].y + fs * 0.3, anchor: 'end' },
+      { x: midX, y: minY - gap - PITCH_MM, anchor: 'middle' },
+      { x: midX, y: maxY + gap + PITCH_MM + fs * 0.8, anchor: 'middle' },
     ];
     const boxOf = (cand) => {
       const x0 = cand.anchor === 'middle' ? cand.x - w / 2 : cand.anchor === 'end' ? cand.x - w : cand.x;
       return { x0, x1: x0 + w, y0: cand.y - fs * 0.8, y1: cand.y + fs * 0.2 };
     };
-    const clear = (b) => labelBoxes.every((o) => !(b.x0 < o.x1 && o.x0 < b.x1 && b.y0 < o.y1 && o.y0 < b.y1));
-    const pick = candidates.find((cand) => clear(boxOf(cand))) ?? candidates[0];
+    // Its own pads do not count: the candidates sit outside them, and a long
+    // link whose ref was pushed off its own line would read worse.
+    const mine = (q) => pts.some((p) => Math.abs(p.x - q.x) < 1e-6 && Math.abs(p.y - q.y) < 1e-6);
+    const hit = (b, o) => b.x0 < o.x1 && o.x0 < b.x1 && b.y0 < o.y1 && o.y0 < b.y1;
+    const clear = (b, avoidBodies) => labelBoxes.every((o) => !hit(b, o))
+      && padBoxes.every((q) => mine(q)
+        || !hit(b, { x0: q.x - q.r, x1: q.x + q.r, y0: q.y - q.r, y1: q.y + q.r }))
+      && (!avoidBodies || bodyBoxes.every((o) => o.pts.some((p) => mine(p)) || !hit(b, o)));
+    const pick = candidates.find((cand) => clear(boxOf(cand), true))
+      ?? candidates.find((cand) => clear(boxOf(cand), false))
+      ?? candidates[0];
     labelBoxes.push(boxOf(pick));
     return pick;
   };
