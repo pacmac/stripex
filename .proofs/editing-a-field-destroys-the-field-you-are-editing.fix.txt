@@ -1,2 +1,0 @@
-$ node tests/render/test_inspector_key.mjs
-inspector-key: 14/14 checks passed

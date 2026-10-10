@@ -1,4 +1,0 @@
-$ node tests/browser/test_draft_survives.mjs
-FAIL  A LOCAL DRAFT IS NOT REPLACED BY AN OLDER SERVER COPY
-      the draft survives in this browser: R1: expected 3, got 1
-draft-survives: 1/2 checks passed

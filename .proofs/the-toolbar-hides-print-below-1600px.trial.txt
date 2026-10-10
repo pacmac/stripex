@@ -1,8 +1,0 @@
-$ node tests/browser/test_toolbar_fits.mjs
-FAIL  AT 1440px NOTHING IN THE TOOLBAR IS OUT OF SIGHT, WITH A LONG BOARD NAME
-      no button past the bar's edge at 1440: expected [], got ["theme","save","load","restore","export"]
-FAIL  AT 1600px NOTHING IN THE TOOLBAR IS OUT OF SIGHT, WITH A LONG BOARD NAME
-      no button past the bar's edge at 1600: expected [], got ["load","restore","export"]
-FAIL  THE MORE MENU HOLDS THEME AND THE FILE ACTIONS, AND THEY STILL WORK
-      there is a More button: expected truthy, got falsy
-toolbar-fits: 0/3 checks passed

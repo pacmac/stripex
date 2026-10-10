@@ -1,6 +1,0 @@
-$ node tests/browser/test_reopen_keeps_work.mjs
-FAIL  A RELOAD WITH UNSAVED WORK RAISES NO BANNER
-      no interrogation: ["The copy of this board in your browser is NOT the one on the server, and yours is what you are looking at. Nothing has been overwritten. Make any edit to save yours over the server’s, or open the board again from the Board card to take the server’s and lose yours."]: expected [], got ["The copy of this board in your browser is NOT the one on the server, and yours is what you are looking at. Nothing has been overwritten. Make any edit to save yours over the server’s, or open the board again from the Board card to take the server’s and lose yours."]
-FAIL  AND IT REACHES THE SERVER WITHOUT BEING ASKED
-      the server has it now: R1: expected truthy, got falsy
-reopen-keeps-work: 0/2 checks passed

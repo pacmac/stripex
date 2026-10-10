@@ -1,6 +1,0 @@
-$ node tests/render/test_cards.mjs
-FAIL  THE CARDS EXIST, IN ORDER
-      card ids: expected ["library","layers","board"], got ["library","cutting","layers","board"]
-FAIL  A TOOL OPENS THE CARD THAT HOLDS ITS SETTINGS
-      break has no card to open any more: expected null, got "cutting"
-cards: 10/12 checks passed

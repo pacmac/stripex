@@ -1,6 +1,0 @@
-$ node tests/browser/test_layout.mjs
-FAIL  SELECTING A STRIP BRINGS ITS NET ROW TO THE TOP
-      n26 sits 2076px from the top of the panel: expected truthy, got falsy
-FAIL  THE BOARD CARD SAYS WHICH BOARD, WHILE COLLAPSED
-      it is not just the size: "25 × 20": expected truthy, got falsy
-layout: 7/9 checks passed

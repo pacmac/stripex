@@ -5,6 +5,26 @@ node_modules/
 data/
 .DS_Store
 
+# THE REGISTER AND ITS EVIDENCE STAY LOCAL. idiot.yaml is the working ledger of
+# every accusation in this repo, and .proofs/ is the captured output of each
+# trial and each fix — 295 files of test runs. They are how the work is governed
+# here, not part of the editor, and they quote whoever was in the room.
+idiot.yaml
+.proofs/
+
+# Nothing an agent leaves behind belongs in the repo either: instructions to a
+# coding assistant, its scratch notes, its handover. None of these exist here
+# yet; the rules are so none ever arrive by accident.
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+.claude/
+.codex/
+.cursor/
+.aider*
+.mcp.json
+docs/HANDOVER.md
+
 # The global gitignore carries Python packaging's `parts/`, which matches this
 # repo's part library and its tests. Nothing under either had ever been
 # committed: the catalogue, the device store and nine test files lived only on

@@ -1,2 +1,0 @@
-$ node tests/model/test_netlist.mjs
-netlist: 12/12 checks passed

@@ -1,2 +1,0 @@
-$ node tests/model/test_polarity.mjs
-polarity: 4/4 checks passed

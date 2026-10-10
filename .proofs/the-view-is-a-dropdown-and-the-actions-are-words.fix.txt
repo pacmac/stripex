@@ -1,2 +1,0 @@
-$ node tests/browser/test_layout.mjs
-layout: 12/12 checks passed

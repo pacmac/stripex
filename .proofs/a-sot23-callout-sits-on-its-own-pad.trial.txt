@@ -1,4 +1,0 @@
-$ node tests/browser/test_components_screen.mjs
-FAIL  A SOT-23 PREVIEWS FROM THE COPPER SIDE WITH EVERY PIN NAMED AND NO CALLOUT ON ANOTHER
-      no callout lies on a pad: expected 0, got 3
-components-screen: 22/23 checks passed

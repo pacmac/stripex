@@ -1,4 +1,0 @@
-$ node tests/browser/test_library_layout.mjs
-FAIL  A FOOTPRINT, NOT THE STAND-IN: THE THUMBNAILS ARE NOT ALL THE SAME PICTURE
-      only a wire has no footprint of its own: expected [], got ["wire-link","res-axial","cap-ceramic","cap-electro","diode","led","to92","to220","sot23-mosfet","dip","xiao","tmc2209","smt-0603","smt-0603-cap","sot23","header","jst-xh","jst-xh-2-straight","jst-xh-2-right","jst-xh-3-straight","jst-xh-3-right","jst-xh-4-straight","jst-xh-4-right","jst-xh-5-straight","jst-xh-5-right","jst-xh-6-straight","jst-xh-6-right","jst-xh-7-straight","jst-xh-7-right","jst-xh-8-straight","jst-xh-8-right","mount-hole"]
-library-layout: 6/7 checks passed

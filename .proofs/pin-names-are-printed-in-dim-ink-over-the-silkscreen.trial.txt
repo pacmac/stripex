@@ -1,4 +1,0 @@
-$ node tests/browser/test_components_screen.mjs
-FAIL  A PIN NAME READS AGAINST THE SILKSCREEN IT IS PRINTED ON
-      a pin name reads against what is behind it: 1.67:1: expected truthy, got falsy
-components-screen: 18/19 checks passed

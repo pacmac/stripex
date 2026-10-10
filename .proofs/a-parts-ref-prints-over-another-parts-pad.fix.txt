@@ -1,2 +1,0 @@
-$ node tests/render/test_label_collisions.mjs
-label-collisions: 3/3 checks passed

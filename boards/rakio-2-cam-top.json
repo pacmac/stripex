@@ -1,0 +1,305 @@
+{
+  "schema": "stripex/1",
+  "name": "RAKIO-2 cam top",
+  "board": {
+    "cols": 12,
+    "rows": 8,
+    "pattern": "strip"
+  },
+  "breaks": [
+    {
+      "row": 7,
+      "x": 5,
+      "at": "hole"
+    },
+    {
+      "row": 5,
+      "x": 5,
+      "at": "hole"
+    },
+    {
+      "row": 6,
+      "x": 7,
+      "at": "hole"
+    },
+    {
+      "row": 4,
+      "x": 5,
+      "at": "hole"
+    },
+    {
+      "row": 0,
+      "x": 6,
+      "at": "hole"
+    },
+    {
+      "row": 1,
+      "x": 6,
+      "at": "hole"
+    }
+  ],
+  "placements": [
+    {
+      "ref": "PIR",
+      "part": "jst-xh",
+      "at": {
+        "col": 0,
+        "row": 3
+      },
+      "rot": 270,
+      "device": "jst-xh-3-straight",
+      "span": 3,
+      "angle": "straight",
+      "pinNames": [
+        "1",
+        "2",
+        "3"
+      ],
+      "pinSource": "the connector's own numbering — a JST pin has no function of its own"
+    },
+    {
+      "ref": "REED",
+      "part": "jst-xh",
+      "at": {
+        "col": 0,
+        "row": 6
+      },
+      "rot": 270,
+      "device": "jst-xh-2-straight",
+      "span": 2,
+      "angle": "straight",
+      "pinNames": [
+        "1",
+        "2"
+      ],
+      "pinSource": "the connector's own numbering — a JST pin has no function of its own"
+    },
+    {
+      "ref": "L1",
+      "part": "wire-link",
+      "at": {
+        "col": 4,
+        "row": 3
+      },
+      "rot": 90,
+      "span": 2
+    },
+    {
+      "ref": "L2",
+      "part": "wire-link",
+      "at": {
+        "col": 3,
+        "row": 2
+      },
+      "rot": 90,
+      "span": 5
+    },
+    {
+      "ref": "R1",
+      "part": "smt-0603",
+      "at": {
+        "col": 3,
+        "row": 5
+      },
+      "rot": 90,
+      "value": "1M"
+    },
+    {
+      "ref": "R2",
+      "part": "smt-0603",
+      "at": {
+        "col": 4,
+        "row": 6
+      },
+      "rot": 90,
+      "value": "1M"
+    },
+    {
+      "ref": "CAM",
+      "part": "jst-xh",
+      "at": {
+        "col": 10,
+        "row": 6
+      },
+      "rot": 270,
+      "device": "jst-xh-4-straight",
+      "span": 4,
+      "angle": "straight",
+      "pinNames": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "pinSource": "the connector's own numbering — a JST pin has no function of its own",
+      "side": "top"
+    },
+    {
+      "ref": "RAK",
+      "part": "header",
+      "at": {
+        "col": 6,
+        "row": 2
+      },
+      "rot": 90,
+      "span": 6
+    },
+    {
+      "ref": "R3",
+      "part": "smt-0603",
+      "at": {
+        "col": 2,
+        "row": 1
+      },
+      "rot": 0,
+      "value": "33K"
+    },
+    {
+      "ref": "U2",
+      "part": "sot23",
+      "at": {
+        "col": 4,
+        "row": 0
+      },
+      "rot": 0,
+      "autoBreak": false,
+      "pinNames": [
+        "G",
+        "S",
+        "D"
+      ],
+      "value": "A3401"
+    },
+    {
+      "ref": "L3",
+      "part": "wire-link",
+      "at": {
+        "col": 2,
+        "row": 0
+      },
+      "rot": 90,
+      "span": 6
+    },
+    {
+      "ref": "U1",
+      "part": "sot23",
+      "at": {
+        "col": 9,
+        "row": 1
+      },
+      "rot": 180,
+      "device": "sot23-mosfet",
+      "pinNames": [
+        "G",
+        "S",
+        "D"
+      ],
+      "pinSource": "the common SOT-23 MOSFET pinout: 2N7002, BSS138, AO3400/AO3401, Si2302 — check a part outside that list against its own datasheet",
+      "value": "AO3401"
+    },
+    {
+      "ref": "L4",
+      "part": "wire-link",
+      "at": {
+        "col": 7,
+        "row": 1
+      },
+      "rot": 90,
+      "span": 1
+    },
+    {
+      "ref": "R4",
+      "part": "smt-0603",
+      "at": {
+        "col": 10,
+        "row": 1
+      },
+      "rot": 90,
+      "value": "1M"
+    },
+    {
+      "ref": "L5",
+      "part": "wire-link",
+      "at": {
+        "col": 8,
+        "row": 0
+      },
+      "rot": 90,
+      "span": 6
+    }
+  ],
+  "wires": [
+    {
+      "ref": "A",
+      "from": {
+        "col": 7,
+        "row": 7
+      },
+      "to": {
+        "col": 11,
+        "row": 1
+      }
+    }
+  ],
+  "netLabels": {
+    "0,5": {
+      "name": "0V",
+      "colour": "#1971c2"
+    },
+    "0,6": {
+      "name": "AIN1",
+      "colour": "#2f9e44"
+    },
+    "8,3": {
+      "name": "0V",
+      "colour": "#1971c2"
+    },
+    "0,3": {
+      "name": "0V",
+      "colour": "#1971c2"
+    },
+    "6,2": {
+      "name": "3V3",
+      "colour": "#c92a2a"
+    },
+    "0,1": {
+      "name": "PIR-S"
+    },
+    "1,6": {
+      "name": "Rp1M+Rs220k AT DOOR",
+      "colour": "#c92a2a"
+    },
+    "6,7": {
+      "name": "CAM_EN",
+      "colour": "#e6c02a"
+    },
+    "9,6": {
+      "name": "CAM+"
+    },
+    "11,0": {
+      "name": "CAM+"
+    },
+    "6,5": {
+      "name": "RX"
+    },
+    "0,0": {
+      "name": "AIN1",
+      "colour": "#2f9e44"
+    },
+    "3,1": {
+      "name": "PIR-INJ"
+    },
+    "0,7": {
+      "name": "3V3",
+      "colour": "#c92a2a"
+    },
+    "11,1": {
+      "name": "CAM_EN",
+      "colour": "#e6c02a"
+    },
+    "7,4": {
+      "name": "TX",
+      "colour": "#7048e8"
+    }
+  }
+}

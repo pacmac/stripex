@@ -1,6 +1,0 @@
-$ node tests/browser/test_layout.mjs
-FAIL  THE VIEW IS A BUTTON GROUP, NOT A DROPDOWN
-      no dropdown in the toolbar: expected 0, got 1
-FAIL  EVERY ICON-ONLY BUTTON HAS A NAME
-      every icon button has a title and an aria-label: expected [], got [{"id":"theme","text":"◐","title":"Light / dark","aria":null}]
-layout: 9/11 checks passed

@@ -1,4 +1,0 @@
-$ node tests/browser/test_draft_survives.mjs
-FAIL  A RELOAD WITH NO EDITS WRITES NOTHING
-      the outside edit survived a reload that changed nothing: expected "FROM_OUTSIDE", got undefined
-draft-survives: 2/3 checks passed

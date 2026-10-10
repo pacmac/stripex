@@ -1,8 +1,0 @@
-$ node tests/render/test_net_name_plate.mjs
-FAIL  THE NAME IS THE TOP LAYER — A WIRE DOES NOT COVER IT
-      the plate (65449) is above the wire (66847): expected truthy, got falsy
-FAIL  NOR DOES A COMPONENT SITTING ACROSS THE STRIP
-      the plate (66898) is above the part (67526): expected truthy, got falsy
-FAIL  and a check marker does not either
-      the plate (66898) is above the marker (69934): expected truthy, got falsy
-net-name-plate: 22/25 checks passed

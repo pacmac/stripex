@@ -1,4 +1,0 @@
-$ node tests/render/test_persist_and_escape.mjs
-FAIL  PERSIST REPORTS A FULL STORE RATHER THAN SWALLOWING IT
-      the catch around the board write raises a banner: expected truthy, got falsy
-persist-and-escape: 6/7 checks passed

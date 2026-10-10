@@ -1,4 +1,0 @@
-$ node tests/browser/test_open_writes_nothing.mjs
-FAIL  OPENING A BOARD SENDS NO WRITE AT ALL
-      a browser that only looked at the board wrote: PUT /api/boards/open-me: expected [], got ["PUT /api/boards/open-me"]
-open-writes-nothing: 3/4 checks passed

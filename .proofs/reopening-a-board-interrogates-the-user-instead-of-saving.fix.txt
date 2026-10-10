@@ -1,2 +1,0 @@
-$ node tests/browser/test_reopen_keeps_work.mjs
-reopen-keeps-work: 2/2 checks passed

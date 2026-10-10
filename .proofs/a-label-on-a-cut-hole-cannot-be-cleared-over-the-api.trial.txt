@@ -1,8 +1,0 @@
-$ node tests/model/test_stranded_labels.mjs
-FAIL  A NAME ON A SPOT-FACED HOLE IS A WARNING NAMING THE NAME AND THE HOLE
-      one stranded name: []: expected 1, got 0
-FAIL  A NET WITH TWO NAMES IS A WARNING IN THE FINDINGS
-      one conflict: []: expected 1, got 0
-FAIL  setLabel CLEARS A NAME ON A DEAD HOLE, AND STILL WILL NOT SET ONE THERE
-      the clear is let through: (6,1) is on no net — a name there would name nothing: expected undefined, got "(6,1) is on no net — a name there would name nothing"
-stranded-labels: 0/3 checks passed

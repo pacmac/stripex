@@ -1,4 +1,0 @@
-$ node tests/browser/test_components_screen.mjs
-FAIL  A SOT-23 PREVIEWS FROM THE COPPER SIDE WITH EVERY PIN NAMED AND NO CALLOUT ON ANOTHER
-      drawn from the copper side: expected "underside", got "top"
-components-screen: 22/23 checks passed

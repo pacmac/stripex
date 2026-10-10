@@ -1,2 +1,0 @@
-$ node tests/browser/test_open_writes_nothing.mjs
-open-writes-nothing: 4/4 checks passed

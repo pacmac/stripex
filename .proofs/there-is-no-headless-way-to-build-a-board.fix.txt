@@ -1,2 +1,0 @@
-$ node tests/model/test_headless_build.mjs
-headless-build: 5/5 checks passed

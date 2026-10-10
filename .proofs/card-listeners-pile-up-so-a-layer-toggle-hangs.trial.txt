@@ -1,6 +1,0 @@
-$ node tests/browser/test_card_listeners.mjs
-FAIL  A LAYER TOGGLE WRITES ITS SETTING ONCE, EVEN AFTER MANY TOGGLES
-      one toggle, one write of the layer settings (got 768): expected 1, got 768
-FAIL  A RULE TOGGLE COMMITS ONCE, EVEN AFTER MANY TOGGLES
-      the Rules card has one change listener, not one per repaint (got 14): expected truthy, got falsy
-card-listeners: 0/2 checks passed

@@ -1,6 +1,0 @@
-$ node tests/render/test_point_to_point.mjs
-FAIL  A WHITE PEN WIRE IS NOT DRAWN WHITE ON WHITE
-      and its outline is dark: #fbf7ee (luminance 0.93): expected truthy, got falsy
-FAIL  EVERY CODE COLOUR HAS A VISIBLE OUTLINE
-      9 holes: fill #f1f3f5 vs outline #fbf7ee — luminance gap 0.04: expected truthy, got falsy
-point-to-point: 29/31 checks passed

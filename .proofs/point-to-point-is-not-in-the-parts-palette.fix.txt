@@ -1,2 +1,0 @@
-$ node tests/parts/test_point_to_point_part.mjs
-p2p-part: 12/12 checks passed

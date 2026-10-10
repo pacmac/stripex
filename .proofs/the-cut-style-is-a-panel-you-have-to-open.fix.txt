@@ -1,2 +1,0 @@
-$ node tests/render/test_cards.mjs
-cards: 12/12 checks passed

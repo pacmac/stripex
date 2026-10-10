@@ -1,4 +1,0 @@
-$ node tests/render/test_pads.mjs
-FAIL  A DIL HAS NO NOTCH — THE SQUARE PAD SAYS WHICH END IS PIN 1
-      no path element in the DIL group: expected truthy, got falsy
-pads: 11/12 checks passed

@@ -1,2 +1,0 @@
-$ node tests/browser/test_card_listeners.mjs
-card-listeners: 2/2 checks passed

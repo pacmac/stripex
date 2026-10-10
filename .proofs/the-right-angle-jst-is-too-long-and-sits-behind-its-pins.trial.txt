@@ -1,8 +1,0 @@
-$ node tests/render/test_jst_dimensions.mjs
-FAIL  and it is the depth on the drawing
-      right-angle depth: 11.50 vs 6.80 (tolerance 0.3): expected truthy, got falsy
-FAIL  A RIGHT ANGLE LIES 6.8 mm OVER THE BOARD, PAST ITS PINS
-      body reaching over the board from the pin row: 9.20 vs 6.80 (tolerance 0.3): expected truthy, got falsy
-FAIL  AND NOTHING OF IT SITS BEHIND THE PIN ROW
-      body behind the pin row: 2.30 vs 0.00 (tolerance 0.2): expected truthy, got falsy
-jst-dimensions: 9/12 checks passed

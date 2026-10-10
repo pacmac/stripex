@@ -1,2 +1,0 @@
-$ node tests/model/test_device_refs.mjs
-device-refs: 2/2 checks passed

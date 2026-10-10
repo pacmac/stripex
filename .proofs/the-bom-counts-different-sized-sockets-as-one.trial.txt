@@ -1,4 +1,0 @@
-$ node tests/model/test_bom.mjs
-FAIL  SOCKETS AND HEADERS OF DIFFERENT SIZES ARE DIFFERENT ROWS
-      a 14-pin and a 16-pin socket are separate rows: expected [["DIP / IC socket, 14 pins",2,"U1,U3"],["DIP / IC socket, 16 pins",1,"U2"]], got [["DIP / IC socket",3,"U1,U2,U3"]]
-bom: 3/4 checks passed

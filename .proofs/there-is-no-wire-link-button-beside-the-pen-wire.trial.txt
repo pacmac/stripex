@@ -1,4 +1,0 @@
-$ node tests/browser/test_wire_link_button.mjs
-FAIL  ONE CLICK ARMS A WIRE LINK, IT ALONE LIGHTS, AND IT PLACES ACROSS THE STRIPS
-      a wire link button exists: expected truthy, got falsy
-wire-link-button: 0/1 checks passed

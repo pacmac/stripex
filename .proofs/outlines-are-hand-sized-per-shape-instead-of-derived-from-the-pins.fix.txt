@@ -1,2 +1,0 @@
-$ node tests/parts/test_footprint.mjs
-footprint: 12/12 checks passed

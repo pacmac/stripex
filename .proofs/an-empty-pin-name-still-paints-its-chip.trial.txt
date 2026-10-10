@@ -1,4 +1,0 @@
-$ node tests/browser/test_components_screen.mjs
-FAIL  A NAME THAT IS ONLY THE PIN NUMBER IS NOT PRINTED TWICE
-      and no empty name chip is painted: 4: expected truthy, got falsy
-components-screen: 20/21 checks passed

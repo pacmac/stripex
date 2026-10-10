@@ -1,6 +1,0 @@
-$ node tests/browser/test_components_screen.mjs
-FAIL  THE NUMBER AND THE NAME SIT INSIDE THE SILKSCREEN
-      left side reads pad, number, name: 490.3613586425781 < 490.359375 < 295.96875: expected truthy, got falsy
-FAIL  THE DRAWING FILLS ITS PANE AND THE CALLOUTS ARE LEGIBLE
-      the package fills its pane: 26% of 596px wide: expected truthy, got falsy
-components-screen: 15/17 checks passed

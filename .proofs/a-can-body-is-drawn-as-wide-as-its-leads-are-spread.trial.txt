@@ -1,8 +1,0 @@
-$ node tests/render/test_can_size.mjs
-FAIL  AN ELECTROLYTIC IS 1.2 HOLES ACROSS THE RADIUS AT 2 HOLES OR 13
-      at a 2-hole span: 3.81 mm, declared 3.048: expected truthy, got falsy
-FAIL  AN LED IS 0.9 HOLES
-      LED radius 2.54 mm, declared 2.286: expected truthy, got falsy
-FAIL  THE EXTENT FOLLOWS THE DRAWING, NOT A 33 mm DISC
-      extent height 35.6 mm on a 25.4 mm board: expected truthy, got falsy
-can-size: 0/3 checks passed

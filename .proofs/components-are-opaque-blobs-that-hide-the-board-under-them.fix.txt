@@ -1,2 +1,0 @@
-$ node tests/render/test_silkscreen.mjs
-silkscreen: 10/10 checks passed

@@ -1,4 +1,0 @@
-$ node tests/browser/test_focus_pin_source.mjs
-FAIL  A CATALOGUE PART SHOWS ITS PIN SOURCE AND UNVERIFIED PINS; A PLAIN PART SHOWS NEITHER
-      Focus names the device, not its footprint: "DIP / IC socket": expected truthy, got falsy
-focus-pin-source: 0/1 checks passed

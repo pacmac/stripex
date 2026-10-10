@@ -1,3 +1,0 @@
-$ sh -c node tests/model/test_rules.mjs && node tests/model/test_ops.mjs
-rules: 13/13 checks passed
-ops: 16/16 checks passed

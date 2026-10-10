@@ -1,4 +1,0 @@
-$ node tests/browser/test_components_screen.mjs
-FAIL  THE NUMBER AND THE NAME SIT INSIDE THE SILKSCREEN
-      left side reads pad, number, name: 490.3613586425781 < 490.359375 < 295.96875: expected truthy, got falsy
-components-screen: 15/16 checks passed

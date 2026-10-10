@@ -1,8 +1,0 @@
-$ node tests/browser/test_layout.mjs
-FAIL  A SELECTED PART IS DELETED BY THE DELETE BUTTON
-      R1 is gone and R2 is not: expected ["R2"], got ["R1","R2"]
-FAIL  a selected pen wire is deleted the same way
-      the wire is gone: expected 0, got 1
-FAIL  A SELECTED PART IS PICKED UP BY THE MOVE BUTTON
-      the move handle is on the board: expected 1, got 0
-layout: 15/18 checks passed

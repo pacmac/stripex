@@ -1,6 +1,0 @@
-$ node tests/render/test_editor_modules.mjs
-FAIL  NO EDITOR FILE IS LONGER THAN ABOUT 400 LINES
-      every file in public/ is under the limit: expected [], got ["app.js: 3359"]
-FAIL  THE PRINT VIEW IS ITS OWN MODULE
-      public/print-view.js exists: app.js: expected truthy, got falsy
-editor-modules: 0/2 checks passed

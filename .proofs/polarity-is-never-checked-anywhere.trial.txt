@@ -1,8 +1,0 @@
-$ node tests/model/test_polarity.mjs
-FAIL  AN LED WITH ITS ANODE ON 0V WARNS; THE RIGHT WAY ROUND IT DOES NOT
-      one warning: []: expected 1, got 0
-FAIL  AN ELECTROLYTIC WITH - ON VCC WARNS; + ON +5V AND - ON GND DOES NOT
-      - on VCC warns: expected 1, got 0
-FAIL  A DIODE: CATHODE ON GND IS FINE, ANODE ON GND WARNS
-      anode on GND: expected 1, got 0
-polarity: 1/4 checks passed

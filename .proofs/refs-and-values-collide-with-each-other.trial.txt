@@ -1,4 +1,0 @@
-$ node tests/render/test_label_collisions.mjs
-FAIL  ON A DENSE BOARD NO TWO PART LABELS OVERLAP
-      no overlapping labels: expected [], got ["R1 330R / R2 330R","R1 330R / R3 330R","R2 330R / R3 330R","R2 330R / R4 330R","R3 330R / R4 330R"]
-label-collisions: 1/2 checks passed

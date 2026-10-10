@@ -1,4 +1,0 @@
-$ node tests/model/test_views.mjs
-FAIL  provideSegmentNet AND ITS GLOBAL ARE GONE
-      nets.js no longer exports it: expected "undefined", got "function"
-views: 6/7 checks passed

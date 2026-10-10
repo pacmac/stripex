@@ -1,2 +1,0 @@
-$ node tests/render/test_wire_colour.mjs
-wire-colour: 13/13 checks passed

@@ -1,6 +1,0 @@
-$ node tests/model/test_usage_covered.mjs
-FAIL  THE COLUMNS BETWEEN A DIP'S PIN ROWS ARE COVERED, NOT EMPTY
-      6 and 7 are not called empty: 0,1,2,3,4,6,7,9,11,12,14,15: expected truthy, got falsy
-FAIL  A FREE COLUMN IS STILL EMPTY, AND A LINK COVERS THE COLUMNS IT LIES OVER
-      columns under the link are not empty: expected truthy, got falsy
-usage-covered: 0/2 checks passed

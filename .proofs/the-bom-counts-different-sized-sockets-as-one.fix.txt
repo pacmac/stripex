@@ -1,2 +1,0 @@
-$ node tests/model/test_bom.mjs
-bom: 4/4 checks passed

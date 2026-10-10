@@ -1,4 +1,0 @@
-$ node tests/browser/test_components_screen.mjs
-FAIL  PINS RUN IS ONE CHOICE ON ONE ROW, AND CHOOSING TURNS THE PREVIEW
-      all three on one row: tops 613,645,677: expected 1, got 3
-components-screen: 21/22 checks passed

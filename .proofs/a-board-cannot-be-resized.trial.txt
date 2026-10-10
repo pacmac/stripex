@@ -1,4 +1,0 @@
-$ node tests/browser/test_layout.mjs
-FAIL  A BOARD CAN BE RESIZED
-      thirty columns of twenty holes: expected 600, got 500
-layout: 11/12 checks passed

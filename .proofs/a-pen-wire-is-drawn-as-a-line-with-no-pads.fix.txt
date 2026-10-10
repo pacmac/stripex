@@ -1,2 +1,0 @@
-$ node tests/render/test_point_to_point.mjs
-point-to-point: 19/19 checks passed

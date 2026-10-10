@@ -1,3 +1,0 @@
-$ bash -c node tests/model/test_stranded_labels.mjs; a=$?; node tests/browser/test_stranded_labels_ui.mjs; b=$?; exit $((a || b))
-stranded-labels: 3/3 checks passed
-stranded-labels-ui: 1/1 checks passed

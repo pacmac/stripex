@@ -1,9 +1,0 @@
-$ bash -c node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit $((a || b))
-FAIL  6 mm MARGINS: THE PRINTABLE AREA IS 198 mm WIDE
-      a 6 mm margin: expected 6, got 10
-FAIL  ONE PAGE FITS THE VIEWS AND THE TABLES ON ONE SHEET; WITH NO TABLES IT IS FILL
-      tablesHeightMm exists: expected truthy, got falsy
-print-layout: 4/6 checks passed
-FAIL  LAYERS PER SIDE, A 198 mm SHEET, AND ONE PAGE REALLY IS ONE PAGE
-      each layer has a Top and a Bot checkbox: expected ["top","underside"], got []
-print-view: 1/2 checks passed

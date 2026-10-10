@@ -1,3 +1,0 @@
-$ bash -c node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit $((a || b))
-print-layout: 8/8 checks passed
-print-view: 6/6 checks passed

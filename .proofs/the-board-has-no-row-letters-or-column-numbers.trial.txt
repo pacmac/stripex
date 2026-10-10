@@ -1,8 +1,0 @@
-$ node tests/render/test_edge_labels.mjs
-FAIL  THE LAYER EXISTS, ON BY DEFAULT
-      edgeLabels defaults on: expected true, got undefined
-FAIL  ROWS ARE LETTERED ON BOTH SIDES, COLUMNS NUMBERED TOP AND BOTTOM
-      twelve rows, each lettered twice: expected 24, got 0
-FAIL  THE UNDERSIDE VIEW MIRRORS THE COLUMNS
-      column 1 is labelled in both views: expected truthy, got falsy
-edge-labels: 2/5 checks passed

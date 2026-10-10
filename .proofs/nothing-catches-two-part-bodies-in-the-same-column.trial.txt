@@ -1,6 +1,0 @@
-$ node tests/net/test_body_overlap.mjs
-FAIL  A RESISTOR OVER ROWS 4-9 AND A CAPACITOR OVER 6-8 IN ONE COLUMN ARE AN ERROR
-      one overlap: []: expected 1, got 0
-FAIL  A PART INSIDE A DIP'S FOOTPRINT IS AN ERROR
-      a resistor under the chip: expected 1, got 0
-body-overlap: 1/3 checks passed

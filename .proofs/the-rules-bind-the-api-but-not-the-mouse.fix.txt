@@ -1,2 +1,0 @@
-$ node tests/browser/test_editor_rules.mjs
-editor-rules: 4/4 checks passed

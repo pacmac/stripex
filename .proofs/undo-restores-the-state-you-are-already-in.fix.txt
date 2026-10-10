@@ -1,2 +1,0 @@
-$ node tests/model/test_undo.mjs
-undo: 11/11 checks passed

@@ -1,4 +1,0 @@
-$ node tests/model/test_device_refs.mjs
-FAIL  A SOT-23 MOSFET IS Q1, THEN Q2
-      the first is Q1: expected "Q1", got "U1"
-device-refs: 1/2 checks passed

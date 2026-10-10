@@ -1,8 +1,0 @@
-$ node tests/render/test_point_to_point.mjs
-FAIL  EVERY PEN WIRE END HAS A HIT TARGET
-      one per end: expected 2, got 0
-FAIL  AND IT IS DRAWN AFTER THE COMPONENT BODIES
-      both are drawn: expected truthy, got falsy
-FAIL  and it is no bigger than the pad it stands for
-      Cannot read properties of undefined (reading 'match')
-point-to-point: 32/35 checks passed
