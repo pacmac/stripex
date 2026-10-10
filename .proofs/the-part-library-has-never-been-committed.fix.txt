@@ -1,0 +1,2 @@
+$ bash -c n=0; t=0; for f in src/parts/*.js tests/parts/*.mjs; do t=$((t+1)); if git ls-files --error-unmatch "$f" >/dev/null 2>&1; then n=$((n+1)); else echo "untracked: $f"; fi; done; echo "tracked $n of $t"; [ "$n" -eq "$t" ]
+tracked 12 of 12

@@ -1,0 +1,2 @@
+$ node tests/browser/test_rename_while_open.mjs
+rename-while-open: 1/1 checks passed

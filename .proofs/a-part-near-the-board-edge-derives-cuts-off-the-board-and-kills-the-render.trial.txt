@@ -1,0 +1,16 @@
+$ node tests/model/test_offboard_cuts.mjs
+FAIL  THE BOARD STILL RENDERS
+      renderBoard did not throw: expected null, got "break row -3 is outside 0..19"
+FAIL  EVERY EFFECTIVE CUT IS ON THE BOARD
+      cut row -3 x 10 is on the board: expected truthy, got falsy
+FAIL  a part hanging off the BOTTOM is handled too
+      renders: expected null, got "break row 20 is outside 0..19"
+FAIL  and off either side
+      renders with a DIL at 24,8: expected null, got "break x 26 is outside 0..24 — a spot-face sits at hole x, so the last valid hole is cols-1"
+FAIL  A USER CUT LEFT OUT OF RANGE BY A BOARD RESIZE IS SURVIVED
+      renders: expected null, got "break row 18 is outside 0..9"
+FAIL  the nets still come out right for the cuts that remain
+      break row -3 is outside 0..19
+FAIL  segments() itself still refuses a bad break, which is right
+      but the project-shaped path never lets one through: expected truthy, got falsy
+offboard-cuts: 2/9 checks passed

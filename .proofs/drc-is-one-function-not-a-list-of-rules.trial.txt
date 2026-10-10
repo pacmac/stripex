@@ -1,0 +1,6 @@
+$ node tests/net/test_drc_rules.mjs
+FAIL  THE RULES ARE A LIST OF NAMED FUNCTIONS
+      drc.js exports RULES as a list: expected truthy, got falsy
+FAIL  ONE RULE CAN BE RUN ON ITS OWN
+      drcContext builds the context a single rule needs: expected truthy, got falsy
+drc-rules: 1/3 checks passed

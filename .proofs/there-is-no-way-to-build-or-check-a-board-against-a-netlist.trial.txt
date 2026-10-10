@@ -1,0 +1,22 @@
+$ node tests/model/test_netlist.mjs
+FAIL  A NETLIST IS READ FROM TEXT
+      module ../../src/model/netlist.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/netlist.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  and a bad line is reported with its line number, not dropped
+      module ../../src/model/netlist.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/netlist.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  and JSON is the same netlist already parsed
+      module ../../src/model/netlist.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/netlist.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A PIN IS NAMED, NEVER NUMBERED
+      module ../../src/model/netlist.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/netlist.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  AN UNWIRED CONNECTION IS SPLIT, AND SAYS WHAT IS ON EACH SIDE
+      module ../../src/model/netlist.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/netlist.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  TWO NETLIST NETS ON ONE BOARD NET IS A SHORT, AND LEADS
+      module ../../src/model/netlist.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/netlist.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  EVERY NET THE PLAN PROPOSED IS MADE, AND THE REST ARE REFUSED OUT LOUD
+      module ../../src/model/netlist.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/netlist.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a netlist naming a part the board does not have says so
+      module ../../src/model/netlist.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/netlist.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  THE PLAN OBEYS THE RULES RATHER THAN RESTATING THEM
+      module ../../src/model/netlist.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/netlist.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  and a plan is applied all or nothing, like any other batch
+      module ../../src/model/netlist.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/netlist.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+netlist: 2/12 checks passed

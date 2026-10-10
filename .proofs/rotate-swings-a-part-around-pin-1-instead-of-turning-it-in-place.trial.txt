@@ -1,0 +1,26 @@
+$ node tests/model/test_rotate_in_place.mjs
+FAIL  rotatePlacement returns a new object and does not mutate the input
+      rot.rotatePlacement is not a function
+FAIL  one turn advances the angle by 90
+      rot.rotatePlacement is not a function
+FAIL  the angle wraps at 360, never exceeding 270
+      rot.rotatePlacement is not a function
+FAIL  AN AXIAL PART STAYS PUT WHEN IT TURNS
+      rot.rotatePlacement is not a function
+FAIL  ...and stays put through all four angles
+      rot.rotatePlacement is not a function
+FAIL  FOUR TURNS RETURN THE PART EXACTLY TO WHERE IT STARTED
+      rot.rotatePlacement is not a function
+FAIL  a DIP turns in place too
+      rot.rotatePlacement is not a function
+FAIL  an odd-span part turns in place
+      rot.rotatePlacement is not a function
+FAIL  the anchor always lands on a whole hole
+      rot.rotatePlacement is not a function
+FAIL  A PART ROTATED IN THE MIDDLE OF A BOARD NEVER LEAVES IT
+      rot.rotatePlacement is not a function
+FAIL  several quarter turns at once match the same number applied singly
+      rot.rotatePlacement is not a function
+FAIL  a part with a single pin is unmoved by rotation
+      rot.rotatePlacement is not a function
+rotate-in-place: 0/12 checks passed

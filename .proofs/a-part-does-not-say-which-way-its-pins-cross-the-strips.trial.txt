@@ -1,0 +1,12 @@
+$ node tests/parts/test_pins_run.mjs
+FAIL  EVERY PART WITH A PIN ROW DECLARES WHICH WAY IT RUNS
+      parts with no pinsRun: expected [], got ["wire-link","res-axial","diode","cap-ceramic","cap-electro","led","to92","to220","dip","smt-0603","smt-0603-cap","sot23","header","jst-xh"]
+FAIL  THE ONES PETER PLACES: across at 90, SMT at 0, and nothing typed
+      res-axial defaults to 90: expected 90, got 0
+FAIL  A DEVICE INHERITS, MAY OVERRIDE, AND THE OVERRIDE TRAVELS
+      a bad pinsRun is refused, naming the field: expected true, got false
+FAIL  addPart WITH NO ROTATION PLACES ACROSS THE STRIPS; AN EXPLICIT ONE IS HONOURED
+      default rot 0: legs on different strips: expected truthy, got falsy
+FAIL  TURNED AGAINST ITS DECLARATION IS A WARNING
+      a resistor along a strip warns: expected 1, got 0
+pins-run: 1/6 checks passed

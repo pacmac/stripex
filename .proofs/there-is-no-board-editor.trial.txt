@@ -1,0 +1,42 @@
+$ node tests/render/test_render.mjs
+FAIL  renders an svg document
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the viewBox is the board size in millimetres
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  one copper rect per strip segment
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  cutting a strip adds a copper rect
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  copper is drawn at the track width, not the pitch
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A BREAK IS DRAWN BETWEEN TWO HOLES, NOT ON ONE
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a break marker carries the row and gap it cuts
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  every hole on the board is drawn and addressable
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A PEN WIRE IS DRAWN BETWEEN THE CENTRES OF ITS TWO HOLES
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a pen wire is labelled with its ref
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a placement is drawn and addressable by ref
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  every interactive element carries data-kind
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  THE UNDERSIDE VIEW IS MIRRORED IN X
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the underside view drops component bodies — you solder from there
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  rendering does not mutate the project
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  DRC error holes are marked
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a clean layout draws no DRC markers
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  highlighting a net marks its segments and nothing else
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the two themes render differently
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the wire run list is rendered in ref order
+      module ../../src/render/svg.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/svg.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+render: 0/20 checks passed

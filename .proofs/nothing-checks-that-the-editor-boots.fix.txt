@@ -1,0 +1,2 @@
+$ node tests/render/test_boot.mjs
+boot: 3/3 checks passed

@@ -1,0 +1,2 @@
+$ node tests/parts/test_pins_run.mjs
+pins-run: 6/6 checks passed

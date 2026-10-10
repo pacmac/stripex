@@ -1,0 +1,90 @@
+$ node tests/net/test_connectivity.mjs
+FAIL  an uncut board gives one segment per row spanning its full width
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a break splits its row into two segments at the right holes
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a break at x=0 leaves a one-hole segment at the left edge
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a break at x=cols-2 leaves a one-hole segment at the right edge
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the same gap cut twice is still one cut
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  segment ids are unique and stable
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  rot 0 is the identity
+      module ../../src/model/rotate.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rotate.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  rot 90 takes +x to +y
+      module ../../src/model/rotate.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rotate.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  rot 180 takes +x to -x
+      module ../../src/model/rotate.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rotate.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  rot 270 takes +x to -y
+      module ../../src/model/rotate.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rotate.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  an unrotated axial part spans its span in x
+      module ../../src/model/rotate.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rotate.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  rotating an axial part 90 makes it span rows instead
+      module ../../src/model/rotate.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rotate.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a DIP has two rows of pins 0.3 inch apart
+      module ../../src/model/rotate.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rotate.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a bare board has one net per strip
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A RESISTOR ACROSS TWO STRIPS DOES NOT MERGE THEM
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A WIRE LINK ACROSS TWO STRIPS DOES MERGE THEM
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a chain of links merges every strip it touches
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a break makes one strip into two independent nets
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  every segment is assigned to exactly one net
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  nets are numbered deterministically from the top-left segment down
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a non-electrical pin occupies its hole but joins no net
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a pen wire runs diagonally between two arbitrary holes and merges them
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a pen wire joins segments a link could never reach
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  two pen wires chain three strips into one net
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a wire end lands in the net pin list under its own ref
+      module ../../src/net/segments.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/segments.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  wire refs are allocated in sequence and skip the ones in use
+      module ../../src/model/board.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/board.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a pin off the board is an error
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  two leads in one hole is an error
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a component with both legs on one strip is shorted out
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  ...and a break between its legs clears the short
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a wire link on one strip is redundant
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a lone pin on a strip is flagged as floating
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a strip with nothing on it is reported as dead copper
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a wire end off the board is an error
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a wire from a hole to itself is an error
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a wire between two holes on one uncut strip is redundant
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  ...but is not redundant once a break separates its ends
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  two things sharing a ref is an error
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A PEN WIRE SOLDERED TO AN EXISTING COMPONENT JOINT IS NOT A COLLISION
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a sound layout raises no errors at all
+      module ../../src/net/drc.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/net/drc.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a project with a break past the last gap fails validation
+      module ../../src/model/board.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/board.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a well formed project validates clean
+      module ../../src/model/board.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/board.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  validateProject reports rather than throws on a malformed wire
+      module ../../src/model/board.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/board.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  an empty project is created valid
+      module ../../src/model/board.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/board.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+connectivity: 5/49 checks passed

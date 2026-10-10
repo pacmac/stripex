@@ -1,0 +1,2 @@
+$ node tests/render/test_can_size.mjs
+can-size: 3/3 checks passed

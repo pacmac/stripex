@@ -1,0 +1,2 @@
+$ node tests/browser/test_toolbar_fits.mjs
+toolbar-fits: 3/3 checks passed

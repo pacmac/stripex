@@ -1,0 +1,2 @@
+$ node tests/model/test_move.mjs
+move: 13/13 checks passed

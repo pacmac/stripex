@@ -1,0 +1,10 @@
+$ node tests/render/test_status_line.mjs
+FAIL  AN EMPTY MESSAGE CLEARS THE LINE
+      P.shouldSetStatus is not a function
+FAIL  NO MESSAGE LEAVES THE LINE ALONE
+      P.shouldSetStatus is not a function
+FAIL  an ordinary message replaces the line
+      P.shouldSetStatus is not a function
+FAIL  the distinction is presence, not truthiness
+      P.shouldSetStatus is not a function
+status-line: 0/4 checks passed

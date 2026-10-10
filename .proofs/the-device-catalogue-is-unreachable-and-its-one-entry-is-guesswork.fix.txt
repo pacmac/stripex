@@ -1,0 +1,2 @@
+$ node tests/parts/test_devices.mjs
+devices: 28/28 checks passed

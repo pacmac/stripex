@@ -1,0 +1,6 @@
+$ node tests/browser/test_components_screen.mjs
+FAIL  THE PACKAGE SITS CENTRED ON ITS SCRAP OF BOARD
+      the package is centred — tmc2209: left 140 vs right 10; tmc2209: top 140 vs bottom 10; xiao: left 125 vs right 9; xiao: top 125 vs bottom 9; jst-xh-3-right: left 182 vs right 266; jst-xh-3-right: top 182 vs bottom 13; jst-xh-8-straight: left 162 vs right 237; jst-xh-8-straight: top 162 vs bottom 12: expected truthy, got falsy
+FAIL  A NAME THAT IS ONLY THE PIN NUMBER IS NOT PRINTED TWICE
+      no callout repeats its own number: 1,2,3,4: expected truthy, got falsy
+components-screen: 19/21 checks passed

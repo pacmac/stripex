@@ -1,0 +1,4 @@
+$ node tests/parts/test_sot23.mjs
+FAIL  THE DRAWING SAYS WHICH END IS PIN 1
+      top rot 0: a pin 1 mark is drawn: expected truthy, got falsy
+sot23: 8/9 checks passed

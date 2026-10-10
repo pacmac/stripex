@@ -1,0 +1,4 @@
+$ node tests/browser/test_components_screen.mjs
+FAIL  EVERY PAD OF EVERY DEVICE LANDS ON THE BOARD
+      no pad hangs off the board — tmc2209: pins 9,10,11,12,13,14,15,16; xiao: pins 8,9,10,11,12,13,14: expected truthy, got falsy
+components-screen: 17/18 checks passed

@@ -1,0 +1,2 @@
+$ node tests/parts/test_ref_prefixes.mjs
+ref-prefixes: 6/6 checks passed

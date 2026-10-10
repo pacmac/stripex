@@ -1,0 +1,20 @@
+$ node tests/render/test_panels.mjs
+FAIL  THE DETAILS TAB IS CALLED FOCUS
+      P.TABS.find is not a function
+FAIL  nothing is called Selected any more
+      P.TABS.filter is not a function
+FAIL  the four tabs are present, in order
+      P.TABS.map is not a function
+FAIL  tab ids are unique and every tab has a label
+      P.TABS.map is not a function
+FAIL  SELECTING A PART BRINGS FOCUS FORWARD
+      module ../../src/render/panels.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/panels.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  so does selecting a wire or a break
+      module ../../src/render/panels.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/panels.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  DESELECTING LEAVES THE PANEL WHERE IT IS
+      module ../../src/render/panels.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/panels.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  an unrecognised selection kind does not move the panel either
+      module ../../src/render/panels.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/panels.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  every tab id a selection can name actually exists
+      P.TABS.map is not a function
+panels: 0/9 checks passed

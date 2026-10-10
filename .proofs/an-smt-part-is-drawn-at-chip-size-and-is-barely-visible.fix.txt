@@ -1,0 +1,2 @@
+$ node tests/parts/test_smt.mjs
+smt: 16/16 checks passed

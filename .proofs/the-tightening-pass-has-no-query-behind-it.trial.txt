@@ -1,0 +1,20 @@
+$ node tests/server/test_board_queries.mjs
+FAIL  CHECK ANSWERS FOR A STORED BOARD, BY SLUG
+      it answered: null: expected 200, got 404
+FAIL  and the nets carry their PINS, so the circuit can be read
+      Cannot read properties of null (reading 'nets')
+FAIL  and its findings include the RULES, not only the DRC
+      Cannot read properties of null (reading 'findings')
+FAIL  USAGE NAMES WHAT OCCUPIES EACH COLUMN AND ROW
+      it answered: null: expected 200, got 404
+FAIL  AND LISTS THE EMPTY ONES, WHICH IS THE WHOLE QUESTION
+      Cannot read properties of null (reading 'emptyColumns')
+FAIL  and a strip segment carrying nothing is named with its extent
+      Cannot read properties of null (reading 'emptySegments')
+FAIL  and every row reports its segments with what is on them
+      Cannot read properties of null (reading 'rows')
+FAIL  RESIZE GOES THROUGH ops, WITH THE SAME VERSION GUARD
+      applied: {"error":"\"setBoardSize\" is not an operation","code":"no-such-op","index":0}: expected 200, got 400
+FAIL  and a resize that would strand something is refused, naming it
+      naming what falls off: "setBoardSize" is not an operation: expected truthy, got falsy
+board-queries: 2/11 checks passed

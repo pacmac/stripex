@@ -1,0 +1,14 @@
+$ node tests/model/test_views.mjs
+FAIL  and they answer what they always answered
+      module ../../src/model/views.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/views.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  and a cut list carries the cuts a part makes for itself
+      module ../../src/model/views.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/views.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  THE RENDERER EXPORTS NONE OF THEM
+      svg.js still exports connectivity: netsFor, findingsFor, runList, cutList: expected [], got ["netsFor","findingsFor","runList","cutList"]
+FAIL  and the model never imports the renderer
+      ENOENT: no such file or directory, open '/usr/share/pac/dev/projects/stripex/src/model/views.js'
+FAIL  and the server asks the renderer only to draw
+      the server imports connectivity from the renderer: findingsFor, netsFor, runList: expected [], got ["findingsFor","netsFor","runList"]
+FAIL  provideSegmentNet AND ITS GLOBAL ARE GONE
+      nets.js no longer exports it: expected "undefined", got "function"
+views: 1/7 checks passed

@@ -1,0 +1,2 @@
+$ node tests/browser/test_no_draft_cache.mjs
+no-draft-cache: 7/7 checks passed

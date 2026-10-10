@@ -1,0 +1,2 @@
+$ node tests/net/test_connectivity.mjs
+connectivity: 49/49 checks passed

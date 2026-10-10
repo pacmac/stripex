@@ -1,0 +1,16 @@
+$ node tests/render/test_pending_wire.mjs
+FAIL  A PENDING WIRE PUTS A MARKER ON ITS HOLE
+      exactly one marker: expected 1, got 0
+FAIL  THE MARKER IS DRAWN LAST, SO NOTHING COVERS IT
+      copper is painted before it: expected truthy, got falsy
+FAIL  a rubber band starts at that hole
+      one band: expected 1, got 0
+FAIL  THE BAND CANNOT EAT THE SECOND CLICK
+      Cannot read properties of undefined (reading 'match')
+FAIL  the band starts collapsed on the hole, not pointing somewhere arbitrary
+      Cannot read properties of undefined (reading 'match')
+FAIL  the marker uses the same colour as the move anchor
+      Cannot read properties of undefined (reading 'match')
+FAIL  it mirrors with the underside view like everything else
+      Cannot read properties of undefined (reading 'match')
+pending-wire: 3/10 checks passed

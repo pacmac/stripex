@@ -1,0 +1,2 @@
+$ node tests/model/test_resize.mjs
+resize: 9/9 checks passed

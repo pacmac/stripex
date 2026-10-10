@@ -1,0 +1,2 @@
+$ node tests/render/test_net_name_plate.mjs
+net-name-plate: 25/25 checks passed

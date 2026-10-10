@@ -1,0 +1,2 @@
+$ node tests/server/test_server_starts.mjs
+server-starts: 3/3 checks passed

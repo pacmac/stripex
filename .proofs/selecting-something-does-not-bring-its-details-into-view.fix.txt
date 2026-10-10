@@ -1,0 +1,2 @@
+$ node tests/render/test_panels.mjs
+panels: 9/9 checks passed

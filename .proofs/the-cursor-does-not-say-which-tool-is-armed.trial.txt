@@ -1,0 +1,14 @@
+$ node tests/render/test_cursors.mjs
+FAIL  THE PLACE TOOL GIVES A CROSSHAIR
+      module ../../src/render/cursors.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/cursors.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  so do the other two tools that aim at a point
+      module ../../src/render/cursors.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/cursors.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the tools that target an object keep an ordinary pointer
+      module ../../src/render/cursors.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/cursors.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  AN UNKNOWN TOOL FALLS BACK RATHER THAN RETURNING NOTHING
+      module ../../src/render/cursors.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/cursors.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  every value is a real CSS cursor keyword
+      module ../../src/render/cursors.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/cursors.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the mapping is exhaustive over the toolbar
+      CURSORS covers exactly the five tools: expected ["break","delete","place","select","wire"], got []
+cursors: 0/6 checks passed

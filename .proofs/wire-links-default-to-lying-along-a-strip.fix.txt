@@ -1,0 +1,2 @@
+$ node tests/parts/test_default_rotation.mjs
+default-rotation: 7/7 checks passed

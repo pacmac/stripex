@@ -1,0 +1,2 @@
+$ node tests/server/test_board_queries.mjs
+board-queries: 11/11 checks passed

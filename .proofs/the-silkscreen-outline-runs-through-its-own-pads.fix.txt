@@ -1,0 +1,2 @@
+$ node tests/render/test_silk_clearance.mjs
+silk-clearance: 7/7 checks passed

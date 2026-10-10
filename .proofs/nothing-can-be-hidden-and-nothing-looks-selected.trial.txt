@@ -1,0 +1,28 @@
+$ node tests/render/test_layers_and_selection.mjs
+FAIL  hiding the copper layer emits no copper elements
+      copper count with copper hidden: expected 0, got 7
+FAIL  hiding the breaks layer emits no break elements
+      break count with breaks hidden: expected 0, got 1
+FAIL  hiding the holes layer emits no hole elements
+      hole count with holes hidden: expected 0, got 72
+FAIL  hiding the wires layer emits no wire elements
+      wire count with wires hidden: expected 0, got 1
+FAIL  HIDING COMPONENTS LEAVES LINKS DRAWN
+      only the link survives: expected ["L1"], got ["R1","L1"]
+FAIL  HIDING LINKS LEAVES COMPONENTS DRAWN
+      only the component survives: expected ["R1"], got ["R1","L1"]
+FAIL  hiding labels keeps the parts but drops their text
+      no part labels: expected 0, got 2
+FAIL  hiding the drc layer drops the markers
+      markers gone when hidden: expected 0, got 2
+FAIL  A SELECTED PART DRAWS A HALO
+      one halo: expected 1, got 0
+FAIL  A SELECTED WIRE DRAWS A HALO
+      one halo: expected 1, got 0
+FAIL  A SELECTED BREAK DRAWS A HALO
+      one halo: expected 1, got 0
+FAIL  the halo is drawn BEHIND its object, not over it
+      both present: expected truthy, got falsy
+FAIL  the selection survives the underside view
+      halo drawn underside too: expected 1, got 0
+layers+selection: 8/21 checks passed

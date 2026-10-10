@@ -1,0 +1,2 @@
+$ node tests/server/test_boards_dir.mjs
+boards-dir: 2/2 checks passed

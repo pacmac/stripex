@@ -1,0 +1,6 @@
+$ node tests/parts/test_devices.mjs
+FAIL  A ROTATED CONNECTOR STILL COVERS ITS OWN PINS
+      jst-xh-2-straight @90: pin 2 at (10,11) is inside its own shroud: expected truthy, got falsy
+FAIL  and the shroud is longer along the pins than across them
+      @90: 2.9 mm long by 2.5 across: expected truthy, got falsy
+devices: 29/31 checks passed

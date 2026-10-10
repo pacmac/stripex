@@ -1,0 +1,4689 @@
+# Every accusation this repo is under, and what trying it proved.
+# Written only by ~/.claude/hooks/idiot.py. Verdicts are derived, never typed.
+- id: stripboard-has-no-model-or-connectivity
+  type: new
+  what: There is no stripboard data model and no way to derive nets from strips, breaks and wire links
+  spec: docs/specs/board-model-and-connectivity.md
+  files:
+  - src/model/geometry.js
+  - src/model/board.js
+  - src/model/rotate.js
+  - src/net/segments.js
+  - src/net/derive.js
+  - src/net/drc.js
+  - src/parts/library.js
+  test:
+    command:
+    - node
+    - tests/net/test_connectivity.mjs
+    criterion: tests/net/test_connectivity.mjs reports all checks passed, including that a resistor across
+      two strips yields TWO nets and a wire link yields ONE
+    runs: 1
+  trial:
+    file: .proofs/stripboard-has-no-model-or-connectivity.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T19:50:15.198'
+    commit: null
+  fix:
+    file: .proofs/stripboard-has-no-model-or-connectivity.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:09:12.185'
+    commit: 8113b6c-dirty
+- id: there-is-no-board-editor
+  type: new
+  what: 'There is no way to see or edit a stripboard layout: no renderer, no server, no tools for parts,
+    breaks or pen wires'
+  spec: docs/specs/editor-ui.md
+  files:
+  - src/render/svg.js
+  - src/server/index.js
+  - public/index.html
+  - public/style.css
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_render.mjs
+    criterion: tests/render/test_render.mjs reports all checks passed, including a break marker drawn
+      between holes and a pen wire drawn with its ref
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-board-editor.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T19:56:48.685'
+    commit: ec9a8fd-dirty
+  fix:
+    file: .proofs/there-is-no-board-editor.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T20:04:43.576'
+    commit: ec9a8fd-dirty
+- id: breaks-assume-a-knife-cut-when-most-people-use-a-spot-face-cutter
+  type: bug
+  what: The model only supports a break BETWEEN two holes; the commonest real tool is a spot-face cutter
+    that removes the copper AT a hole, which also kills that hole
+  spec: docs/specs/cuts-and-mounting.md
+  files:
+  - src/net/segments.js
+  - src/model/board.js
+  - src/net/drc.js
+  test:
+    command:
+    - node
+    - tests/net/test_hole_breaks.mjs
+    criterion: a break can be declared as at:'hole' as well as at:'gap', and an at:'hole' break leaves
+      that hole connected to neither side
+    runs: 1
+  trial:
+    file: .proofs/breaks-assume-a-knife-cut-when-most-people-use-a-spot-face-cutter.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T20:59:00.546'
+    commit: 25c7c2f-dirty
+  fix:
+    file: .proofs/breaks-assume-a-knife-cut-when-most-people-use-a-spot-face-cutter.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T21:07:18.576'
+    commit: 25c7c2f-dirty
+- id: nothing-can-be-hidden-and-nothing-looks-selected
+  type: bug
+  what: Every layer is always drawn so a crowded board cannot be read, and the selected object looks identical
+    to every other object
+  spec: docs/specs/layers-and-selection.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  - public/index.html
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/render/test_layers_and_selection.mjs
+    criterion: 'tests/render/test_layers_and_selection.mjs passes: each layer hides independently, and
+      a selected part, wire or break draws a visible halo'
+    runs: 1
+  trial:
+    file: .proofs/nothing-can-be-hidden-and-nothing-looks-selected.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T20:19:33.120'
+    commit: 6a0c10e-dirty
+  fix:
+    file: .proofs/nothing-can-be-hidden-and-nothing-looks-selected.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T20:23:04.008'
+    commit: 6a0c10e-dirty
+- id: rotate-swings-a-part-around-pin-1-instead-of-turning-it-in-place
+  type: bug
+  what: Rotating a placement pivots about its anchor pin, so the part translates across the board instead
+    of turning where it sits
+  spec: docs/specs/rotate-in-place.md
+  files:
+  - src/model/rotate.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_rotate_in_place.mjs
+    criterion: 'tests/model/test_rotate_in_place.mjs passes: a rotated part keeps its bounding-box centre
+      within half a hole, and four rotations return it exactly to where it started'
+    runs: 1
+  trial:
+    file: .proofs/rotate-swings-a-part-around-pin-1-instead-of-turning-it-in-place.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T20:33:11.719'
+    commit: e0c73ad-dirty
+  fix:
+    file: .proofs/rotate-swings-a-part-around-pin-1-instead-of-turning-it-in-place.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T20:34:42.679'
+    commit: e0c73ad-dirty
+- id: there-is-no-way-to-mount-a-part-on-the-copper-side
+  type: new
+  what: Every part is assumed to go through a hole from the top, so an SMT chip soldered to the copper
+    cannot be placed at all
+  spec: docs/specs/cuts-and-mounting.md
+  files:
+  - src/parts/library.js
+  - src/net/drc.js
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/parts/test_smt.mjs
+    criterion: 'tests/parts/test_smt.mjs passes: an 0603 pad shares a hole with a lead without collision,
+      the underside view draws its body, and it demands a cut between its poles'
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-way-to-mount-a-part-on-the-copper-side.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T20:59:00.648'
+    commit: 25c7c2f-dirty
+  fix:
+    file: .proofs/there-is-no-way-to-mount-a-part-on-the-copper-side.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T21:07:18.684'
+    commit: 25c7c2f-dirty
+- id: dil-packages-do-not-cut-the-strips-they-need-and-have-no-width
+  type: new
+  what: Placing a DIL leaves every opposite pin pair shorted because nothing cuts the strips under it,
+    and its row spacing is hardcoded to 0.3 inch
+  spec: docs/specs/cuts-and-mounting.md
+  files:
+  - src/model/breaks.js
+  - src/parts/library.js
+  - src/model/rotate.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_auto_breaks.mjs
+    criterion: 'tests/model/test_auto_breaks.mjs passes: a DIP-14 yields seven breaks that clear its seven
+      shorts, and a 0.6 inch DIL puts its rows six holes apart'
+    runs: 1
+  trial:
+    file: .proofs/dil-packages-do-not-cut-the-strips-they-need-and-have-no-width.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T20:59:00.744'
+    commit: 25c7c2f-dirty
+  fix:
+    file: .proofs/dil-packages-do-not-cut-the-strips-they-need-and-have-no-width.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T21:07:18.788'
+    commit: 25c7c2f-dirty
+- id: the-ref-prefix-table-is-a-second-list-that-drifts-from-the-library
+  type: bug
+  what: A part's reference designator prefix lives in a table in board.js rather than on the part, so
+    a part added to the library comes out named X1
+  spec: docs/specs/cuts-and-mounting.md
+  files:
+  - src/parts/library.js
+  - src/model/board.js
+  test:
+    command:
+    - node
+    - tests/parts/test_ref_prefixes.mjs
+    criterion: 'tests/parts/test_ref_prefixes.mjs passes: every part declares its own prefix and none
+      falls back to X'
+    runs: 1
+  trial:
+    file: .proofs/the-ref-prefix-table-is-a-second-list-that-drifts-from-the-library.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T21:04:49.308'
+    commit: 25c7c2f-dirty
+  fix:
+    file: .proofs/the-ref-prefix-table-is-a-second-list-that-drifts-from-the-library.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T21:07:18.886'
+    commit: 25c7c2f-dirty
+- id: the-cursor-does-not-say-which-tool-is-armed
+  type: bug
+  what: The cursor stays an arrow whatever tool is armed, so there is nothing telling you the next click
+    will drop a part
+  spec: docs/specs/tool-cursors.md
+  files:
+  - src/render/cursors.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_cursors.mjs
+    criterion: 'tests/render/test_cursors.mjs passes: place, break and wire give crosshair, select and
+      delete do not, and an unknown tool falls back to default'
+    runs: 1
+  trial:
+    file: .proofs/the-cursor-does-not-say-which-tool-is-armed.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T21:19:18.593'
+    commit: 83afe80-dirty
+  fix:
+    file: .proofs/the-cursor-does-not-say-which-tool-is-armed.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T21:19:50.430'
+    commit: 83afe80-dirty
+- id: selecting-something-does-not-bring-its-details-into-view
+  type: bug
+  what: The details tab is called Selected and stays hidden behind whichever tab was open, so selecting
+    a part shows you nothing about it
+  spec: docs/specs/focus-tab.md
+  files:
+  - src/render/panels.js
+  - public/app.js
+  - public/index.html
+  test:
+    command:
+    - node
+    - tests/render/test_panels.mjs
+    criterion: 'tests/render/test_panels.mjs passes: the tab is labelled Focus, and every kind of selection
+      maps to it while no selection leaves the panel alone'
+    runs: 1
+  trial:
+    file: .proofs/selecting-something-does-not-bring-its-details-into-view.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-29T23:14:45.006'
+    commit: a7da7c0-dirty
+  fix:
+    file: .proofs/selecting-something-does-not-bring-its-details-into-view.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-29T23:15:53.943'
+    commit: a7da7c0-dirty
+- id: a-parts-cuts-do-not-move-or-delete-with-it
+  type: bug
+  what: Cuts a part requires are stored as ordinary breaks, so they stay behind when the part is deleted
+    and do not follow it when it rotates
+  spec: docs/specs/part-owned-breaks.md
+  files:
+  - src/model/breaks.js
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_owned_breaks.mjs
+    criterion: 'tests/model/test_owned_breaks.mjs passes: a part''s cuts are derived, move when it rotates
+      and vanish when it is deleted'
+    runs: 1
+  trial:
+    file: .proofs/a-parts-cuts-do-not-move-or-delete-with-it.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:27:33.532'
+    commit: eb4d0a8-dirty
+  fix:
+    file: .proofs/a-parts-cuts-do-not-move-or-delete-with-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:31:20.710'
+    commit: eb4d0a8-dirty
+- id: a-device-cannot-say-whether-its-cuts-are-knife-or-spot-face
+  type: new
+  what: Every required cut is a knife cut; a DIL should be spot-faced at the hole between its pin rows
+  spec: docs/specs/device-break-type.md
+  files:
+  - src/parts/library.js
+  - src/model/breaks.js
+  test:
+    command:
+    - node
+    - tests/parts/test_break_type.mjs
+    criterion: 'tests/parts/test_break_type.mjs passes: a straddling DIL cuts at holes, the same DIL along
+      the strips falls back to gaps, and an 0603 is always a knife cut'
+    runs: 1
+  trial:
+    file: .proofs/a-device-cannot-say-whether-its-cuts-are-knife-or-spot-face.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:33:07.271'
+    commit: 455ed5a-dirty
+  fix:
+    file: .proofs/a-device-cannot-say-whether-its-cuts-are-knife-or-spot-face.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:34:35.179'
+    commit: 455ed5a-dirty
+- id: components-are-opaque-blobs-that-hide-the-board-under-them
+  type: bug
+  what: Part bodies are opaque grey fills with no outline, so you cannot see the copper or holes underneath
+    and the board reads as slabs rather than a circuit
+  spec: docs/specs/silkscreen-components.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_silkscreen.mjs
+    criterion: 'tests/render/test_silkscreen.mjs passes: every part body has an outline and a fill you
+      can see through'
+    runs: 1
+  trial:
+    file: .proofs/components-are-opaque-blobs-that-hide-the-board-under-them.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:35:56.440'
+    commit: 20764f7-dirty
+  fix:
+    file: .proofs/components-are-opaque-blobs-that-hide-the-board-under-them.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:37:59.768'
+    commit: 20764f7-dirty
+- id: component-outlines-are-drawn-far-larger-than-the-real-parts
+  type: bug
+  what: 'Body outlines are oversized: a 2-hole electrolytic draws an 8mm circle for a part that is about
+    5mm, and TO-92 and LED are similarly inflated'
+  spec: docs/specs/silkscreen-components.md
+  files:
+  - src/parts/library.js
+  - src/render/svg.js
+  test:
+    command: null
+    criterion: a part's drawn body matches its real package size in mm, checked against datasheet dimensions
+      the way the 0603 already is
+    runs: 1
+  trial: null
+  fix: null
+  withdrawn:
+    why: 'Superseded: Peter has given the rule, which is pin extents grown by 0.05 inch rather than per-part
+      datasheet dimensions. Refiled against docs/specs/footprint-geometry.md'
+    at: '2026-08-30T08:49:49.745'
+- id: a-selected-part-cannot-be-edited
+  type: bug
+  what: The Focus panel prints a part's ref, span, width, rotation and position as text, so changing any
+    of them means deleting the part and placing it again
+  spec: docs/specs/editable-selection.md
+  files:
+  - src/model/edit.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_edit.mjs
+    criterion: 'tests/model/test_edit.mjs passes: every field applies through applyPlacementEdit, and
+      a refused edit leaves the placement unchanged'
+    runs: 1
+  trial:
+    file: .proofs/a-selected-part-cannot-be-edited.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:39:28.839'
+    commit: db4a480-dirty
+  fix:
+    file: .proofs/a-selected-part-cannot-be-edited.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:41:13.728'
+    commit: db4a480-dirty
+- id: editing-a-field-destroys-the-field-you-are-editing
+  type: bug
+  what: Every edit rebuilds the Focus panel's HTML, so the input being typed into is replaced and focus
+    is lost; one change works and the field is then dead
+  spec: docs/specs/inspector-rebuild.md
+  files:
+  - src/render/panels.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_inspector_key.mjs
+    criterion: 'tests/render/test_inspector_key.mjs passes: the key is stable across value changes and
+      changes only when the panel''s shape must change'
+    runs: 1
+  trial:
+    file: .proofs/editing-a-field-destroys-the-field-you-are-editing.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:46:42.541'
+    commit: 194a12b-dirty
+  fix:
+    file: .proofs/editing-a-field-destroys-the-field-you-are-editing.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:48:47.040'
+    commit: 194a12b-dirty
+- id: dil-pin-1-is-on-the-right-instead-of-the-left
+  type: bug
+  what: A DIL straddling the strips numbers down the right column, putting pin 1 top-right; the convention
+    is pin 1 top-left
+  spec: docs/specs/footprint-geometry.md
+  files:
+  - src/parts/library.js
+  test:
+    command:
+    - node
+    - tests/parts/test_footprint.mjs
+    criterion: 'tests/parts/test_footprint.mjs passes: at rot 90 pin 1 is the top-left pin and numbering
+      descends the left column'
+    runs: 1
+  trial:
+    file: .proofs/dil-pin-1-is-on-the-right-instead-of-the-left.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:50:26.137'
+    commit: 4ed7f43-dirty
+  fix:
+    file: .proofs/dil-pin-1-is-on-the-right-instead-of-the-left.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:53:57.455'
+    commit: 4ed7f43-dirty
+- id: outlines-are-hand-sized-per-shape-instead-of-derived-from-the-pins
+  type: bug
+  what: 'Each body shape carries its own hand-written size and they are wrong: a 2-hole electrolytic draws
+    an 8.1mm circle for a part about 5mm across'
+  spec: docs/specs/footprint-geometry.md
+  files:
+  - src/render/svg.js
+  - src/parts/library.js
+  test:
+    command:
+    - node
+    - tests/parts/test_footprint.mjs
+    criterion: 'tests/parts/test_footprint.mjs passes: every outline is the pin extent grown by exactly
+      1.27mm on each side'
+    runs: 1
+  trial:
+    file: .proofs/outlines-are-hand-sized-per-shape-instead-of-derived-from-the-pins.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:50:26.266'
+    commit: 4ed7f43-dirty
+  fix:
+    file: .proofs/outlines-are-hand-sized-per-shape-instead-of-derived-from-the-pins.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:53:57.583'
+    commit: 4ed7f43-dirty
+- id: a-device-cannot-be-moved-once-placed
+  type: new
+  what: 'There is no way to move a placed device: you must delete it and place it again, losing its ref,
+    value and parameters'
+  spec: docs/specs/move-by-pin.md
+  files:
+  - src/model/move.js
+  - src/render/svg.js
+  - src/render/cursors.js
+  - public/app.js
+  - public/index.html
+  test:
+    command:
+    - node
+    - tests/model/test_move.mjs
+    criterion: 'tests/model/test_move.mjs passes: the named pin lands exactly on the target hole and the
+      rest of the part comes with it'
+    runs: 1
+  trial:
+    file: .proofs/a-device-cannot-be-moved-once-placed.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T08:56:58.247'
+    commit: 6eb453c-dirty
+  fix:
+    file: .proofs/a-device-cannot-be-moved-once-placed.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T08:59:57.991'
+    commit: 6eb453c-dirty
+- id: pads-are-invisible-and-pin-1-is-not-square
+  type: bug
+  what: Pads are drawn at 0.12mm in a mid grey so they cannot be seen, and pin 1 is not distinguished
+    by a square marker
+  spec: docs/specs/visible-pads.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_pads.mjs
+    criterion: 'tests/render/test_pads.mjs passes: one pad per pin, pin 1 square and the rest round, at
+      the silkscreen stroke weight'
+    runs: 1
+  trial:
+    file: .proofs/pads-are-invisible-and-pin-1-is-not-square.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T09:42:41.038'
+    commit: 98cea16-dirty
+  fix:
+    file: .proofs/pads-are-invisible-and-pin-1-is-not-square.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T09:44:07.304'
+    commit: 98cea16-dirty
+- id: escape-does-not-return-to-the-select-tool
+  type: bug
+  what: Esc cancels the pending wire and selection but leaves the previous tool armed, so cancelling a
+    half-drawn wire starts another one on the next click
+  spec: docs/specs/colour-and-escape.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_colours.mjs
+    criterion: 'tests/render/test_colours.mjs passes its Escape check: cancelling arms Select'
+    runs: 1
+  trial:
+    file: .proofs/escape-does-not-return-to-the-select-tool.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:03:26.884'
+    commit: 936e0c7-dirty
+  fix:
+    file: .proofs/escape-does-not-return-to-the-select-tool.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:05:48.574'
+    commit: 936e0c7-dirty
+- id: wires-and-parts-have-no-colour-and-cut-segments-look-identical
+  type: new
+  what: Every wire is the same blue, parts cannot be coloured, and the two halves of a cut strip are drawn
+    identically so a break is easy to miss
+  spec: docs/specs/colour-and-escape.md
+  files:
+  - src/render/colours.js
+  - src/render/svg.js
+  - src/model/edit.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_colours.mjs
+    criterion: 'tests/render/test_colours.mjs passes: W1 brown through W9 white with overrides, and a
+      cut row draws two different shades'
+    runs: 1
+  trial:
+    file: .proofs/wires-and-parts-have-no-colour-and-cut-segments-look-identical.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:03:27.063'
+    commit: 936e0c7-dirty
+  fix:
+    file: .proofs/wires-and-parts-have-no-colour-and-cut-segments-look-identical.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:05:48.720'
+    commit: 936e0c7-dirty
+- id: wire-colour-comes-from-the-ref-and-links-have-none
+  type: bug
+  what: Wire colour is keyed on the ref number rather than the wire's length, and a wire link is drawn
+    in the silk colour so every link is near black whatever its span
+  spec: docs/specs/wire-colour-by-length.md
+  files:
+  - src/render/colours.js
+  - src/render/svg.js
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/render/test_wire_colour.mjs
+    criterion: 'tests/render/test_wire_colour.mjs passes: a 3-hole wire is orange, a 3-4-5 diagonal is
+      green, and a link''s body takes its wire colour while its pads stay silk'
+    runs: 1
+  trial:
+    file: .proofs/wire-colour-comes-from-the-ref-and-links-have-none.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:12:29.047'
+    commit: 46543d7-dirty
+  fix:
+    file: .proofs/wire-colour-comes-from-the-ref-and-links-have-none.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:17:04.997'
+    commit: 46543d7-dirty
+- id: a-dil-cannot-have-its-automatic-cuts-turned-off
+  type: new
+  what: A requiresBreak part always derives its own cuts, so you cannot switch them off and cut the strips
+    under it yourself
+  spec: docs/specs/wire-colour-by-length.md
+  files:
+  - src/model/breaks.js
+  - src/model/edit.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_autobreak_switch.mjs
+    criterion: 'tests/model/test_autobreak_switch.mjs passes: autoBreak false on a placement derives no
+      cuts and the DRC then reports the shorts'
+    runs: 1
+  trial:
+    file: .proofs/a-dil-cannot-have-its-automatic-cuts-turned-off.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:14:36.989'
+    commit: 46543d7-dirty
+  fix:
+    file: .proofs/a-dil-cannot-have-its-automatic-cuts-turned-off.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:17:05.133'
+    commit: 46543d7-dirty
+- id: a-dil-still-draws-a-notch-that-duplicates-the-square-pad
+  type: bug
+  what: The DIL body draws a notch arc on its pin-1 end, which now duplicates the square pin-1 pad that
+    marks orientation on every part
+  spec: docs/specs/drop-dil-notch.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_pads.mjs
+    criterion: 'tests/render/test_pads.mjs passes its notch check: a DIL group contains no path element'
+    runs: 1
+  trial:
+    file: .proofs/a-dil-still-draws-a-notch-that-duplicates-the-square-pad.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:20:05.508'
+    commit: 341e803-dirty
+  fix:
+    file: .proofs/a-dil-still-draws-a-notch-that-duplicates-the-square-pad.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:20:40.591'
+    commit: 341e803-dirty
+- id: a-cut-under-a-component-cannot-be-clicked
+  type: bug
+  what: Parts are painted after breaks, so a component body takes every click over a cut beneath it and
+    the cuts under a DIL are unreachable
+  spec: docs/specs/break-hit-targets.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_break_hit.mjs
+    criterion: 'tests/render/test_break_hit.mjs passes: every drawn break has an invisible hit target
+      painted after the parts'
+    runs: 1
+  trial:
+    file: .proofs/a-cut-under-a-component-cannot-be-clicked.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:26:19.211'
+    commit: f979aa9-dirty
+  fix:
+    file: .proofs/a-cut-under-a-component-cannot-be-clicked.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:29:40.326'
+    commit: f979aa9-dirty
+- id: the-status-line-goes-stale-when-a-selection-is-cleared
+  type: bug
+  what: draw('') does not clear the status line because an empty message is falsy, so after deselecting
+    the line still names the last thing selected
+  spec: docs/specs/break-hit-targets.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_status_line.mjs
+    criterion: 'tests/render/test_status_line.mjs passes: an empty message clears the line and no message
+      leaves it alone'
+    runs: 1
+  trial:
+    file: .proofs/the-status-line-goes-stale-when-a-selection-is-cleared.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:31:12.407'
+    commit: d233cd8-dirty
+  fix:
+    file: .proofs/the-status-line-goes-stale-when-a-selection-is-cleared.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:33:15.477'
+    commit: d233cd8-dirty
+- id: wire-links-default-to-lying-along-a-strip
+  type: bug
+  what: A wire link is placed at whatever rotation is pending, so it defaults to lying along a strip where
+    it joins a segment to itself and does nothing
+  spec: docs/specs/break-hit-targets.md
+  files:
+  - src/parts/library.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/parts/test_default_rotation.mjs
+    criterion: 'tests/parts/test_default_rotation.mjs passes: choosing the wire link arms 90 degrees,
+      so it bridges two strips'
+    runs: 1
+  trial:
+    file: .proofs/wire-links-default-to-lying-along-a-strip.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:31:12.586'
+    commit: d233cd8-dirty
+  fix:
+    file: .proofs/wire-links-default-to-lying-along-a-strip.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:33:15.343'
+    commit: d233cd8-dirty
+- id: the-delete-key-does-nothing
+  type: bug
+  what: The Delete key is not bound to anything, so the Delete tool can only be armed from the toolbar
+    or by pressing X
+  spec: docs/specs/break-hit-targets.md
+  files:
+  - src/render/keys.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_keys.mjs
+    criterion: 'tests/render/test_keys.mjs passes: Delete and Backspace map to the delete tool alongside
+      the letter keys'
+    runs: 1
+  trial:
+    file: .proofs/the-delete-key-does-nothing.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:31:46.857'
+    commit: d233cd8-dirty
+  fix:
+    file: .proofs/the-delete-key-does-nothing.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:33:15.616'
+    commit: d233cd8-dirty
+- id: a-pen-wire-is-drawn-as-a-line-with-no-pads
+  type: new
+  what: A point to point wire draws a line and no end pads, so nothing marks the holes it terminates in
+    and a board of forty wires is spaghetti
+  spec: docs/specs/point-to-point-pads.md
+  files:
+  - src/model/labels.js
+  - src/model/board.js
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_point_to_point.mjs
+    criterion: 'tests/render/test_point_to_point.mjs passes: a pen wire draws two pads sharing a letter
+      ID and no line, and selecting it draws its line temporarily'
+    runs: 1
+  trial:
+    file: .proofs/a-pen-wire-is-drawn-as-a-line-with-no-pads.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:40:58.376'
+    commit: e96df7f-dirty
+  fix:
+    file: .proofs/a-pen-wire-is-drawn-as-a-line-with-no-pads.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:44:21.078'
+    commit: e96df7f-dirty
+- id: point-to-point-is-not-in-the-parts-palette
+  type: new
+  what: The parts palette has no point to point entry, so it exists only as the Wire tool and reads as
+    a mode of the wire link rather than its own thing
+  spec: docs/specs/point-to-point-in-palette.md
+  files:
+  - src/parts/library.js
+  - src/model/board.js
+  - src/model/edit.js
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/parts/test_point_to_point_part.mjs
+    criterion: 'tests/parts/test_point_to_point_part.mjs passes: the library has a point-to-point entry
+      that arms the wire tool and cannot be placed as a part'
+    runs: 1
+  trial:
+    file: .proofs/point-to-point-is-not-in-the-parts-palette.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:48:42.912'
+    commit: 17ffa94-dirty
+  fix:
+    file: .proofs/point-to-point-is-not-in-the-parts-palette.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:50:22.200'
+    commit: 17ffa94-dirty
+- id: the-first-click-of-a-wire-shows-nothing-on-the-board
+  type: bug
+  what: After the first click of a point to point wire the board is byte identical, so the only feedback
+    is one line of text at the bottom edge of the window
+  spec: docs/specs/pending-wire-feedback.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_pending_wire.mjs
+    criterion: 'tests/render/test_pending_wire.mjs passes: a pending wire draws a start marker on its
+      hole and a rubber band from it'
+    runs: 1
+  trial:
+    file: .proofs/the-first-click-of-a-wire-shows-nothing-on-the-board.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T10:56:49.361'
+    commit: 0f923e1-dirty
+  fix:
+    file: .proofs/the-first-click-of-a-wire-shows-nothing-on-the-board.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T10:58:06.519'
+    commit: 0f923e1-dirty
+- id: a-highlighted-net-is-washed-out-to-the-same-opacity-as-unlit-copper
+  type: bug
+  what: A highlighted segment inherits the 0.55 wash that unlit copper gets, so the highlight arrives
+    as pale peach on a tan board and distant lit strips do not register
+  spec: docs/specs/net-highlight-and-naming.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_net_labels.mjs
+    criterion: 'tests/render/test_net_labels.mjs passes: a lit segment is full opacity and far from the
+      unlit colour, while unlit copper keeps its wash'
+    runs: 1
+  trial:
+    file: .proofs/a-highlighted-net-is-washed-out-to-the-same-opacity-as-unlit-copper.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T11:00:31.296'
+    commit: f8a1614-dirty
+  fix:
+    file: .proofs/a-highlighted-net-is-washed-out-to-the-same-opacity-as-unlit-copper.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:03:47.126'
+    commit: 0bd7f40-dirty
+- id: nets-cannot-be-named-or-coloured
+  type: new
+  what: A net has no name and no colour, so GND and +5V are invisible until you click each strip in turn
+  spec: docs/specs/net-highlight-and-naming.md
+  files:
+  - src/model/nets.js
+  - src/model/board.js
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_net_labels.mjs
+    criterion: 'tests/render/test_net_labels.mjs passes: a label anchored to a hole names and colours
+      its whole net and survives renumbering'
+    runs: 1
+  trial:
+    file: .proofs/nets-cannot-be-named-or-coloured.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T11:00:31.459'
+    commit: f8a1614-dirty
+  fix:
+    file: .proofs/nets-cannot-be-named-or-coloured.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T12:06:38.750'
+    commit: 0952b41-dirty
+- id: a-part-near-the-board-edge-derives-cuts-off-the-board-and-kills-the-render
+  type: bug
+  what: A DIP near the top derives cuts at a negative row, segments() throws, and renderBoard, draw and
+    boot all die so the whole board goes blank
+  spec: docs/specs/never-lose-a-board.md
+  files:
+  - src/model/breaks.js
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/model/test_offboard_cuts.mjs
+    criterion: 'tests/model/test_offboard_cuts.mjs passes: a part hanging off the edge derives only on-board
+      cuts and the board still renders'
+    runs: 1
+  trial:
+    file: .proofs/a-part-near-the-board-edge-derives-cuts-off-the-board-and-kills-the-render.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T11:10:43.023'
+    commit: f8a1614-dirty
+  fix:
+    file: .proofs/a-part-near-the-board-edge-derives-cuts-off-the-board-and-kills-the-render.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T11:11:39.300'
+    commit: f8a1614-dirty
+- id: saving-fails-silently-when-storage-is-full
+  type: bug
+  what: persist() swallows a quota error with an empty catch, so once storage is full every later edit
+    is silently not saved and the user finds out on reload
+  spec: docs/specs/never-lose-a-board.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_persist_and_escape.mjs
+    criterion: persist() raises a banner naming NOT SAVED when the board write throws, leaves no empty
+      catch, and returns whether it wrote
+    runs: 1
+  trial:
+    file: .proofs/saving-fails-silently-when-storage-is-full.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T19:07:44.887'
+    commit: a5e22ab-dirty
+  fix:
+    file: .proofs/saving-fails-silently-when-storage-is-full.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:07:51.074'
+    commit: a5e22ab-dirty
+  voided:
+  - trial:
+      file: .proofs/saving-fails-silently-when-storage-is-full.trial.txt
+      exit: 1
+      runs: 1
+      failures: 1
+      at: '2026-08-30T19:06:30.348'
+      commit: 981fc74-dirty
+    fix:
+      file: .proofs/saving-fails-silently-when-storage-is-full.fix.txt
+      exit: 0
+      runs: 1
+      failures: 0
+      at: '2026-08-30T19:06:39.870'
+      commit: 981fc74-dirty
+    why: 'a test file cannot be closure evidence: it does not change between the red and the green, so
+      naming it makes the entry impossible to close'
+    at: '2026-08-30T19:07:37.785'
+    was:
+      files:
+      - public/app.js
+      - tests/render/test_persist_and_escape.mjs
+      spec: docs/specs/never-lose-a-board.md
+- id: escape-leaves-a-part-lit-in-the-palette-while-arming-select
+  type: bug
+  what: Escape switches the tool to Select but the palette still shows a part highlighted, so the board
+    looks armed for placing and clicking does nothing
+  spec: docs/specs/never-lose-a-board.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_persist_and_escape.mjs
+    criterion: setTool tells the palette what is armed, so Escape cannot leave a part lit while Select
+      is active
+    runs: 1
+  trial:
+    file: .proofs/escape-leaves-a-part-lit-in-the-palette-while-arming-select.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T19:07:57.468'
+    commit: a5e22ab-dirty
+  fix:
+    file: .proofs/escape-leaves-a-part-lit-in-the-palette-while-arming-select.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:08:03.914'
+    commit: a5e22ab-dirty
+  voided:
+  - trial:
+      file: .proofs/escape-leaves-a-part-lit-in-the-palette-while-arming-select.trial.txt
+      exit: 1
+      runs: 1
+      failures: 1
+      at: '2026-08-30T19:06:51.165'
+      commit: 981fc74-dirty
+    fix:
+      file: .proofs/escape-leaves-a-part-lit-in-the-palette-while-arming-select.fix.txt
+      exit: 0
+      runs: 1
+      failures: 0
+      at: '2026-08-30T19:06:56.755'
+      commit: 981fc74-dirty
+    why: 'same: naming the test file made closure impossible'
+    at: '2026-08-30T19:07:38.008'
+    was:
+      files:
+      - public/app.js
+      - src/render/panels.js
+      - tests/render/test_persist_and_escape.mjs
+      spec: docs/specs/never-lose-a-board.md
+- id: the-editor-throws-away-a-board-it-cannot-read
+  type: bug
+  what: load() discards the whole stored project when any check fails and substitutes an empty board,
+    with only a console warning
+  spec: docs/specs/never-lose-a-board.md
+  files:
+  - src/model/repair.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_repair.mjs
+    criterion: 'tests/model/test_repair.mjs passes: Peter''s saved board loads with all thirteen real
+      parts and the five it could not keep are named'
+    runs: 1
+  trial:
+    file: .proofs/the-editor-throws-away-a-board-it-cannot-read.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T11:14:58.326'
+    commit: dc8329f-dirty
+  fix:
+    file: .proofs/the-editor-throws-away-a-board-it-cannot-read.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T11:19:05.943'
+    commit: dc8329f-dirty
+- id: there-is-no-history-to-go-back-to
+  type: new
+  what: Nothing on disk but the current board, so one bad load or one wrong edit is unrecoverable
+  spec: docs/specs/never-lose-a-board.md
+  files:
+  - src/model/history.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_history.mjs
+    criterion: 'tests/model/test_history.mjs passes: thirty snapshots newest first, and a full disk drops
+      history rather than the board'
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-history-to-go-back-to.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T11:14:58.497'
+    commit: dc8329f-dirty
+  fix:
+    file: .proofs/there-is-no-history-to-go-back-to.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T11:19:06.139'
+    commit: dc8329f-dirty
+- id: nothing-checks-that-the-editor-boots
+  type: new
+  what: Every suite tests modules in node, so a syntax or initialisation-order fault in app.js ships as
+    a blank page with all checks green
+  spec: docs/specs/never-lose-a-board.md
+  files:
+  - tests/render/test_boot.mjs
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_boot.mjs
+    criterion: a check loads the editor in a browser and fails on any page error
+    runs: 1
+  trial:
+    file: .proofs/nothing-checks-that-the-editor-boots.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T12:05:15.005'
+    commit: 0952b41-dirty
+  fix:
+    file: .proofs/nothing-checks-that-the-editor-boots.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:03:48.087'
+    commit: 0bd7f40-dirty
+- id: the-left-panel-stacks-unrelated-things-and-cannot-hold-a-library
+  type: new
+  what: Parts, part parameters, the break tool's cut type and layer visibility are stacked flat, parameters
+    float free of the part they configure, and a flat list cannot hold a real component library
+  spec: docs/specs/left-panel-cards.md
+  files:
+  - src/parts/devices.js
+  - src/parts/library.js
+  - src/render/panels.js
+  - src/model/rotate.js
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/parts/test_devices.mjs
+    criterion: 'tests/render/test_cards.mjs and tests/parts/test_devices.mjs pass: cards own their settings,
+      every part has a category, and a device resolves to a placement with no dependency on the catalogue'
+    runs: 1
+  trial:
+    file: .proofs/the-left-panel-stacks-unrelated-things-and-cannot-hold-a-library.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T12:24:36.361'
+    commit: 4076b3b-dirty
+  fix:
+    file: .proofs/the-left-panel-stacks-unrelated-things-and-cannot-hold-a-library.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T12:30:04.606'
+    commit: 4076b3b-dirty
+- id: a-net-selected-on-the-board-is-not-selected-in-the-nets-tab
+  type: bug
+  what: 'Clicking a strip only sets a highlight: the right panel does not open the Nets tab and no row
+    is marked, and clicking a net row marks nothing either'
+  spec: docs/specs/net-selection-both-ways.md
+  files:
+  - src/render/panels.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_net_selection.mjs
+    criterion: 'tests/render/test_net_selection.mjs passes: a net is a selection kind, it opens the Nets
+      tab, and the highlight is derived from it'
+    runs: 1
+  trial:
+    file: .proofs/a-net-selected-on-the-board-is-not-selected-in-the-nets-tab.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T13:37:42.905'
+    commit: bea8dcd-dirty
+  fix:
+    file: .proofs/a-net-selected-on-the-board-is-not-selected-in-the-nets-tab.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T13:45:53.723'
+    commit: bea8dcd-dirty
+- id: a-net-name-is-punched-through-by-the-holes-it-lies-over
+  type: bug
+  what: The net name is drawn in the copper pass and the holes are painted over it four passes later,
+    so the letters come back in fragments; and it rides the Refs-and-values layer, so it cannot be switched
+    off on its own.
+  spec: docs/specs/net-name-plate.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_net_name_plate.mjs
+    criterion: '20/20 checks pass: the plate is emitted after the last hole, opaque, inside the track,
+      ink readable on it, long names shrink rather than spill, and netNames is a separate default-on layer'
+    runs: 1
+  trial:
+    file: .proofs/a-net-name-is-punched-through-by-the-holes-it-lies-over.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T13:51:21.481'
+    commit: da5c2bd-dirty
+  fix:
+    file: .proofs/a-net-name-is-punched-through-by-the-holes-it-lies-over.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T13:55:58.582'
+    commit: da5c2bd-dirty
+- id: the-library-card-hides-five-parts-below-a-fixed-cap
+  type: bug
+  what: "The open card body is capped at 52vh and its scrollbar measures 0px wide, so five of the fourteen\
+    \ parts \u2014 DIP among them \u2014 sit below the fold with nothing to say the list continues, and\
+    \ the cut lands under a category heading that then reads as empty."
+  spec: docs/specs/library-card-room.md
+  files:
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/render/test_left_panel_room.mjs
+    criterion: '10/10 checks: no fixed cap on an open card body, the left panel is a flex column whose
+      open card fills it and scrolls, and a scrollbar of declared non-zero width on both card bodies and
+      panels'
+    runs: 1
+  trial:
+    file: .proofs/the-library-card-hides-five-parts-below-a-fixed-cap.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T14:01:58.994'
+    commit: 8403819-dirty
+  fix:
+    file: .proofs/the-library-card-hides-five-parts-below-a-fixed-cap.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T14:04:27.951'
+    commit: 8403819-dirty
+- id: nothing-measures-the-rendered-layout
+  type: new
+  what: "Every suite runs in node, so no check can measure a rendered size, an overflow or a scrollbar\
+    \ width. Two layout defects have now been found by eye \u2014 the toolbar at 1280 and the library\
+    \ card at 52vh \u2014 and neither could have been caught by the harness."
+  spec: docs/specs/library-card-room.md
+  files:
+  - tests/browser/test_layout.mjs
+  - package.json
+  test:
+    command:
+    - node
+    - tests/browser/test_layout.mjs
+    criterion: the suite boots the real server, drives a real browser at three sizes, and reports that
+      nothing overflows, nothing is clipped without a way to reach it, every toolbar button is reachable,
+      and all 500 holes are drawn
+    runs: 1
+  trial:
+    file: .proofs/nothing-measures-the-rendered-layout.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:48:04.398'
+    commit: 6437536-dirty
+  fix:
+    file: .proofs/nothing-measures-the-rendered-layout.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T15:49:15.218'
+    commit: 6437536-dirty
+- id: the-net-name-layer-is-drawn-under-the-parts
+  type: new
+  what: "The net name pass sits between the holes and the wires, so a component body or a link covers\
+    \ the caption \u2014 and a DIP across a labelled strip is exactly where the name matters most. It\
+    \ should be the top layer."
+  spec: docs/specs/net-names-on-top.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_net_name_plate.mjs
+    criterion: '25/25 checks: the plate is drawn after the wires, the part bodies and the check markers,
+      while the move handle and hit targets stay above it'
+    runs: 1
+  trial:
+    file: .proofs/the-net-name-layer-is-drawn-under-the-parts.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T14:06:18.241'
+    commit: ce6edf7-dirty
+  fix:
+    file: .proofs/the-net-name-layer-is-drawn-under-the-parts.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T14:07:33.521'
+    commit: ce6edf7-dirty
+- id: a-pen-pad-is-too-small-to-hold-the-id-it-is-labelled-with
+  type: new
+  what: A pen wire is two pads sharing an ID, but the pad is component-sized (0.864mm) and the ID is drawn
+    LARGER than it (1.52mm) floating above it, where it collides with the row above and with the next
+    wire's ID.
+  spec: docs/specs/pen-pad-carries-its-id.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_point_to_point.mjs
+    criterion: '27/27 checks: the pen pad grows without touching an adjacent pad, the ID shrinks to fit
+      inside the circle, is centred on it and readable against the length colour, the pending marker matches,
+      and the component pad is untouched'
+    runs: 1
+  trial:
+    file: .proofs/a-pen-pad-is-too-small-to-hold-the-id-it-is-labelled-with.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T14:10:06.864'
+    commit: 76a8671-dirty
+  fix:
+    file: .proofs/a-pen-pad-is-too-small-to-hold-the-id-it-is-labelled-with.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T14:11:32.430'
+    commit: 76a8671-dirty
+- id: an-smt-part-is-drawn-at-chip-size-and-is-barely-visible
+  type: new
+  what: 'The 0603 is drawn at its true 1.6 x 0.8 mm, which is accurate and invisible: 0.8 mm of translucent
+    silkscreen on a 2.0 mm strip over copper, holes and a cut. It should be a land pattern reaching across
+    both holes and just inside the strip.'
+  spec: docs/specs/smt-land-pattern.md
+  files:
+  - src/render/svg.js
+  - src/parts/library.js
+  test:
+    command:
+    - node
+    - tests/parts/test_smt.mjs
+    criterion: '16/16 checks: the land reaches across both through holes, is a little narrower than the
+      copper strip, keeps a termination at each end, and is derived from the board geometry rather than
+      a size in the library'
+    runs: 1
+  trial:
+    file: .proofs/an-smt-part-is-drawn-at-chip-size-and-is-barely-visible.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T14:15:48.457'
+    commit: f82c635-dirty
+  fix:
+    file: .proofs/an-smt-part-is-drawn-at-chip-size-and-is-barely-visible.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T14:18:10.208'
+    commit: f82c635-dirty
+- id: a-second-name-on-one-net-has-no-field-and-cannot-be-renamed
+  type: bug
+  what: netLabelsByNet keeps only the first label on a net, so a second name on the same net has no row,
+    no field and no way to be renamed or cleared. On Peter's board 11 of 12 stored names have a field;
+    3V3 at hole 6,5 shares a net with 0V and is unreachable.
+  spec: docs/specs/every-net-name-is-editable.md
+  files:
+  - src/model/nets.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_net_labels.mjs
+    criterion: '22/22 checks: every label on a net is reachable with the hole it is anchored to, a killed
+      hole is still dropped, netLabelsByNet is unchanged, and all twelve names on Peter''s board have
+      a field'
+    runs: 1
+  trial:
+    file: .proofs/a-second-name-on-one-net-has-no-field-and-cannot-be-renamed.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T14:27:01.671'
+    commit: 7359442-dirty
+  fix:
+    file: .proofs/a-second-name-on-one-net-has-no-field-and-cannot-be-renamed.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T14:28:36.534'
+    commit: 7359442-dirty
+- id: there-is-no-headless-way-to-build-a-board
+  type: new
+  what: "Every mutation lives inside onBoardClick in app.js \u2014 placements.push, wires.push, breaks.push\
+    \ are inline with selection and status text \u2014 so a netlist builder has no addPart() to call and\
+    \ must duplicate the logic, drive the DOM, or hand-write JSON."
+  spec: docs/specs/architecture-for-netlist.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_headless_build.mjs
+    criterion: public/app.js contains no placements/wires/breaks mutation of its own, calls ops for all
+      seven edits, and a whole board builds through applyOps with no DOM
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-headless-way-to-build-a-board.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T19:08:04.196'
+    commit: a5e22ab-dirty
+  fix:
+    file: .proofs/there-is-no-headless-way-to-build-a-board.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:08:07.419'
+    commit: a5e22ab-dirty
+  voided:
+  - trial:
+      file: .proofs/there-is-no-headless-way-to-build-a-board.trial.txt
+      exit: 1
+      runs: 1
+      failures: 1
+      at: '2026-08-30T19:05:47.804'
+      commit: 981fc74-dirty
+    fix:
+      file: .proofs/there-is-no-headless-way-to-build-a-board.fix.txt
+      exit: 0
+      runs: 1
+      failures: 0
+      at: '2026-08-30T19:05:50.554'
+      commit: 981fc74-dirty
+    why: 'same: the fix landed in public/app.js and that is the file whose change flips the check'
+    at: '2026-08-30T19:07:38.220'
+    was:
+      files:
+      - public/app.js
+      - src/model/ops.js
+      - tests/model/test_headless_build.mjs
+      spec: docs/specs/architecture-for-netlist.md
+- id: the-model-asks-the-renderer-what-a-net-is
+  type: bug
+  what: netsFor, findingsFor, runList and cutList are exported from src/render/svg.js, so app.js and the
+    server import connectivity from the module whose job is to produce an SVG string.
+  spec: docs/specs/views-out-of-the-renderer.md
+  files:
+  - src/render/svg.js
+  - src/model/views.js
+  - src/model/nets.js
+  - src/server/index.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_views.mjs
+    criterion: the four derived views live in src/model/views.js, svg.js exports none of them, no model
+      or net module imports the renderer, the server imports it only to draw, and provideSegmentNet and
+      its global are gone
+    runs: 1
+  trial:
+    file: .proofs/the-model-asks-the-renderer-what-a-net-is.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T19:33:15.318'
+    commit: 2c29da8-dirty
+  fix:
+    file: .proofs/the-model-asks-the-renderer-what-a-net-is.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:35:57.715'
+    commit: 2c29da8-dirty
+- id: app-js-is-a-third-of-the-codebase
+  type: new
+  what: 'public/app.js is 1379 of 4611 lines and holds four separable things: state and persistence, every
+    mutation, every panel painter, and all event wiring.'
+  spec: docs/specs/architecture-for-netlist.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_editor_modules.mjs
+    criterion: 'tests/render/test_editor_modules.mjs passes: every file in public/ is at most 420 lines,
+      and the print view is its own module that app.js imports'
+    runs: 1
+  trial:
+    file: .proofs/app-js-is-a-third-of-the-codebase.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-19T12:45:01.442'
+    commit: 56bd82c-dirty
+  fix: null
+- id: providesegmentnet-writes-a-global-nothing-reads
+  type: bug
+  what: provideSegmentNet() in src/model/nets.js sets globalThis.__stripexSegmentNet__ and nothing anywhere
+    reads it.
+  spec: docs/specs/views-out-of-the-renderer.md
+  files:
+  - src/model/nets.js
+  test:
+    command:
+    - node
+    - tests/model/test_views.mjs
+    criterion: provideSegmentNet is no longer exported and no global is written; every suite still passes
+    runs: 1
+  trial:
+    file: .proofs/providesegmentnet-writes-a-global-nothing-reads.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T19:36:25.660'
+    commit: ef5cec8-dirty
+  fix:
+    file: .proofs/providesegmentnet-writes-a-global-nothing-reads.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:36:25.956'
+    commit: ef5cec8-dirty
+- id: drc-is-one-function-not-a-list-of-rules
+  type: new
+  what: "drc() is a single 209-line function with comment-separated sections, so a new check \u2014 netlist\
+    \ conformance among them \u2014 is another branch inside it rather than a new file."
+  spec: docs/specs/drc-as-a-list-of-rules.md
+  files:
+  - src/net/drc.js
+  test:
+    command:
+    - node
+    - tests/net/test_drc_rules.mjs
+    criterion: 'tests/net/test_drc_rules.mjs passes: RULES is a list of at least nine named rule functions,
+      drcContext builds the context one rule can be run over alone, and the fixture board still produces
+      exactly its 25 findings in order'
+    runs: 1
+  trial:
+    file: .proofs/drc-is-one-function-not-a-list-of-rules.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-19T12:35:13.450'
+    commit: 132f4d0-dirty
+  fix:
+    file: .proofs/drc-is-one-function-not-a-list-of-rules.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-19T12:38:36.536'
+    commit: 132f4d0-dirty
+- id: the-device-catalogue-is-unreachable-and-its-one-entry-is-guesswork
+  type: new
+  what: Nothing imports devices.js, so no device can be placed from the editor; its only entry is a TMC2209
+    whose pin names were guessed and flagged with a whole-device boolean. There is no XIAO and no JST
+    connector.
+  spec: docs/specs/named-components.md
+  files:
+  - src/parts/devices.js
+  - src/parts/library.js
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/parts/test_devices.mjs
+    criterion: '28/28 checks: every device names exactly the pins its footprint resolves to, the XIAO
+      and TMC2209 match their sourced pinouts, unverifiedPins is a list of real pin names, and JST XH
+      comes 2 to 8 way in two distinct bodies'
+    runs: 1
+  trial:
+    file: .proofs/the-device-catalogue-is-unreachable-and-its-one-entry-is-guesswork.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T14:41:35.572'
+    commit: d148a80-dirty
+  fix:
+    file: .proofs/the-device-catalogue-is-unreachable-and-its-one-entry-is-guesswork.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T14:46:10.929'
+    commit: d148a80-dirty
+- id: undo-restores-the-state-you-are-already-in
+  type: bug
+  what: "commit() snapshots state.project AFTER the tools have mutated it in place, so the undo stack\
+    \ holds post-states: the first press of Undo does nothing, every later press is one step behind, and\
+    \ the first change of a session can never be undone. Measured in Chromium: place R1, place R2, Undo\
+    \ \u2014 both parts still there and the status line says 'undone'."
+  spec: docs/specs/undo-off-by-one.md
+  files:
+  - public/app.js
+  - src/model/undo.js
+  test:
+    command:
+    - node
+    - tests/model/test_undo.mjs
+    criterion: '11/11 checks: commit does not snapshot a project it has already changed, the first change
+      of a session is undoable, one undo returns the state before the change rather than after it, redo
+      restores in order, a new change clears the redo stack, and the bound drops the oldest'
+    runs: 1
+  trial:
+    file: .proofs/undo-restores-the-state-you-are-already-in.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:13:41.647'
+    commit: d3fb7d1-dirty
+  fix:
+    file: .proofs/undo-restores-the-state-you-are-already-in.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T15:15:12.714'
+    commit: d3fb7d1-dirty
+- id: a-focused-dropdown-swallows-ctrl-z
+  type: bug
+  what: "The keydown handler returns early for any input, select or textarea before reaching the Ctrl+Z\
+    \ branch, so with the View dropdown focused Ctrl+Z does nothing \u2014 and a select has no undo of\
+    \ its own to offer instead, so the keystroke is simply lost. The shortcut also has no mapping node\
+    \ can check, which is why the hole was invisible."
+  spec: docs/specs/undo-shortcut.md
+  files:
+  - src/render/keys.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_keys.mjs
+    criterion: '13/13 checks: ctrl or cmd with z is undo and with shift is redo whatever the case of the
+      letter, nothing else is bound, and only a field with an undo of its own may swallow the shortcut'
+    runs: 1
+  trial:
+    file: .proofs/a-focused-dropdown-swallows-ctrl-z.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:18:16.597'
+    commit: 5e2c281-dirty
+  fix:
+    file: .proofs/a-focused-dropdown-swallows-ctrl-z.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T15:19:01.069'
+    commit: 5e2c281-dirty
+- id: a-rotated-jst-draws-its-shroud-around-one-pin
+  type: bug
+  what: 'The jst body case builds an axis-aligned rectangle from box.w, which at rot 90 is one pin wide,
+    so the shroud collapses onto pin 1 and the rest of the connector is bare pads. Measured in Chromium:
+    a 4-way drew 172x49 px at rot 0 and 43x49 at rot 90.'
+  spec: docs/specs/jst-rotation.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/parts/test_devices.mjs
+    criterion: '31/31 checks: every pin falls inside its own shroud at all four rotations for both bodies
+      and three widths, the shroud does not collapse, and straight and right angle stay visibly different'
+    runs: 1
+  trial:
+    file: .proofs/a-rotated-jst-draws-its-shroud-around-one-pin.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:21:31.181'
+    commit: 9e43e4e-dirty
+  fix:
+    file: .proofs/a-rotated-jst-draws-its-shroud-around-one-pin.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T15:22:46.816'
+    commit: 9e43e4e-dirty
+- id: the-delete-tool-stays-armed-after-deleting
+  type: new
+  what: The delete tool stays armed after a successful delete, so deleting a resistor and then clicking
+    near another part deletes that one too. Nothing on screen distinguishes 'about to delete' from 'just
+    deleted'.
+  spec: docs/specs/delete-disarms.md
+  files:
+  - src/render/keys.js
+  - src/render/colours.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_keys.mjs
+    criterion: '17/17 checks: a delete that removed something returns to select, one that removed nothing
+      leaves the tool alone, and both which-tool-comes-next rules live in keys.js naming real tools'
+    runs: 1
+  trial:
+    file: .proofs/the-delete-tool-stays-armed-after-deleting.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:30:00.842'
+    commit: d9f836e-dirty
+  fix:
+    file: .proofs/the-delete-tool-stays-armed-after-deleting.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T15:31:39.469'
+    commit: d9f836e-dirty
+- id: a-tool-cannot-act-on-a-component-that-is-already-selected
+  type: new
+  what: 'Every tool is verb-then-noun: arm the tool, then click the thing. Selecting a component and then
+    pressing Move or Delete does nothing. Rotate is the exception, which is why the asymmetry shows.'
+  spec: docs/specs/verb-after-noun.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_layout.mjs
+    criterion: '18/18 browser checks: a selected part is deleted by the Delete button and the tool disarms,
+      a selected wire likewise, a selected part is picked up by Move on its pin 1, a selected net is not
+      deleted, nothing selected simply arms, and arm-then-click still works'
+    runs: 1
+  trial:
+    file: .proofs/a-tool-cannot-act-on-a-component-that-is-already-selected.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:26:26.844'
+    commit: ec689f8-dirty
+  fix:
+    file: .proofs/a-tool-cannot-act-on-a-component-that-is-already-selected.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:26:49.219'
+    commit: ec689f8-dirty
+  voided:
+  - trial:
+      file: .proofs/a-tool-cannot-act-on-a-component-that-is-already-selected.trial.txt
+      exit: 1
+      runs: 1
+      failures: 1
+      at: '2026-08-30T16:22:41.518'
+      commit: ec689f8-dirty
+    fix:
+      file: .proofs/a-tool-cannot-act-on-a-component-that-is-already-selected.fix.txt
+      exit: 0
+      runs: 1
+      failures: 0
+      at: '2026-08-30T16:25:41.501'
+      commit: ec689f8-dirty
+    why: 'the check is the browser suite, and a check must not be in the file list: it is written before
+      the trial and must not change after it, so naming it made closure impossible'
+    at: '2026-08-30T16:26:09.657'
+    was:
+      files:
+      - public/app.js
+      - tests/browser/test_layout.mjs
+      spec: docs/specs/verb-after-noun.md
+- id: pin-names-are-carried-but-never-drawn
+  type: new
+  what: A device's pin names reach the placement, the resolved pins and the DRC messages, but nothing
+    draws them on the board, so on a 14-pin XIAO you cannot tell which pad is D4 without counting. They
+    need a layer of their own.
+  spec: docs/specs/pin-names-layer.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/parts/test_devices.mjs
+    criterion: '37/37: the pinNames layer is off by default, a placed XIAO draws its fourteen names beside
+      their pads anchored outward, a generic DIP names its numbered pins, and the layer is independent
+      of labels'
+    runs: 1
+  trial:
+    file: .proofs/pin-names-are-carried-but-never-drawn.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:28:44.891'
+    commit: 31562aa-dirty
+  fix:
+    file: .proofs/pin-names-are-carried-but-never-drawn.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:31:07.981'
+    commit: 31562aa-dirty
+- id: boards-live-in-one-browser-and-have-no-name
+  type: new
+  what: "The board lives in localStorage on one machine, there is only ever one of it, and it has no name\
+    \ \u2014 every downloaded file is untitled. Nobody else can open it, it cannot be edited from outside\
+    \ the browser, and clearing site data destroys it, which has already happened once in this project."
+  spec: docs/specs/boards-on-the-server.md
+  files:
+  - src/server/boards.js
+  - src/server/index.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/server/test_boards.mjs
+    criterion: '19/19 checks: slugs are validated as a whitelist and never reach the filesystem when bad,
+      a board written comes back identically with a version that changes when it does, a write presenting
+      a stale version is refused and leaves the file alone, and rename moves the file'
+    runs: 1
+  trial:
+    file: .proofs/boards-live-in-one-browser-and-have-no-name.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:35:28.549'
+    commit: 53b878c-dirty
+  fix:
+    file: .proofs/boards-live-in-one-browser-and-have-no-name.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T15:39:23.462'
+    commit: 53b878c-dirty
+- id: the-selected-net-row-is-marked-off-screen
+  type: new
+  what: 'Selecting a strip marks its net''s row in the Nets tab but never brings it into view: on Peter''s
+    own board the marked row measured 2076px below the top of the panel. The Board card also shows only
+    ''25 x 20'' while collapsed, so the open board''s name is invisible, and the board list runs a name
+    into its part count.'
+  spec: docs/specs/nets-panel-follows-selection.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_layout.mjs
+    criterion: '10/10 browser checks: selecting a strip low down the board leaves its net row at the top
+      of the panel, the collapsed Board card names the open board rather than its size, and the board
+      list separates a name from its part count'
+    runs: 1
+  trial:
+    file: .proofs/the-selected-net-row-is-marked-off-screen.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:55:16.294'
+    commit: da41265-dirty
+  fix:
+    file: .proofs/the-selected-net-row-is-marked-off-screen.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:03:51.391'
+    commit: da41265-dirty
+- id: the-test-suite-writes-to-peters-real-board
+  type: bug
+  what: 'The browser suite drives the real server, whose boards directory is hardcoded to the repo''s
+    boards/. Running pnpm run check therefore opens Peter''s live board, autosaves edits into it, and
+    can create boards beside it. Measured: boards/recovered-2026-08-30.json came back 35 lines changed
+    after one test run.'
+  spec: docs/specs/boards-on-the-server.md
+  files:
+  - src/server/index.js
+  - tests/browser/test_layout.mjs
+  test:
+    command:
+    - node
+    - tests/server/test_boards_dir.mjs
+    criterion: '2/2: creating a board with STRIPEX_BOARDS_DIR set writes into that directory and leaves
+      the repo''s boards/ untouched, and boardsDirFor falls back to <repo>/boards when the variable is
+      unset'
+    runs: 1
+  trial:
+    file: .proofs/the-test-suite-writes-to-peters-real-board.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T15:59:39.746'
+    commit: da41265-dirty
+  fix:
+    file: .proofs/the-test-suite-writes-to-peters-real-board.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:03:51.737'
+    commit: da41265-dirty
+- id: opening-a-board-discards-newer-local-work
+  type: bug
+  what: "openBoard installs the server's copy over whatever is on screen and calls persist(), overwriting\
+    \ the localStorage draft. If the server copy is older \u2014 because a save was refused as stale,\
+    \ or the file was changed underneath \u2014 the newer local work is destroyed on reload with no warning.\
+    \ This happened to Peter: he made changes, reloaded, and they were gone."
+  spec: docs/specs/boards-on-the-server.md
+  files:
+  - public/app.js
+  - src/model/undo.js
+  test:
+    command:
+    - node
+    - tests/browser/test_draft_survives.mjs
+    criterion: '2/2: a browser holding three parts against a server copy of one keeps all three after
+      a reload and says the two differ, while an identical draft opens quietly'
+    runs: 1
+  trial:
+    file: .proofs/opening-a-board-discards-newer-local-work.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:02:38.782'
+    commit: da41265-dirty
+  fix:
+    file: .proofs/opening-a-board-discards-newer-local-work.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:03:34.862'
+    commit: 0bd7f40-dirty
+- id: the-view-is-a-dropdown-and-the-actions-are-words
+  type: new
+  what: The Top/Underside view is a two-option dropdown, which costs two clicks and a menu where two buttons
+    cost one; and seven action buttons are words in a bar that already overflows at 1280, competing with
+    the six tool buttons you actually reach for. The theme button is already an icon with no aria-label.
+  spec: docs/specs/toolbar-icons-and-view-group.md
+  files:
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_layout.mjs
+    criterion: '11/11 browser checks: the view is two buttons with exactly one lit and clicking the other
+      turns the board over, and every icon-only toolbar button has both a title and an aria-label'
+    runs: 1
+  trial:
+    file: .proofs/the-view-is-a-dropdown-and-the-actions-are-words.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:10:48.853'
+    commit: 4728a65-dirty
+  fix:
+    file: .proofs/the-view-is-a-dropdown-and-the-actions-are-words.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:20:17.728'
+    commit: 4728a65-dirty
+- id: a-board-cannot-be-resized
+  type: bug
+  what: "The Board card and the toolbar both use id='cols' and id='rows'. $('#cols') therefore always\
+    \ returns the toolbar's input, so the card's inputs never get a handler and the toolbar's only gets\
+    \ one after the card has been opened once \u2014 bound from inside the card's painter. Changing either\
+    \ box leaves the board at its old size."
+  spec: docs/specs/toolbar-icons-and-view-group.md
+  files:
+  - public/index.html
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_layout.mjs
+    criterion: '12/12 browser checks: one element per id, and changing columns then rows actually redraws
+      the board at the new size'
+    runs: 1
+  trial:
+    file: .proofs/a-board-cannot-be-resized.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:13:45.728'
+    commit: 4728a65-dirty
+  fix:
+    file: .proofs/a-board-cannot-be-resized.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:20:07.616'
+    commit: 4728a65-dirty
+- id: the-cut-style-is-a-panel-you-have-to-open
+  type: new
+  what: The break tool is one toolbar button and the choice between a knife cut and a spot-face lives
+    in a Cutting card in the left panel, so changing a thing you change constantly means opening a panel.
+    Peter wants two toolbar buttons and the card gone.
+  spec: docs/specs/toolbar-icons-and-view-group.md
+  files:
+  - src/render/panels.js
+  - public/index.html
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_cards.mjs
+    criterion: "12/12: CARDS is library, layers, board \u2014 no cutting \u2014 and cardForTool('break')\
+      \ is null"
+    runs: 1
+  trial:
+    file: .proofs/the-cut-style-is-a-panel-you-have-to-open.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:38:30.023'
+    commit: 18e9f11-dirty
+  fix:
+    file: .proofs/the-cut-style-is-a-panel-you-have-to-open.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:41:04.749'
+    commit: 18e9f11-dirty
+- id: the-spot-face-mark-is-wider-than-the-hole-pitch
+  type: bug
+  what: "The spot-face marker is drawn at 0.56 of the pitch \u2014 2.84 mm across on a 2.54 mm pitch \u2014\
+    \ so it laps over its neighbours and two on adjacent holes overlap by 0.30 mm, merging a row of them\
+    \ into a bar."
+  spec: docs/specs/spot-drill-circle-size.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/net/test_hole_breaks.mjs
+    criterion: '18/18 checks: the spot-face mark is narrower than the pitch, two adjacent ones do not
+      touch, it is still far wider than the hole it kills, and the hit target still covers the hole and
+      is centred on it'
+    runs: 1
+  trial:
+    file: .proofs/the-spot-face-mark-is-wider-than-the-hole-pitch.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:47:09.647'
+    commit: a37299d-dirty
+  fix:
+    file: .proofs/the-spot-face-mark-is-wider-than-the-hole-pitch.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:48:07.016'
+    commit: a37299d-dirty
+- id: a-reload-with-no-edits-overwrites-the-server
+  type: bug
+  what: 'connectBoards ends with an unconditional scheduleSave() in a finally, so every page load pushes
+    the browser''s copy to the server. A change made to the board file by anyone else is destroyed the
+    next time the page is refreshed, even with no edits made. Peter: ''even if I make no changes and refresh
+    the page, it seems it saves it overwriting any beckend changes.'''
+  spec: docs/specs/boards-on-the-server.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_draft_survives.mjs
+    criterion: '3/3: an outside edit to a board file survives a browser reload that changes nothing, while
+      a differing draft is still kept and an identical one still opens quietly'
+    runs: 1
+  trial:
+    file: .proofs/a-reload-with-no-edits-overwrites-the-server.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T16:54:22.329'
+    commit: fd77d5f-dirty
+  fix:
+    file: .proofs/a-reload-with-no-edits-overwrites-the-server.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T16:55:34.566'
+    commit: fd77d5f-dirty
+- id: a-white-pen-wire-is-invisible-on-a-light-board
+  type: bug
+  what: 'A pen pad is filled with the wire''s length colour and outlined in c.wireCasing, which on the
+    light theme is #fbf7ee. A 9-hole wire is white (#f1f3f5), so it renders as three tones of off-white
+    on a #e8dcc0 board: drawn, in the DOM, and invisible. Peter: ''well I cannot see any point to points
+    you have added.'''
+  spec: docs/specs/pen-pad-contrast.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_point_to_point.mjs
+    criterion: '31/31 checks: a white pen pad gets a dark outline and a black one a light outline, every
+      code colour has a real luminance gap between fill and outline, and the fill is still the length
+      colour'
+    runs: 1
+  trial:
+    file: .proofs/a-white-pen-wire-is-invisible-on-a-light-board.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T17:08:16.382'
+    commit: 123f89f-dirty
+  fix:
+    file: .proofs/a-white-pen-wire-is-invisible-on-a-light-board.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T17:11:48.146'
+    commit: 123f89f-dirty
+- id: a-clean-browser-refuses-to-open-a-board
+  type: bug
+  what: 'The editor treats the blank board it starts with as a draft worth protecting, so a browser with
+    nothing in localStorage refuses to open the board it was told to open: it reports ''the copy in your
+    browser is NOT the one on the server'', keeps the empty grid, and draws none of the board''s parts
+    or wires. Peter could not see five wires sitting in the file, through a hard refresh.'
+  spec: docs/specs/boards-on-the-server.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_draft_survives.mjs
+    criterion: '4/4 browser checks: a browser with no stored draft opens the server board and draws its
+      wires and parts with no warning, a real differing draft is still kept, a reload with no edits writes
+      nothing, and an identical draft opens quietly'
+    runs: 1
+  trial:
+    file: .proofs/a-clean-browser-refuses-to-open-a-board.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T17:10:15.257'
+    commit: 123f89f-dirty
+  fix:
+    file: .proofs/a-clean-browser-refuses-to-open-a-board.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T17:11:56.179'
+    commit: 123f89f-dirty
+- id: the-editor-asks-about-a-draft-with-nothing-unsaved-in-it
+  type: bug
+  what: The reload path compares the browser's draft with the server byte for byte and keeps the draft
+    whenever they differ. A draft differs the moment anyone else edits the file, so a user who has typed
+    nothing is told 'the copy in your browser is NOT the one on the server' on every single load, is shown
+    his own stale board, and cannot get to the new one without knowing to click through the Board card.
+    The question must be 'has this browser got unsaved work', not 'do the bytes differ'.
+  spec: docs/specs/boards-on-the-server.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_draft_survives.mjs
+    criterion: '6/6 browser checks: a draft with nothing unsaved gives way silently, a draft with real
+      unsaved work is kept and reported, a clean browser opens the board, a reload with no edits writes
+      nothing, and a differing draft is never destroyed'
+    runs: 1
+  trial:
+    file: .proofs/the-editor-asks-about-a-draft-with-nothing-unsaved-in-it.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T17:24:27.437'
+    commit: c9d0f77-dirty
+  fix:
+    file: .proofs/the-editor-asks-about-a-draft-with-nothing-unsaved-in-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:03:46.553'
+    commit: 0bd7f40-dirty
+- id: the-design-rules-bind-nothing-and-a-board-cannot-be-built-headlessly
+  type: new
+  what: "Peter's design rules \u2014 links are straight, point to point is for signals only, power uses\
+    \ links \u2014 live in a spec document and in my memory, so nothing enforces them: I broke two of\
+    \ them wiring his rotator board and the DRC reported zero errors. And every edit lives inside the\
+    \ editor's click handler, so building a board means throwaway scripts that re-implement hole-finding,\
+    \ occupancy and straightness, wrongly."
+  spec: docs/specs/rules-and-ops.md
+  files:
+  - src/model/rules.js
+  - src/model/ops.js
+  - src/server/index.js
+  test:
+    command:
+    - sh
+    - -c
+    - node tests/model/test_rules.mjs && node tests/model/test_ops.mjs
+    criterion: 'rules 14/14 and ops 16/16: the rules are data in the project, netClassOf reads power from
+      the name, checkRules flags the two faults I made, and every op returns a new board or refuses with
+      the rule named'
+    runs: 1
+  trial:
+    file: .proofs/the-design-rules-bind-nothing-and-a-board-cannot-be-built-headlessly.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T17:42:01.161'
+    commit: c9d0f77-dirty
+  fix:
+    file: .proofs/the-design-rules-bind-nothing-and-a-board-cannot-be-built-headlessly.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T17:46:55.618'
+    commit: c9d0f77-dirty
+- id: a-pen-wire-pad-under-a-component-cannot-be-clicked
+  type: bug
+  what: "Pen wires are drawn in pass 5 and components in pass 6, so a part's body is the topmost element\
+    \ over any wire pad beneath it and takes the click. A pad under a DIP is unreachable \u2014 the same\
+    \ fault break-hit-targets.md fixed for cuts, which wire pads never got because nobody had yet drawn\
+    \ a pen wire under a chip."
+  spec: docs/specs/wire-pad-hit-targets.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_point_to_point.mjs
+    criterion: '35/35 checks: every pen wire end has a hit target naming its wire, drawn after the component
+      bodies, no larger than the pad, and absent when the wires layer is off'
+    runs: 1
+  trial:
+    file: .proofs/a-pen-wire-pad-under-a-component-cannot-be-clicked.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T17:48:54.172'
+    commit: 69f6948-dirty
+  fix:
+    file: .proofs/a-pen-wire-pad-under-a-component-cannot-be-clicked.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T17:50:43.709'
+    commit: 69f6948-dirty
+- id: nothing-tells-the-browser-the-board-file-changed
+  type: new
+  what: 'A board is a file and a screen with no channel between them, so everything built to reconcile
+    them has failed at least once: a reload overwrote the server, opening discarded unsaved work, a clean
+    browser refused to open a board, and ''your copy differs'' showed on every load for ever. Four bugs,
+    one cause. Peter lost work to two of them and told me three times that wires I had written were not
+    on his screen.'
+  spec: docs/specs/live-board-feed.md
+  files:
+  - src/server/live.js
+  - src/server/index.js
+  - public/app.js
+  - package.json
+  test:
+    command:
+    - node
+    - tests/server/test_live.mjs
+    criterion: '7/7 live checks: the feed greets a client, a board file written by hand reaches every
+      client with its version, an API change is indistinguishable from it, list changes are pushed, and
+      a dead socket does not stop the survivors'
+    runs: 1
+  trial:
+    file: .proofs/nothing-tells-the-browser-the-board-file-changed.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T18:01:18.275'
+    commit: 719375e-dirty
+  fix:
+    file: .proofs/nothing-tells-the-browser-the-board-file-changed.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T18:04:51.083'
+    commit: 719375e-dirty
+- id: the-server-does-not-start
+  type: bug
+  what: "attachLive is called from the listen block, which runs partway down src/server/index.js, above\
+    \ the 'let live = null' it references \u2014 a temporal dead zone. The server exits on boot with 'Cannot\
+    \ access live before initialization'. Every server check imports app and calls things after the module\
+    \ has fully evaluated, so 48 suites passed while the server would not run at all."
+  spec: docs/specs/live-board-feed.md
+  files:
+  - src/server/index.js
+  - tests/server/test_server_starts.mjs
+  test:
+    command:
+    - node
+    - tests/server/test_server_starts.mjs
+    criterion: '3/3: started as an entry point the server prints listening, serves / and /api/boards,
+      and greets a live feed client'
+    runs: 1
+  trial:
+    file: .proofs/the-server-does-not-start.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T18:06:02.570'
+    commit: 719375e-dirty
+  fix:
+    file: .proofs/the-server-does-not-start.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T18:10:00.664'
+    commit: 719375e-dirty
+- id: the-api-cannot-place-a-real-component
+  type: new
+  what: "addPart copies 'device' as a tag but never calls placementFor, so a XIAO placed through the API\
+    \ comes back as a bare DIP \u2014 span 7, width 3, zero pin names \u2014 instead of 7x6 with fourteen\
+    \ names. There is no GET /api/devices, so a caller cannot discover what components exist. And freeHolesOn,\
+    \ the query that decides where a wire may land, has no HTTP route, so a caller must guess endpoints\
+    \ \u2014 which is how nine wires ended up on pins."
+  spec: docs/specs/device-aware-api.md
+  files:
+  - src/model/ops.js
+  - src/server/index.js
+  test:
+    command:
+    - node
+    - tests/server/test_api_devices.mjs
+    criterion: '9/9 api checks: a device placed by API is the device and not its footprint, devices can
+      be discovered with their unverified pins, free holes can be asked for per pin, and a two-module
+      board is built and wired through HTTP alone'
+    runs: 1
+  trial:
+    file: .proofs/the-api-cannot-place-a-real-component.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T18:49:49.832'
+    commit: 0094992-dirty
+  fix:
+    file: .proofs/the-api-cannot-place-a-real-component.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T18:51:52.306'
+    commit: 0094992-dirty
+- id: the-rules-bind-the-api-but-not-the-mouse
+  type: bug
+  what: "ops.js refuses a pen wire into an occupied hole, naming the rule, but the editor pushes straight\
+    \ into project.wires and never asks. The same wire is refused over HTTP and accepted by clicking \u2014\
+    \ one board, two sets of rules, and the looser one is the one a person uses. It is how nine wire ends\
+    \ came to sit on pins on Peter's board. The editor also shows only DRC findings, so checkRules reports\
+    \ nothing on screen."
+  spec: docs/specs/editor-on-ops.md
+  files:
+  - public/app.js
+  - src/model/ops.js
+  test:
+    command:
+    - node
+    - tests/browser/test_editor_rules.mjs
+    criterion: '4/4 browser checks: a pen wire drawn onto a pin is refused and the status names the pin
+      and the rule, a wire between free holes works, a wire onto power is allowed and reported in Checks,
+      and place/cut/delete still work'
+    runs: 1
+  trial:
+    file: .proofs/the-rules-bind-the-api-but-not-the-mouse.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T18:55:27.139'
+    commit: 73f903d-dirty
+  fix:
+    file: .proofs/the-rules-bind-the-api-but-not-the-mouse.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T19:08:25.082'
+    commit: a5e22ab-dirty
+- id: a-net-name-on-a-spot-faced-hole-is-invisible-and-unreachable
+  type: bug
+  what: 'A net name anchored to a hole that is later spot-faced belongs to no net, so it is not drawn,
+    not listed in the Nets tab, and cannot be renamed or cleared. Peter''s board has MS1 at (8,17) with
+    a spot cut at that hole: the name is stored and gone.'
+  spec: docs/specs/stranded-net-labels.md
+  files:
+  - src/model/nets.js
+  - src/model/views.js
+  - public/app.js
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/model/test_stranded_labels.mjs; a=$?; node tests/browser/test_stranded_labels_ui.mjs;
+      b=$?; exit $((a || b))
+    criterion: a name on a dead hole is a net-name-stranded warning naming name and hole, listed in the
+      Nets tab under Names on no net with a Clear that removes it from the stored board
+    runs: 1
+  trial:
+    file: .proofs/a-net-name-on-a-spot-faced-hole-is-invisible-and-unreachable.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:55:09.376'
+    commit: 4e33f24-dirty
+  fix:
+    file: .proofs/a-net-name-on-a-spot-faced-hole-is-invisible-and-unreachable.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:57:45.721'
+    commit: 4e33f24-dirty
+- id: the-rules-cannot-be-configured-by-the-person-they-constrain
+  type: new
+  what: 'The design rules are data on the project and overridable by a program, but there is no control
+    anywhere in the editor and no schema, so ''this list will grow so it needs to be configurable'' is
+    unmet: adding a rule would mean typing a control for it by hand.'
+  spec: docs/specs/rules-are-configurable.md
+  files:
+  - src/model/rules.js
+  - src/model/ops.js
+  - src/render/panels.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_rules_config.mjs
+    criterion: every default rule has a RULE_DEFS entry and every entry names a real rule; setRules writes
+      one, refuses an unknown id by name and a pattern that does not compile; a disabled rule is reported;
+      and turning one off changes what ops refuses
+    runs: 1
+  trial:
+    file: .proofs/the-rules-cannot-be-configured-by-the-person-they-constrain.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T20:05:58.514'
+    commit: 9717535-dirty
+  fix:
+    file: .proofs/the-rules-cannot-be-configured-by-the-person-they-constrain.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T20:11:07.860'
+    commit: 9717535-dirty
+- id: an-unverified-pin-name-is-invisible-and-has-no-provenance
+  type: new
+  what: 'unverifiedPins is a field of the catalogue nobody opens: the board draws an unchecked pin name
+    exactly like a checked one, and no device says where its names came from, so nothing on screen distinguishes
+    a name read off a board file from a name nobody has ever verified.'
+  spec: docs/specs/verified-pin-names.md
+  files:
+  - src/parts/devices.js
+  - src/model/ops.js
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/parts/test_pin_provenance.mjs
+    criterion: every device with pin names carries a pinSource and flags only real pins, a placement carries
+      the flag, an unverified name is drawn as unverified, and setPinNames corrects a placement without
+      touching the catalogue
+    runs: 1
+  trial:
+    file: .proofs/an-unverified-pin-name-is-invisible-and-has-no-provenance.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T20:12:15.668'
+    commit: b6353ac-dirty
+  fix:
+    file: .proofs/an-unverified-pin-name-is-invisible-and-has-no-provenance.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T20:14:34.809'
+    commit: b6353ac-dirty
+- id: there-is-no-way-to-build-or-check-a-board-against-a-netlist
+  type: new
+  what: Nothing in src reads a netlist. Comparing a board to one was done by hand in throwaway scripts
+    three times, which is how nine pen wires landed on pins and how a short was reported that did not
+    exist.
+  spec: docs/specs/netlist-to-board.md
+  files:
+  - src/model/netlist.js
+  - src/model/ops.js
+  - src/server/index.js
+  - src/render/panels.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/model/test_netlist.mjs
+    criterion: a netlist parses with problems reported by line, a pin is named not numbered, a split net
+      names both sides, two netlist nets on one board net is a short, every net the plan acts on becomes
+      satisfied and the rest are refused with their rule, and adoptDevice turns a bare DIP into a device
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-way-to-build-or-check-a-board-against-a-netlist.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T20:18:48.751'
+    commit: ca0de04-dirty
+  fix:
+    file: .proofs/there-is-no-way-to-build-or-check-a-board-against-a-netlist.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T20:25:35.873'
+    commit: b2780f2
+- id: the-inspector-still-cuts-copper-by-hand
+  type: bug
+  what: The break branch of the Focus panel does state.project.breaks = state.project.breaks.filter(...)
+    directly, bypassing ops.clearBreak. The headless-build check greps for 'p.breaks =' and this writes
+    state.project.breaks, so it slipped past a check written to catch exactly it.
+  spec: docs/specs/editor-on-ops.md
+  files:
+  - public/app.js
+  - src/model/ops.js
+  test:
+    command:
+    - node
+    - tests/model/test_headless_build.mjs
+    criterion: 'public/app.js writes no project list directly under any spelling and never calls setNetLabel
+      itself: breaks, placement edits and net names all go through ops'
+    runs: 1
+  trial:
+    file: .proofs/the-inspector-still-cuts-copper-by-hand.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:09:58.068'
+    commit: f2edf6c-dirty
+  fix:
+    file: .proofs/the-inspector-still-cuts-copper-by-hand.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:13:27.282'
+    commit: f2edf6c-dirty
+- id: the-focus-panel-does-not-say-where-a-pin-name-came-from
+  type: new
+  what: "A placement now carries pinSource and unverifiedPins and the board draws the doubt, but the Focus\
+    \ panel \u2014 where a person reads a selected part \u2014 says neither."
+  spec: docs/specs/focus-pin-source.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_focus_pin_source.mjs
+    criterion: selecting a catalogue part shows its pin source and names its unverified pins in Focus;
+      a plain part shows neither
+    runs: 1
+  trial:
+    file: .proofs/the-focus-panel-does-not-say-where-a-pin-name-came-from.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:19:54.184'
+    commit: fc04366-dirty
+  fix:
+    file: .proofs/the-focus-panel-does-not-say-where-a-pin-name-came-from.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:22:05.570'
+    commit: fc04366-dirty
+- id: the-catalogue-pinout-and-peters-board-disagree
+  type: bug
+  what: 'Adopting the tmc2209 device onto Peter''s own placement and comparing pin numbers with his net
+    labels: his pins 1-8 line up with catalogue pins 9-16 (0V/GND, 3V3/VIO, M2A, M2B, 0V/GNDM, VMOT/VM
+    all agree) EXCEPT M1A and M1B, which appear swapped; and on the logic side STEP and DIR appear swapped.
+    Two readings of one physical part that disagree. Which is right is not decidable from either source.'
+  spec: docs/specs/verified-pin-names.md
+  files:
+  - src/parts/devices.js
+  test:
+    command: null
+    criterion: the pin order matches the module Peter actually has, read off its silkscreen
+    runs: 1
+  trial: null
+  fix: null
+- id: reopening-a-board-interrogates-the-user-instead-of-saving
+  type: bug
+  what: On reload with unsaved work, openBoard shows a four-sentence banner telling the user their copy
+    is NOT the server's and making them choose between 'make any edit to save yours' and 'open it again
+    to take theirs and lose yours'. It is the last survivor of the draft-reconciliation system Peter called
+    convoluted and confusing, and it asks a question the version guard can answer.
+  spec: docs/specs/live-board-feed.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_reopen_keeps_work.mjs
+    criterion: a reload with unsaved work raises no interrogation banner, keeps the work, and writes it
+      to the server
+    runs: 1
+  trial:
+    file: .proofs/reopening-a-board-interrogates-the-user-instead-of-saving.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T20:28:18.185'
+    commit: 5e4cda2-dirty
+  fix:
+    file: .proofs/reopening-a-board-interrogates-the-user-instead-of-saving.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T20:30:37.759'
+    commit: 36ed01c-dirty
+- id: a-can-body-is-drawn-as-wide-as-its-leads-are-spread
+  type: bug
+  what: "A can-shaped body's radius is Math.max(box.w,box.h)/2 \u2014 half the lead span \u2014 and the\
+    \ body.radius declared on every can part in the library is never read. A capacitor placed with a 13-hole\
+    \ lead run is drawn as a 33mm disc covering a third of the board and hiding the copper under it. No\
+    \ real capacitor grows because you spread its leads."
+  spec: docs/specs/can-body-size.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_can_size.mjs
+    criterion: 'a can is drawn at min(half its lead box, declared radius x pitch): an electrolytic at
+      2 or 13 holes is 1.2 holes, an LED 0.9, and the extent follows the drawing'
+    runs: 1
+  trial:
+    file: .proofs/a-can-body-is-drawn-as-wide-as-its-leads-are-spread.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:17:03.196'
+    commit: d010b5e-dirty
+  fix:
+    file: .proofs/a-can-body-is-drawn-as-wide-as-its-leads-are-spread.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:19:12.761'
+    commit: d010b5e-dirty
+- id: refs-and-values-collide-with-each-other
+  type: bug
+  what: 'On a board with parts close together the ref/value text overlaps: ''LED1L4'' and ''R3 330R''
+    printed over the LED, ''C2 10n'' across the chip. Nothing positions a label with regard to any other
+    label.'
+  spec: docs/specs/labels-dont-collide.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_label_collisions.mjs
+    criterion: on a dense board no two part labels' estimated boxes overlap, and a lone part's label stays
+      above its first pin
+    runs: 1
+  trial:
+    file: .proofs/refs-and-values-collide-with-each-other.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:38:56.197'
+    commit: ca5d1d5-dirty
+  fix:
+    file: .proofs/refs-and-values-collide-with-each-other.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:43:15.534'
+    commit: ca5d1d5-dirty
+- id: renaming-a-board-someone-has-open-resurrects-it-under-the-old-name
+  type: bug
+  what: rename moves the file, but an editor with that board open keeps its slug and its next save re-creates
+    the board under the OLD name. Peter had 555-blinker open; renaming it to 555-blinker-v1 produced a
+    second board, identical copper, called 555 blinker, 16 seconds later. The live feed tells the editor
+    the board list changed and the editor does not follow the rename.
+  spec: docs/specs/rename-while-open.md
+  files:
+  - public/app.js
+  - src/server/live.js
+  - src/server/index.js
+  test:
+    command:
+    - node
+    - tests/browser/test_rename_while_open.mjs
+    criterion: renamed over the API, an open editor adopts the new slug and name, saves an edit to the
+      renamed board with no NOT SAVED banner, and no board reappears under the old slug
+    runs: 1
+  trial:
+    file: .proofs/renaming-a-board-someone-has-open-resurrects-it-under-the-old-name.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:03:12.579'
+    commit: 1e23457-dirty
+  fix:
+    file: .proofs/renaming-a-board-someone-has-open-resurrects-it-under-the-old-name.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:05:16.026'
+    commit: 1e23457-dirty
+- id: there-is-no-way-to-ask-what-a-stored-board-connects
+  type: new
+  what: "/api/check answers nets, findings and runList but takes a whole project in the body. A caller\
+    \ holding only a slug must GET the board and POST it back to ask what is connected to what \u2014\
+    \ so the one verification step that matters (derive the nets from the copper) has no endpoint. I imported\
+    \ src/model/views.js into node by hand every time I needed it while building two boards."
+  spec: docs/specs/netlist-to-board.md
+  files:
+  - src/server/index.js
+  test:
+    command:
+    - node
+    - tests/server/test_board_queries.mjs
+    criterion: GET /api/boards/:slug/check returns nets with their pins, rule findings as well as DRC,
+      and 404s for a missing board
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-way-to-ask-what-a-stored-board-connects.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T22:08:19.067'
+    commit: 36ed01c-dirty
+  fix:
+    file: .proofs/there-is-no-way-to-ask-what-a-stored-board-connects.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T22:11:02.387'
+    commit: a112a8f-dirty
+- id: a-board-cannot-be-resized-through-the-api
+  type: new
+  what: "There is no op or endpoint to change board.cols/rows. Making a board narrower means DELETE and\
+    \ rebuild \u2014 I did it three times on the 555 (20 to 14 to 12 to 11 columns), re-sending about\
+    \ thirty ops each time and losing the board's identity and history. A resize must refuse, naming them,\
+    \ when placements or wires would fall off the edge."
+  spec: docs/specs/netlist-to-board.md
+  files:
+  - src/model/ops.js
+  test:
+    command:
+    - node
+    - tests/model/test_resize.mjs
+    criterion: setBoardSize resizes in place, keeps the pin-carrying nets identical, is refused naming
+      the pin, wire, cut or label that would fall off, never refuses growth, and is registered as an op
+    runs: 1
+  trial:
+    file: .proofs/a-board-cannot-be-resized-through-the-api.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T22:09:58.405'
+    commit: 36ed01c-dirty
+  fix:
+    file: .proofs/a-board-cannot-be-resized-through-the-api.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T22:11:01.792'
+    commit: a112a8f-dirty
+- id: nothing-catches-two-part-bodies-in-the-same-column
+  type: bug
+  what: "Two components in one column whose row spans overlap are physically impossible and no check reports\
+    \ it \u2014 a resistor spanning rows 4-9 and a capacitor spanning 6-8 in the same column pass the\
+    \ DRC, the rules and the netlist check. I avoided it by hand on every layout this session; the one\
+    \ time I nearly shipped it the only evidence was reading the coordinates myself."
+  spec: docs/specs/body-overlap.md
+  files:
+  - src/net/drc.js
+  test:
+    command:
+    - node
+    - tests/net/test_body_overlap.mjs
+    criterion: two placements on the same side whose pin rectangles share area are a bodies-overlap error
+      naming both; links, opposite sides and parts that only touch are not
+    runs: 1
+  trial:
+    file: .proofs/nothing-catches-two-part-bodies-in-the-same-column.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:14:11.254'
+    commit: b9ffe59-dirty
+  fix:
+    file: .proofs/nothing-catches-two-part-bodies-in-the-same-column.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:16:12.672'
+    commit: b9ffe59-dirty
+- id: polarity-is-never-checked-anywhere
+  type: new
+  what: "An LED with its anode on the 0V net and a polarised capacitor with + on 0V both pass every check\
+    \ in the project. The LED on the first 555 board was in backwards and only reading which net each\
+    \ pin landed on caught it \u2014 the DRC, the design rules and the netlist check are all blind to\
+    \ polarity because a netlist states connectivity and says nothing about direction."
+  spec: docs/specs/polarity-by-net-name.md
+  files:
+  - src/model/rules.js
+  test:
+    command:
+    - node
+    - tests/model/test_polarity.mjs
+    criterion: a polarised part with its positive pin on a ground-named net or its negative pin on a supply-named
+      net is a polarity-reversed warning; right-way-round and unnamed nets are silent
+    runs: 1
+  trial:
+    file: .proofs/polarity-is-never-checked-anywhere.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:27:28.656'
+    commit: a4fd5ef-dirty
+  fix:
+    file: .proofs/polarity-is-never-checked-anywhere.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:33:31.299'
+    commit: a4fd5ef-dirty
+- id: the-tightening-pass-has-no-query-behind-it
+  type: new
+  what: "Finding wasted columns and rows means listing what occupies each one. I wrote that by hand in\
+    \ node three times this session, which is the same shape as freeHolesOn \u2014 'written three times\
+    \ in three scratch scripts and wrong twice'. Peter spotted waste I had missed twice because the answer\
+    \ was not on screen anywhere."
+  spec: docs/specs/netlist-to-board.md
+  files:
+  - src/model/views.js
+  - src/server/index.js
+  test:
+    command:
+    - node
+    - tests/server/test_board_queries.mjs
+    criterion: GET /api/boards/:slug/usage names what occupies each column and row and lists the empty
+      ones and the empty strip segments
+    runs: 1
+  trial:
+    file: .proofs/the-tightening-pass-has-no-query-behind-it.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-30T22:08:19.564'
+    commit: 36ed01c-dirty
+  fix:
+    file: .proofs/the-tightening-pass-has-no-query-behind-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-30T22:11:02.970'
+    commit: a112a8f-dirty
+- id: usage-calls-a-column-empty-when-a-package-is-sitting-on-it
+  type: bug
+  what: "usageOf reports emptyColumns purely by hole occupancy, so a column inside a component's footprint\
+    \ reads as empty. On the SMT 555 it names column 7 \u2014 the DIP's own spot-face column, between\
+    \ its two pin columns, whose holes are dead and which cannot be removed. A true statement that invites\
+    \ a wrong conclusion, in the one query whose whole job is to point at waste."
+  spec: docs/specs/usage-covered.md
+  files:
+  - src/model/views.js
+  test:
+    command:
+    - node
+    - tests/model/test_usage_covered.mjs
+    criterion: a column or row inside any placement's pin rectangle is reported in coveredColumns/coveredRows
+      with its refs and not in emptyColumns/emptyRows; a free one is still empty
+    runs: 1
+  trial:
+    file: .proofs/usage-calls-a-column-empty-when-a-package-is-sitting-on-it.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:24:40.422'
+    commit: 39e7aa5-dirty
+  fix:
+    file: .proofs/usage-calls-a-column-empty-when-a-package-is-sitting-on-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:26:32.849'
+    commit: 39e7aa5-dirty
+- id: the-jst-shroud-is-drawn-far-smaller-than-the-real-connector
+  type: bug
+  what: 'The JST XH body is drawn from invented proportions, not the datasheet. Measured against the KiCad
+    footprint library (which matches JST''s own A=2.5(n-1), B=A+4.9): a 3-way shroud is 9.9mm long, 5.75mm
+    deep for the vertical part and 11.5mm for the right angle, extending 9.2mm on one side of the pin
+    row. stripex draws 7.62mm long, 2.92mm deep straight and 4.83mm right angle. The right-angle body
+    covers about 3.6 rows of board beyond its pins and stripex shows 1.45, so a layout will put parts
+    under a connector that is really sitting on them.'
+  spec: docs/specs/named-components.md
+  files:
+  - src/render/svg.js
+  - src/parts/devices.js
+  test:
+    command:
+    - node
+    - tests/render/test_jst_dimensions.mjs
+    criterion: a JST body is the pin span plus 4.9mm at 2/3/5/8 ways, about n+1 holes long, 5.75mm deep
+      vertical and 11.5mm right angle at every way count, with 9.2mm of the right-angle body over the
+      board and the vertical body not centred on the pin row
+    runs: 1
+  trial:
+    file: .proofs/the-jst-shroud-is-drawn-far-smaller-than-the-real-connector.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T09:01:23.672'
+    commit: d5afa6f-dirty
+  fix:
+    file: .proofs/the-jst-shroud-is-drawn-far-smaller-than-the-real-connector.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T09:03:02.243'
+    commit: 8a72b5c-dirty
+- id: the-drawing-is-clipped-to-the-board-so-bodies-hang-off-it
+  type: bug
+  what: "The SVG viewBox is the board rectangle plus a fixed net-name gutter: viewBox='-gutter 0 w+2gutter\
+    \ h'. Nothing accounts for a component body that extends beyond the board, so a right-angle JST at\
+    \ the top edge is cut off \u2014 its housing lies 9.2mm past its pin row and there is no drawing there\
+    \ to show it. Peter: 'in my design the JST 3 pin connector is now partly obscured hidden at the overflow\
+    \ at the top'."
+  spec: docs/specs/jst-real-dimensions.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_extents.mjs
+    criterion: the viewBox includes every part body's extent so a connector overhanging the top or bottom
+      edge is drawn whole and one at the left edge is contained, an ordinary board does not move, and
+      no part at any rotation at any edge draws outside the extent
+    runs: 1
+  trial:
+    file: .proofs/the-drawing-is-clipped-to-the-board-so-bodies-hang-off-it.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T09:13:15.475'
+    commit: 8a72b5c-dirty
+  fix:
+    file: .proofs/the-drawing-is-clipped-to-the-board-so-bodies-hang-off-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T09:14:56.806'
+    commit: 8b7669e-dirty
+- id: an-smt-land-is-drawn-with-one-round-pad-and-one-square
+  type: bug
+  what: 'Pads are drawn square for pin 1 and round for the rest, which marks pin 1 on a DIL or a connector.
+    An SMT chip resistor has two identical rectangular lands and no pin 1, so stripex draws one square
+    and one round and invents an orientation the part does not have. Peter: ''for smt resistors, both
+    ends / pins should be a square footprint and not one round and one square''.'
+  spec: docs/specs/smt-land-pattern.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_extents.mjs
+    criterion: both pads of an smt-0603 and smt-0603-cap are rectangles, a dip still marks pin 1 square,
+      and the pads keep data-pin and data-first
+    runs: 1
+  trial:
+    file: .proofs/an-smt-land-is-drawn-with-one-round-pad-and-one-square.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T09:13:15.900'
+    commit: 8a72b5c-dirty
+  fix:
+    file: .proofs/an-smt-land-is-drawn-with-one-round-pad-and-one-square.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T09:14:57.174'
+    commit: 8b7669e-dirty
+- id: a-net-with-two-different-names-is-not-reported-by-check
+  type: bug
+  what: netLabelProblems() detects a net carrying two different names and nothing calls it. On the Yagi
+    V5 Control Board it returns 'one net is called both 0V and CLK' and GET /api/boards/:slug/check reports
+    0 errors and 7 warnings, none of them that. The merged findings include the DRC, checkRules and disabled
+    rules but not the label conflicts, so the one check that reads a board's own names is dead code.
+  spec: docs/specs/stranded-net-labels.md
+  files:
+  - src/model/views.js
+  test:
+    command:
+    - node
+    - tests/model/test_stranded_labels.mjs
+    criterion: a net carrying two different names is a net-name-conflict warning in findingsFor, which
+      every check endpoint uses
+    runs: 1
+  trial:
+    file: .proofs/a-net-with-two-different-names-is-not-reported-by-check.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:55:09.745'
+    commit: 4e33f24-dirty
+  fix:
+    file: .proofs/a-net-with-two-different-names-is-not-reported-by-check.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:57:46.115'
+    commit: 4e33f24-dirty
+- id: the-right-angle-jst-is-too-long-and-sits-behind-its-pins
+  type: bug
+  what: 'Peter measured his actual right-angle JST XH: the shroud projects about 6.6-7mm over the board
+    (2.7 x pitch), and its pins are IN LINE with the shroud''s edge. stripex draws the projection at 9.2mm
+    (3.62 pitch) and puts 2.3mm of body behind the pin row, both taken from the KiCad horizontal fab outline.
+    The part in his hand beats the footprint library.'
+  spec: docs/specs/jst-real-dimensions.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_jst_dimensions.mjs
+    criterion: a right-angle JST projects 6.8mm (2.7 strips) over the board from its pin row, is 6.8mm
+      deep in total, and has nothing behind the pin row
+    runs: 1
+  trial:
+    file: .proofs/the-right-angle-jst-is-too-long-and-sits-behind-its-pins.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T09:36:15.531'
+    commit: 8b7669e-dirty
+  fix:
+    file: .proofs/the-right-angle-jst-is-too-long-and-sits-behind-its-pins.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:09:04.372'
+    commit: 8113b6c-dirty
+- id: opening-a-board-writes-it-back-to-the-server
+  type: bug
+  what: "A fresh browser that opens a board issues a PUT with no interaction at all \u2014 measured with\
+    \ a request listener: goto, wait, close, and 'PUT /api/boards/jst-check' is sent. That is the defect\
+    \ Peter reported as 'even if I make no changes and refresh the page, it seems it saves it overwriting\
+    \ any beckend changes', reintroduced by the keepDraft branch added on 2026-08-31 that calls scheduleSave()\
+    \ when it keeps work. It overwrote the name of his Yagi V5 Control Board back to a previous value\
+    \ while it was only being screenshotted."
+  spec: docs/specs/live-board-feed.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_open_writes_nothing.mjs
+    criterion: opening a board in a fresh browser sends no non-GET request and leaves the board's version
+      and name unchanged, while a real edit still saves
+    runs: 1
+  trial:
+    file: .proofs/opening-a-board-writes-it-back-to-the-server.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T09:42:56.878'
+    commit: 8b7669e-dirty
+  fix:
+    file: .proofs/opening-a-board-writes-it-back-to-the-server.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T09:44:31.730'
+    commit: 20e934a-dirty
+- id: the-silkscreen-outline-runs-through-its-own-pads
+  type: bug
+  what: "A body outline is drawn as a plain rect with no regard for the pads inside it, so its edge runs\
+    \ across them. On a right-angle JST the pins sit at the shroud's edge and the measured distance from\
+    \ every pad centre to the nearest outline edge is 0.00mm \u2014 the line bisects each pad. Peter:\
+    \ 'is it possible for the silk screen outline not to cut through the device's own pads as it is confusing.'\
+    \ A real silkscreen is clipped back from pads for exactly this reason."
+  spec: docs/specs/silkscreen-components.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_silk_clearance.mjs
+    criterion: a body is drawn through a mask with a hole at every one of its own pads with clearance,
+      one mask per placement, the pads themselves untouched and outside the wrapper, and every part still
+      renders at every rotation
+    runs: 1
+  trial:
+    file: .proofs/the-silkscreen-outline-runs-through-its-own-pads.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T09:48:25.988'
+    commit: 20e934a-dirty
+  fix:
+    file: .proofs/the-silkscreen-outline-runs-through-its-own-pads.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T09:53:11.446'
+    commit: ff459da-dirty
+- id: the-device-catalogue-is-code-so-only-i-can-change-it
+  type: new
+  what: 'DEVICES is a hardcoded object in src/parts/devices.js, so adding a component or correcting one
+    means editing source. Everything that went wrong with components this week needed a code change: the
+    JST body was the wrong size twice, the TMC2209 has two unverified pin names only Peter can settle,
+    and there is no 1206 land for the SMT parts he actually needs. He cannot add or fix a component himself.'
+  spec: docs/specs/component-editor.md
+  files:
+  - src/parts/devices.js
+  - src/server/devices.js
+  - src/server/index.js
+  test:
+    command:
+    - node
+    - tests/parts/test_device_store.mjs
+    criterion: the built-ins survive with nothing stored, a new device joins and can be placed, an override
+      replaces a built-in and dropping it returns to stock, an invalid device is refused naming what is
+      wrong, and editing a device does not change a board already built from it
+    runs: 1
+  trial:
+    file: .proofs/the-device-catalogue-is-code-so-only-i-can-change-it.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T10:31:08.368'
+    commit: ff459da-dirty
+  fix:
+    file: .proofs/the-device-catalogue-is-code-so-only-i-can-change-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T10:35:10.384'
+    commit: ccb4678-dirty
+- id: there-is-no-screen-for-editing-a-component
+  type: new
+  what: "The device catalogue is data now and can be changed over HTTP, but there is nothing in the editor\
+    \ that does it \u2014 Peter would have to curl. He asked for a component editor SCREEN."
+  spec: docs/specs/component-editor.md
+  files:
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: a Components screen lists every device, shows a chosen one's pins with the unverified ones
+      flagged and a footprint preview, saves an edit, reverts to stock, refuses an invalid edit on screen,
+      and lets a new component be made and placed
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-screen-for-editing-a-component.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T11:37:34.152'
+    commit: ccb4678-dirty
+  fix:
+    file: .proofs/there-is-no-screen-for-editing-a-component.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T11:46:05.435'
+    commit: adf656c-dirty
+- id: a-kept-draft-overwrites-the-boards-name
+  type: bug
+  what: "openBoard's keepDraft branch adopts the server's fresh version token and then saves the browser's\
+    \ stale project, so the version guard cannot fire \u2014 the same 'fresh token, older content' mistake\
+    \ that lost Peter two spot cuts. A tab holding unsaved work reverts the board's NAME to whatever it\
+    \ had cached. Reproduced: server says 'Yagi V5 Control Board' before the tab loads and 'Old Name'\
+    \ after, three times against Peter's real board. renameBoard also never persists, so the cached copy\
+    \ is stale the moment a board is renamed."
+  spec: docs/specs/live-board-feed.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_draft_keeps_the_name.mjs
+    criterion: a tab with unsaved work keeps its own parts and does not revert the board's name, and a
+      rename writes the new name into the browser's cached copy
+    runs: 1
+  trial:
+    file: .proofs/a-kept-draft-overwrites-the-boards-name.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T12:00:18.790'
+    commit: adf656c-dirty
+  fix:
+    file: .proofs/a-kept-draft-overwrites-the-boards-name.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T12:02:05.570'
+    commit: 7154ff7-dirty
+- id: the-draft-cache-is-a-second-source-of-truth
+  type: bug
+  what: "localStorage holds a full copy of the board in stripex.project plus a stripex.dirty flag, and\
+    \ that copy is treated as authoritative on load. All three of Peter's name reversions came from it:\
+    \ a stale copy written back over the server. It protects work for the 400ms between an edit and its\
+    \ save, and lets you draw while a server on the same machine is down \u2014 against three data-identity\
+    \ incidents, two of which I misdiagnosed."
+  spec: docs/specs/no-draft-cache.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_no_draft_cache.mjs
+    criterion: the browser keeps no copy of the board and no dirty flag, before or after an edit; a reload
+      shows what the server has including a change made behind its back; the name survives; an unreachable
+      server is reported; and an edit still autosaves
+    runs: 1
+  trial:
+    file: .proofs/the-draft-cache-is-a-second-source-of-truth.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T18:23:15.939'
+    commit: 7154ff7-dirty
+  fix:
+    file: .proofs/the-draft-cache-is-a-second-source-of-truth.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T18:37:12.559'
+    commit: e4ce89b-dirty
+- id: the-component-preview-shows-an-unbuildable-placement
+  type: bug
+  what: 'The footprint preview places every device at rot 0, so a DIP''s pins run ALONG the strips and
+    every pin shorts to its neighbour. It is not a picture of the component, it is a picture of a mistake,
+    and it is the one thing on the page a person is meant to trust. Peter: ''the DIP is mis-orientated,
+    it is default placed in the wrong direction with the strips being inline with the pins instead of
+    across them.'''
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: a DIP previews with its pins across the strips and the cuts its package requires
+    runs: 1
+  trial:
+    file: .proofs/the-component-preview-shows-an-unbuildable-placement.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T19:01:59.843'
+    commit: d3578ea-dirty
+  fix:
+    file: .proofs/the-component-preview-shows-an-unbuildable-placement.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T19:10:10.908'
+    commit: b3120cb-dirty
+- id: the-component-editor-is-a-dumped-form
+  type: bug
+  what: 'Every field on one grid with invented labels, no hierarchy and no link to the drawing. Peter,
+    listing them: pin 1 is not shown, a pin cannot be selected with its field highlighted, the drawing
+    shows neither numbers nor readable names, and ''the entire layout at the top is atrocious, looks like
+    you just dumped all the fields on the page''. Also found: the footprint select shows internal ids,
+    Span and Width ignore the spanLabel and widthLabel the library provides per part, silk is a full-width
+    bar, the source field truncates, category headings are raw internal words, there is no search in a
+    list that is 90 percent JST, and a quarter of the page is empty while the drawing is squeezed.'
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: every pad carries its number with pin 1 marked, selection is linked both ways, the pin
+      table splits where the package turns, the fields carry the library's own labels, and the catalogue
+      can be searched
+    runs: 1
+  trial:
+    file: .proofs/the-component-editor-is-a-dumped-form.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T19:02:38.544'
+    commit: d3578ea-dirty
+  fix:
+    file: .proofs/the-component-editor-is-a-dumped-form.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T19:10:41.970'
+    commit: b3120cb-dirty
+- id: the-drawing-numbers-its-pads-but-does-not-name-them
+  type: bug
+  what: 'Peter asked for numbers AND names on the footprint drawing: ''the image does not show pin numbers
+    nor names''. The rebuild added numbered badges and turned the renderer''s pin-name layer off, because
+    at preview size the names smeared into DIRSTEPNC3NC4SPREADMS2. So the drawing carries 16 numbers and
+    0 names, and half the complaint stands: you still cannot read the part without looking away to the
+    table.'
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: every pad on the drawing carries its name as well as its number, each placed on a side
+      of the package
+    runs: 1
+  trial:
+    file: .proofs/the-drawing-numbers-its-pads-but-does-not-name-them.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T20:55:12.298'
+    commit: 48da59e-dirty
+  fix:
+    file: .proofs/the-drawing-numbers-its-pads-but-does-not-name-them.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T20:59:30.673'
+    commit: 5b8e08a-dirty
+- id: the-pin-number-sits-on-the-pad-instead-of-in-the-margin
+  type: bug
+  what: 'The number badge is drawn over the pad and only the name is in the margin. Peter: ''the pin number
+    or name should be shown right and left justified towards the centre instead on over the pin. closest
+    to the pin will be the pin number, the next col will be pin name.'' Both belong in the margin, in
+    two columns justified toward the board, with the number adjacent to its pad and the name outboard
+    of it.'
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: 'the number and the name sit INSIDE the silkscreen outline, reading inward from each pad:
+      number first, then name'
+    runs: 1
+  trial:
+    file: .proofs/the-pin-number-sits-on-the-pad-instead-of-in-the-margin.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:04:37.325'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/the-pin-number-sits-on-the-pad-instead-of-in-the-margin.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:09:32.210'
+    commit: 5b8e08a-dirty
+  voided:
+  - trial:
+      file: .proofs/the-pin-number-sits-on-the-pad-instead-of-in-the-margin.trial.txt
+      exit: 1
+      runs: 1
+      failures: 1
+      at: '2026-08-31T21:01:43.277'
+      commit: 5b8e08a-dirty
+    fix: null
+    why: 'Peter corrected the requirement twice: inside the silkscreen, not outside it, and the order
+      reads pin, number, name inward from each pad'
+    at: '2026-08-31T21:03:53.592'
+    was:
+      files:
+      - public/app.js
+      - public/style.css
+      spec: docs/specs/component-editor-rebuild.md
+- id: the-preview-spends-its-scale-on-empty-stripboard
+  type: bug
+  what: the component drawing is padded with a 6-hole margin and does not fill its pane, so the pin callouts
+    render at 7px and the two columns collide across the middle
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: the package body fills at least 55% of the drawing pane's width, pin names are at least
+      12px, and the two callout columns keep a gap
+    runs: 1
+  trial:
+    file: .proofs/the-preview-spends-its-scale-on-empty-stripboard.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:16:49.379'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/the-preview-spends-its-scale-on-empty-stripboard.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:17:31.501'
+    commit: 5b8e08a-dirty
+  voided:
+  - trial:
+      file: .proofs/the-preview-spends-its-scale-on-empty-stripboard.trial.txt
+      exit: 1
+      runs: 1
+      failures: 1
+      at: '2026-08-31T21:10:32.861'
+      commit: 5b8e08a-dirty
+    fix: null
+    why: 'the substrate is the wrong thing to measure: the package body legitimately overhangs the board,
+      and it is the package''s width that decides whether two columns of names fit'
+    at: '2026-08-31T21:16:07.378'
+    was:
+      files:
+      - public/app.js
+      - public/style.css
+      spec: docs/specs/component-editor-rebuild.md
+- id: the-preview-hangs-half-a-dual-row-package-off-the-board
+  type: bug
+  what: the preview board is one column too narrow, so every DIP and module has its whole far side of
+    pins sitting off the substrate
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: no pad of any previewed device is drawn outside the substrate
+    runs: 1
+  trial:
+    file: .proofs/the-preview-hangs-half-a-dual-row-package-off-the-board.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:21:20.277'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/the-preview-hangs-half-a-dual-row-package-off-the-board.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:22:04.294'
+    commit: 5b8e08a-dirty
+- id: pin-names-are-printed-in-dim-ink-over-the-silkscreen
+  type: bug
+  what: the pin names in the preview are drawn in ink-dim over green silk with copper and holes behind
+    them, which is too little contrast to read
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: a pin name's contrast against the silk it is printed on is at least WCAG AA 4.5:1
+    runs: 1
+  trial:
+    file: .proofs/pin-names-are-printed-in-dim-ink-over-the-silkscreen.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:23:38.465'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/pin-names-are-printed-in-dim-ink-over-the-silkscreen.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:24:38.334'
+    commit: 5b8e08a-dirty
+- id: the-preview-guesses-its-board-size-instead-of-deriving-it
+  type: bug
+  what: the preview board size is guessed from span and width, so the package sits off-centre with dead
+    strips on one side
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: every previewed package has equal board margin left/right and top/bottom
+    runs: 1
+  trial:
+    file: .proofs/the-preview-guesses-its-board-size-instead-of-deriving-it.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:26:59.752'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/the-preview-guesses-its-board-size-instead-of-deriving-it.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:30:05.483'
+    commit: 5b8e08a-dirty
+- id: a-jst-prints-its-pin-number-twice
+  type: bug
+  what: "a JST's pin names ARE its pin numbers, so the callout reads '1 1' \u2014 the name chip repeats\
+    \ the badge beside it"
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: no callout prints a name identical to the pin number already on its badge
+    runs: 1
+  trial:
+    file: .proofs/a-jst-prints-its-pin-number-twice.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:27:50.908'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/a-jst-prints-its-pin-number-twice.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:30:52.696'
+    commit: 5b8e08a-dirty
+- id: an-empty-pin-name-still-paints-its-chip
+  type: bug
+  what: suppressing a name that only repeats the pin number leaves an empty panel-coloured chip painted
+    on the silk beside every badge
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: no empty pin-name chip is painted beside a badge
+    runs: 1
+  trial:
+    file: .proofs/an-empty-pin-name-still-paints-its-chip.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-08-31T21:32:22.343'
+    commit: 5b8e08a-dirty
+  fix:
+    file: .proofs/an-empty-pin-name-still-paints-its-chip.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-08-31T21:33:16.705'
+    commit: 5b8e08a-dirty
+- id: a-net-is-drawn-as-connected-with-nothing-recording-that-it-was-rung-out
+  type: new
+  what: a net that exists in copper cannot be marked as verified in the built article, so an unfitted
+    wire is indistinguishable from a fitted one
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - src/model/views.js
+  test:
+    command: null
+    criterion: null
+    runs: 1
+  trial: null
+  fix: null
+- id: there-is-no-sot23-so-a-mosfet-is-drawn-as-a-to92
+  type: new
+  what: the catalogue has no SMT semiconductor package, so a SOT-23 MOSFET goes down with a TO-92 outline
+    the builder does not have in hand
+  spec: docs/specs/sot23-and-accepted-findings.md
+  files:
+  - src/parts/library.js
+  - src/model/rotate.js
+  - src/render/svg.js
+  - src/net/drc.js
+  test:
+    command:
+    - node
+    - tests/parts/test_sot23.mjs
+    criterion: a sot23 exists as a copper-side 2+1 part with pin 3 drawn half a hole along its strip,
+      derives one knife cut, has the real part's handedness in the underside view, and raises pad-over-cut
+      and pad-between-strips where it cannot be built
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-sot23-so-a-mosfet-is-drawn-as-a-to92.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T07:31:12.780'
+    commit: d120cc9-dirty
+  fix:
+    file: .proofs/there-is-no-sot23-so-a-mosfet-is-drawn-as-a-to92.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T07:33:41.062'
+    commit: d120cc9-dirty
+- id: a-board-cannot-say-a-finding-is-intended
+  type: new
+  what: a deliberate tie such as gate-to-source trips short-across-part as a permanent error, and there
+    is no way for the board to accept that one finding on that one placement with a reason
+  spec: docs/specs/sot23-and-accepted-findings.md
+  files:
+  - src/net/drc.js
+  - src/model/ops.js
+  - src/model/board.js
+  - src/model/views.js
+  test:
+    command: null
+    criterion: null
+    runs: 1
+  trial: null
+  fix: null
+- id: a-sot23-drawing-does-not-say-which-end-is-pin-1
+  type: bug
+  what: "every land on a SOT-23 is drawn square, so pins 1 and 2 are indistinguishable \u2014 on an AO3401\
+    \ that is gate against source"
+  spec: docs/specs/sot23-and-accepted-findings.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/parts/test_sot23.mjs
+    criterion: a SOT-23 carries a pin 1 mark nearer pin 1 than pin 2, in the top and underside views,
+      at rot 0 and 180
+    runs: 1
+  trial:
+    file: .proofs/a-sot23-drawing-does-not-say-which-end-is-pin-1.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T07:34:55.067'
+    commit: d120cc9-dirty
+  fix:
+    file: .proofs/a-sot23-drawing-does-not-say-which-end-is-pin-1.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T07:35:08.787'
+    commit: d120cc9-dirty
+- id: the-part-library-has-never-been-committed
+  type: bug
+  what: a global gitignore rule for Python packaging, parts/, matches src/parts and tests/parts, so the
+    part library, the device catalogue and their tests have never been in git
+  spec: docs/specs/sot23-and-accepted-findings.md
+  files:
+  - .gitignore
+  test:
+    command:
+    - bash
+    - -c
+    - 'n=0; t=0; for f in src/parts/*.js tests/parts/*.mjs; do t=$((t+1)); if git ls-files --error-unmatch
+      "$f" >/dev/null 2>&1; then n=$((n+1)); else echo "untracked: $f"; fi; done; echo "tracked $n of
+      $t"; [ "$n" -eq "$t" ]'
+    criterion: every file under src/parts and tests/parts is tracked by git, reported as a count
+    runs: 1
+  trial:
+    file: .proofs/the-part-library-has-never-been-committed.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T07:37:41.227'
+    commit: 2b8f22c-dirty
+  fix:
+    file: .proofs/the-part-library-has-never-been-committed.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T07:37:44.366'
+    commit: 2b8f22c-dirty
+- id: a-package-is-named-for-one-thing-it-might-contain
+  type: bug
+  what: SOT-23, TO-92 and TO-220 are named as transistors or regulators, but each package holds FETs,
+    BJTs, regulators and diodes alike, and the SOT-23 defaults to Q
+  spec: docs/specs/sot23-and-accepted-findings.md
+  files:
+  - src/parts/library.js
+  test:
+    command:
+    - node
+    - tests/parts/test_sot23.mjs
+    criterion: sot23, to92 and to220 are named by package with no function in the name, and sot23 defaults
+      to U
+    runs: 1
+  trial:
+    file: .proofs/a-package-is-named-for-one-thing-it-might-contain.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T07:58:31.106'
+    commit: 15a1ccb-dirty
+  fix:
+    file: .proofs/a-package-is-named-for-one-thing-it-might-contain.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T07:59:47.685'
+    commit: 15a1ccb-dirty
+- id: a-part-does-not-say-which-way-its-pins-cross-the-strips
+  type: bug
+  what: only the wire link declares a default rotation, so every other part is placed at 0 with its pin
+    row along one strip and every pin shorted to its neighbour
+  spec: docs/specs/pins-run-across-strips.md
+  files:
+  - src/parts/library.js
+  - src/parts/devices.js
+  - src/model/ops.js
+  - src/net/drc.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/parts/test_pins_run.mjs
+    criterion: every part with a pin row declares pinsRun (across, along or either), its default rotation
+      is derived from it, devices may override and the override travels, addPart defaults from it, and
+      a placement turned against across/along warns pins-against-strips while either never does
+    runs: 1
+  trial:
+    file: .proofs/a-part-does-not-say-which-way-its-pins-cross-the-strips.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T08:52:48.036'
+    commit: 8491894-dirty
+  fix:
+    file: .proofs/a-part-does-not-say-which-way-its-pins-cross-the-strips.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T08:52:53.249'
+    commit: 8491894-dirty
+- id: the-library-cannot-tell-one-item-from-the-next
+  type: bug
+  what: 'the Library card is similar grey text throughout: weak group headings, no footprints, devices
+    styled apart from parts, no way to collapse a group, and no list/tiles choice'
+  spec: docs/specs/library-layout.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_library_layout.mjs
+    criterion: the Library header has a list/tiles toggle outside its button that persists; every non-wire
+      item shows a footprint in both views; devices and parts share one style; groups show a count, collapse,
+      and still yield search matches; tiles keep part settings
+    runs: 1
+  trial:
+    file: .proofs/the-library-cannot-tell-one-item-from-the-next.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T08:31:24.910'
+    commit: 9faa0a2-dirty
+  fix:
+    file: .proofs/the-library-cannot-tell-one-item-from-the-next.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T08:35:51.139'
+    commit: 9faa0a2-dirty
+- id: the-pins-run-choice-stacks-its-buttons
+  type: bug
+  what: the Pins run choice on the Components screen borrowed the .cuts class, which a later rule makes
+    a column, so Across / Along / Either stack full-width instead of reading as one segmented choice
+  spec: docs/specs/pins-run-across-strips.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: Across / Along / Either sit on one row, the chosen one is lit, and choosing Along puts
+      pins 1 and 2 of the preview on one strip
+    runs: 1
+  trial:
+    file: .proofs/the-pins-run-choice-stacks-its-buttons.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T08:57:21.192'
+    commit: 8491894-dirty
+  fix:
+    file: .proofs/the-pins-run-choice-stacks-its-buttons.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T08:59:23.173'
+    commit: 8491894-dirty
+- id: there-is-no-sot23-mosfet-device
+  type: new
+  what: a SOT-23 MOSFET places as a bare sot23 with pins 1 2 3 and prefix U, so every board has to rename
+    G S D by hand
+  spec: docs/specs/sot23-and-accepted-findings.md
+  files:
+  - src/parts/devices.js
+  test:
+    command:
+    - node
+    - tests/parts/test_sot23.mjs
+    criterion: a sot23-mosfet device exists on the sot23 package with pins G S D, prefix Q, category semiconductor,
+      a stated pin source, and places along its strip
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-sot23-mosfet-device.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T09:54:44.333'
+    commit: f13a427-dirty
+  fix:
+    file: .proofs/there-is-no-sot23-mosfet-device.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T09:56:04.379'
+    commit: f13a427-dirty
+- id: the-components-preview-garbles-a-sot23
+  type: bug
+  what: the Components preview lays every callout out as two columns, so a SOT-23's pin 1 name is hidden
+    under pin 2's, and a copper-side part is drawn from the top, mirrored
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: the SOT-23 MOSFET previews from the underside with G, S and D all visible and no two callouts
+      overlapping
+    runs: 1
+  trial:
+    file: .proofs/the-components-preview-garbles-a-sot23.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T09:59:09.864'
+    commit: b3bf1e0-dirty
+  fix:
+    file: .proofs/the-components-preview-garbles-a-sot23.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T10:01:26.688'
+    commit: b3bf1e0-dirty
+- id: a-sot23-callout-sits-on-its-own-pad
+  type: bug
+  what: the above/below callouts on a SOT-23 preview clear their pad by a fixed 14px, less than half a
+    pad at preview zoom, so each name sits over the pad it labels
+  spec: docs/specs/component-editor-rebuild.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_components_screen.mjs
+    criterion: on the SOT-23 MOSFET preview no callout overlaps any pad, as well as none overlapping another
+    runs: 1
+  trial:
+    file: .proofs/a-sot23-callout-sits-on-its-own-pad.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T10:04:14.215'
+    commit: b3bf1e0-dirty
+  fix:
+    file: .proofs/a-sot23-callout-sits-on-its-own-pad.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T10:05:21.756'
+    commit: b3bf1e0-dirty
+- id: a-component-cannot-switch-side
+  type: new
+  what: which side of the board a part is on is fixed by the part; no placement, device or API call can
+    move it to the other side, and the field that would decide it also decides hole occupancy
+  spec: docs/specs/switchable-side.md
+  files:
+  - src/parts/library.js
+  - src/parts/devices.js
+  - src/model/board.js
+  - src/model/edit.js
+  - src/model/ops.js
+  - src/net/drc.js
+  - src/model/rules.js
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/model/test_side.mjs; a=$?; node tests/browser/test_side_switch.mjs; b=$?; exit $((a ||
+      b))
+    criterion: a placement carries a side defaulting to its device's then part's; Focus, addPart, setSide
+      and devices can set it; surface-mount stays the part's so hole occupancy is unchanged; the drawing
+      ghosts or shows by the placement's side; the Focus choice switches it and undo restores it
+    runs: 1
+  trial:
+    file: .proofs/a-component-cannot-switch-side.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T12:55:54.991'
+    commit: 58b84a8-dirty
+  fix:
+    file: .proofs/a-component-cannot-switch-side.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T12:59:06.078'
+    commit: 58b84a8-dirty
+- id: a-device-placed-by-the-api-takes-its-footprints-letter
+  type: bug
+  what: addPart with a device numbers the ref from the base part's prefix, so a sot23-mosfet (prefix Q)
+    is placed as U2
+  spec: docs/specs/device-aware-api.md
+  files:
+  - src/model/ops.js
+  - src/model/board.js
+  test:
+    command:
+    - node
+    - tests/model/test_device_refs.mjs
+    criterion: addPart with a device numbers from the device's refPrefix (sot23-mosfet is Q1 then Q2),
+      and falls back to the footprint's letter when the device has none
+    runs: 1
+  trial:
+    file: .proofs/a-device-placed-by-the-api-takes-its-footprints-letter.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:59:38.506'
+    commit: 39f0f6d-dirty
+  fix:
+    file: .proofs/a-device-placed-by-the-api-takes-its-footprints-letter.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:01:15.703'
+    commit: 39f0f6d-dirty
+- id: the-board-has-no-row-letters-or-column-numbers
+  type: new
+  what: nothing at the board's edges says which row or column a hole is in, and there is no layer for
+    it
+  spec: docs/specs/edge-labels-layer.md
+  files:
+  - src/render/svg.js
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/render/test_edge_labels.mjs
+    criterion: an edgeLabels layer, on by default, letters rows A..Z AA.. on both sides and numbers columns
+      top and bottom, mirrors columns in the underside view, keeps the same window when switched off,
+      and no label lies inside the board or on a net-name plate
+    runs: 1
+  trial:
+    file: .proofs/the-board-has-no-row-letters-or-column-numbers.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T13:15:26.155'
+    commit: d6474ff-dirty
+  fix:
+    file: .proofs/the-board-has-no-row-letters-or-column-numbers.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T13:18:57.089'
+    commit: d6474ff-dirty
+- id: the-board-cannot-be-printed
+  type: new
+  what: 'there is no way to print a board: no button, no black and white, no top and underside on one
+    sheet, no actual-size or fill choice'
+  spec: docs/specs/print-sheet.md
+  files:
+  - src/render/print.js
+  - src/render/svg.js
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_sheet.mjs; b=$?; exit
+      $((a || b))
+    criterion: printLayout fits a 30x14 board both sides at actual size on A4, says when it does not and
+      to use Fill the page, fill gives one largest scale; a mono theme draws a white board with black
+      ink; the Print button opens the three choices, builds a mono top+underside sheet without check markers,
+      calls print, and print media shows only the sheet
+    runs: 1
+  trial:
+    file: .proofs/the-board-cannot-be-printed.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T13:20:59.692'
+    commit: c1ce68d-dirty
+  fix:
+    file: .proofs/the-board-cannot-be-printed.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T13:24:13.108'
+    commit: c1ce68d-dirty
+- id: there-is-no-wire-link-button-beside-the-pen-wire
+  type: new
+  what: the toolbar arms a pen wire in one click but a wire link needs the Library
+  spec: docs/specs/wire-link-quick-button.md
+  files:
+  - public/index.html
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_wire_link_button.mjs
+    criterion: a wire link button sits after the pen wire, lights alone when clicked, marks the Library
+      item, places a wire-link at rot 90, and unlights when the pen wire is armed
+    runs: 1
+  trial:
+    file: .proofs/there-is-no-wire-link-button-beside-the-pen-wire.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T13:25:01.996'
+    commit: c02c12b-dirty
+  fix:
+    file: .proofs/there-is-no-wire-link-button-beside-the-pen-wire.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T13:26:50.027'
+    commit: c02c12b-dirty
+- id: the-toolbar-hides-print-below-1600px
+  type: bug
+  what: 'the toolbar is 1655px wide, so below 1920px its last buttons scroll out of sight: at 1440 theme,
+    download, open, restore, export and print are all hidden'
+  spec: docs/specs/toolbar-fits.md
+  files:
+  - public/index.html
+  - public/style.css
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_toolbar_fits.mjs
+    criterion: at 1440 and 1600 with a long board name no toolbar button is out of sight; a More menu
+      holds theme, save, load, restore, export, opens, closes on Escape and on a choice, and the choice
+      works; the board's full name is its tooltip
+    runs: 1
+  trial:
+    file: .proofs/the-toolbar-hides-print-below-1600px.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:49:00.148'
+    commit: b59c66c-dirty
+  fix:
+    file: .proofs/the-toolbar-hides-print-below-1600px.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:53:33.941'
+    commit: b59c66c-dirty
+- id: print-is-a-header-dialog-that-forgets-and-has-no-tables
+  type: bug
+  what: print lives behind a header button in a dialog, forgets every choice, cannot choose which layers
+    print, and prints no BOM, cut list or wire runs; the underside view is labelled Underside, not Bot
+  spec: docs/specs/print-view.md
+  files:
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  - src/model/views.js
+  - src/render/print.js
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/model/test_bom.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit $((a ||
+      b))
+    criterion: Top|Bot|Print views, no header Print; the Print view replaces the board with Print top
+      right; BOM, layers and page choices drive a live preview and persist across reload; the same sheet
+      prints; bomFor, holeName, cutRows and wireRows name things by the edge labels
+    runs: 1
+  trial:
+    file: .proofs/print-is-a-header-dialog-that-forgets-and-has-no-tables.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:38:16.708'
+    commit: c50df96-dirty
+  fix:
+    file: .proofs/print-is-a-header-dialog-that-forgets-and-has-no-tables.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:44:08.582'
+    commit: c50df96-dirty
+- id: card-listeners-pile-up-so-a-layer-toggle-hangs
+  type: bug
+  what: "paintLayers and paintRules add a change listener to their card body on every repaint; draw()\
+    \ repaints Layers on every change, so handlers accumulate and one toggle runs one full redraw per\
+    \ edit made so far \u2014 302ms rising to 2382ms in eight toggles on the Yagi board"
+  spec: docs/specs/left-panel-cards.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_card_listeners.mjs
+    criterion: after a session of repaints, one layer toggle writes the layer settings once, and the Rules
+      card carries one change listener rather than one per repaint
+    runs: 1
+  trial:
+    file: .proofs/card-listeners-pile-up-so-a-layer-toggle-hangs.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:31:47.349'
+    commit: 85f8aa1-dirty
+  fix:
+    file: .proofs/card-listeners-pile-up-so-a-layer-toggle-hangs.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:37:27.929'
+    commit: 85f8aa1-dirty
+- id: the-bom-counts-different-sized-sockets-as-one
+  type: bug
+  what: the BOM names a parametric part by its catalogue name only, so a 16-pin and a 14-pin DIP socket,
+    or a 3-way and 5-way header, are one row with Qty 2
+  spec: docs/specs/print-view.md
+  files:
+  - src/model/views.js
+  test:
+    command:
+    - node
+    - tests/model/test_bom.mjs
+    criterion: a BOM names a part whose pin count varies with its pin count, so different-sized sockets
+      and headers are separate rows, and leaves fixed-pin parts unnamed by count
+    runs: 1
+  trial:
+    file: .proofs/the-bom-counts-different-sized-sockets-as-one.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:44:44.258'
+    commit: c50df96-dirty
+  fix:
+    file: .proofs/the-bom-counts-different-sized-sockets-as-one.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:44:54.488'
+    commit: c50df96-dirty
+- id: a-label-on-a-cut-hole-cannot-be-cleared-over-the-api
+  type: bug
+  what: setLabel runs the dead-hole guard before checking whether it is a clear, so a stored name on a
+    spot-faced hole can never be removed over the API (device, rakio-2-cam-top RX at 5,5)
+  spec: docs/specs/stranded-net-labels.md
+  files:
+  - src/model/ops.js
+  test:
+    command:
+    - node
+    - tests/model/test_stranded_labels.mjs
+    criterion: setLabel with no name clears a stored name on a dead hole and still refuses to set one
+      there
+    runs: 1
+  trial:
+    file: .proofs/a-label-on-a-cut-hole-cannot-be-cleared-over-the-api.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T15:55:10.105'
+    commit: 4e33f24-dirty
+  fix:
+    file: .proofs/a-label-on-a-cut-hole-cannot-be-cleared-over-the-api.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T15:57:46.498'
+    commit: 4e33f24-dirty
+- id: focus-names-a-device-by-its-footprint
+  type: bug
+  what: selecting a device in Focus shows the Part as its footprint (DIP / IC socket) instead of the device
+    (TMC2209 SilentStepStick)
+  spec: docs/specs/focus-pin-source.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_focus_pin_source.mjs
+    criterion: Focus names a placed device by the device's name and a plain part by its part name
+    runs: 1
+  trial:
+    file: .proofs/focus-names-a-device-by-its-footprint.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:22:22.673'
+    commit: 452eee8-dirty
+  fix:
+    file: .proofs/focus-names-a-device-by-its-footprint.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:24:12.080'
+    commit: 452eee8-dirty
+- id: a-slow-saves-echo-wipes-undo
+  type: bug
+  what: when a save's response arrives after the live feed's echo of it, the editor takes its own save
+    for a foreign change, reloads, and history.reset() wipes undo
+  spec: docs/specs/save-echo.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_save_echo.mjs
+    criterion: with every save response held back 1.5 s, an edit is still undone by Ctrl+Z and no changed-on-the-server
+      banner appears
+    runs: 1
+  trial:
+    file: .proofs/a-slow-saves-echo-wipes-undo.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:30:27.491'
+    commit: a4fd5ef-dirty
+  fix:
+    file: .proofs/a-slow-saves-echo-wipes-undo.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:33:37.025'
+    commit: a4fd5ef-dirty
+- id: an-edit-during-a-save-is-never-saved
+  type: bug
+  what: saveToServer returns when a save is already in flight and nothing asks again, so an edit made
+    during a slow save never reaches the server while the indicator says saved
+  spec: docs/specs/edit-during-save.md
+  files:
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_edit_during_save.mjs
+    criterion: with every save response held back 2 s, an edit made during the first save reaches the
+      server
+    runs: 1
+  trial:
+    file: .proofs/an-edit-during-a-save-is-never-saved.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T16:34:13.588'
+    commit: 63428b7-dirty
+  fix:
+    file: .proofs/an-edit-during-a-save-is-never-saved.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T16:37:53.403'
+    commit: 63428b7-dirty
+- id: a-board-has-nowhere-to-put-a-build-note
+  type: new
+  what: a board cannot carry free text that is not a net name, so build notes (e.g. 'Rp1M+Rs220k AT DOOR'
+    on rakio-2-cam-top) go into net labels and trip net-name-conflict
+  spec: docs/specs/build-notes.md
+  files:
+  - src/model/board.js
+  - src/model/ops.js
+  test:
+    command: null
+    criterion: null
+    runs: 1
+  trial: null
+  fix: null
+- id: print-layers-cannot-differ-between-top-and-bot
+  type: new
+  what: the print view has one set of layers for both sides; Peter needs a Top column and a Bot column
+  spec: docs/specs/print-view-2.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit
+      $((a || b))
+    criterion: 'print-view-2.md: per-side layer columns remembered; 6 mm margins and a 198 mm sheet with
+      tables no wider; a One page size whose A4 PDF of both sides plus the BOM is one page'
+    runs: 1
+  trial:
+    file: .proofs/print-layers-cannot-differ-between-top-and-bot.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T17:40:58.954'
+    commit: ed55254-dirty
+  fix:
+    file: .proofs/print-layers-cannot-differ-between-top-and-bot.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T17:48:48.467'
+    commit: ed55254-dirty
+- id: the-print-sheet-has-no-a4-width-or-6mm-margin
+  type: bug
+  what: the print sheet has no width of its own, so under print media it and its table are 423 mm wide
+    while the views are 121 mm; margins are 10 mm, Peter needs 6
+  spec: docs/specs/print-view-2.md
+  files:
+  - src/render/print.js
+  - public/style.css
+  - public/app.js
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit
+      $((a || b))
+    criterion: 'print-view-2.md: per-side layer columns remembered; 6 mm margins and a 198 mm sheet with
+      tables no wider; a One page size whose A4 PDF of both sides plus the BOM is one page'
+    runs: 1
+  trial:
+    file: .proofs/the-print-sheet-has-no-a4-width-or-6mm-margin.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T17:41:06.357'
+    commit: ed55254-dirty
+  fix:
+    file: .proofs/the-print-sheet-has-no-a4-width-or-6mm-margin.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T17:48:56.453'
+    commit: ed55254-dirty
+- id: print-cannot-fit-board-and-tables-on-one-page
+  type: new
+  what: there is no size choice that fits the views and the tables on one A4 sheet; both sides with only
+    a small BOM prints on 2 pages
+  spec: docs/specs/print-view-2.md
+  files:
+  - src/render/print.js
+  - public/index.html
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit
+      $((a || b))
+    criterion: 'print-view-2.md: per-side layer columns remembered; 6 mm margins and a 198 mm sheet with
+      tables no wider; a One page size whose A4 PDF of both sides plus the BOM is one page'
+    runs: 1
+  trial:
+    file: .proofs/print-cannot-fit-board-and-tables-on-one-page.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T17:41:14.870'
+    commit: ed55254-dirty
+  fix:
+    file: .proofs/print-cannot-fit-board-and-tables-on-one-page.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T17:49:04.495'
+    commit: ed55254-dirty
+- id: the-printed-sheet-gets-browser-headers-and-no-margins
+  type: bug
+  what: the browser prints its own date, tab title and footer in the @page margin, and the 6 mm margin
+    depends on the print dialog, so Peter's print had no margins
+  spec: docs/specs/build-sheet-design.md
+  files:
+  - public/style.css
+  - public/app.js
+  test:
+    command:
+    - node
+    - tests/browser/test_print_view.mjs
+    criterion: 'test_print_view check NO BROWSER MARGIN BOX, AND THE SHEET PADS ITS OWN 6 mm passes: print-media
+      @page margin 0px, sheet padding 6 mm, tab title is the board name while printing'
+    runs: 1
+  trial:
+    file: .proofs/the-printed-sheet-gets-browser-headers-and-no-margins.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T18:00:47.595'
+    commit: f18d5e1-dirty
+  fix:
+    file: .proofs/the-printed-sheet-gets-browser-headers-and-no-margins.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T18:08:35.267'
+    commit: f18d5e1-dirty
+- id: the-print-header-is-not-title-centred-date-right
+  type: bug
+  what: the sheet header runs name, date and scale together on the left; Peter wants the title centred
+    and the date on the right
+  spec: docs/specs/build-sheet-design.md
+  files:
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - node
+    - tests/browser/test_print_view.mjs
+    criterion: 'test_print_view check THE TITLE IS CENTRED AND THE DATE IS AT THE RIGHT passes: title
+      <=2 mm off centre, date right edge <=1 mm from the content edge'
+    runs: 1
+  trial:
+    file: .proofs/the-print-header-is-not-title-centred-date-right.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T18:00:57.083'
+    commit: f18d5e1-dirty
+  fix:
+    file: .proofs/the-print-header-is-not-title-centred-date-right.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T18:08:46.196'
+    commit: f18d5e1-dirty
+- id: the-printed-tables-are-full-width-and-padded
+  type: bug
+  what: the printed tables span the whole page with loose padding, so a small BOM is mostly whitespace,
+    and tables are stacked instead of sitting side by side
+  spec: docs/specs/build-sheet-design.md
+  files:
+  - public/app.js
+  - public/style.css
+  - src/render/print.js
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit
+      $((a || b))
+    criterion: 'test_print_layout NARROW TABLES PACK INTO ONE ROW and test_print_view TABLES ARE COMPACT,
+      SIDE BY SIDE, WITH A TICK BOX ON EVERY ROW, AND STILL ONE PAGE pass: BOM under 120 mm, BOM and cuts
+      side by side, tick box on every row, one PDF page'
+    runs: 1
+  trial:
+    file: .proofs/the-printed-tables-are-full-width-and-padded.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T18:01:06.666'
+    commit: f18d5e1-dirty
+  fix:
+    file: .proofs/the-printed-tables-are-full-width-and-padded.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T18:08:56.417'
+    commit: f18d5e1-dirty
+- id: both-views-stack-even-when-side-by-side-is-bigger
+  type: new
+  what: Both always stacks the top and bottom views, so a tall board prints small with the page's width
+    unused
+  spec: docs/specs/build-sheet-design.md
+  files:
+  - src/render/print.js
+  - public/app.js
+  - public/style.css
+  test:
+    command:
+    - bash
+    - -c
+    - node tests/render/test_print_layout.mjs; a=$?; node tests/browser/test_print_view.mjs; b=$?; exit
+      $((a || b))
+    criterion: test_print_layout A TALL BOARD PRINTS ITS TWO VIEWS SIDE BY SIDE, LARGER THAN STACKED and
+      test_print_view A TALL BOARD'S TWO VIEWS SIT SIDE BY SIDE pass
+    runs: 1
+  trial:
+    file: .proofs/both-views-stack-even-when-side-by-side-is-bigger.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-17T18:01:16.315'
+    commit: f18d5e1-dirty
+  fix:
+    file: .proofs/both-views-stack-even-when-side-by-side-is-bigger.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-17T18:09:06.284'
+    commit: f18d5e1-dirty
+- id: a-parts-ref-prints-over-another-parts-pad
+  type: bug
+  what: 'a part label goes half a pitch above its first pin, which is where the pad of the part above
+    it in the same column is: on the Yagi board L5, L6 and J2 each print over a neighbour''s pad, and
+    on paper there is no way to move it'
+  spec: docs/specs/labels-clear-of-pads.md
+  files:
+  - src/render/svg.js
+  test:
+    command:
+    - node
+    - tests/render/test_label_collisions.mjs
+    criterion: 'tests/render/test_label_collisions.mjs check NO LABEL PRINTS OVER ANOTHER PART''S PAD
+      passes: on the Yagi''s own arrangement of links either side of a gap in one column, no label box
+      overlaps a drawn pad that is not its own'
+    runs: 1
+  trial:
+    file: .proofs/a-parts-ref-prints-over-another-parts-pad.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-19T12:25:52.668'
+    commit: 37febfc-dirty
+  fix:
+    file: .proofs/a-parts-ref-prints-over-another-parts-pad.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-19T12:33:03.505'
+    commit: 37febfc-dirty
+- id: the-toolbar-clips-its-last-buttons-at-1280
+  type: bug
+  what: at 1280 px the toolbar needs 1426 px, so Components and More are past the bar's right edge; at
+    1152 Boards goes too. Fixing it at 1440 left the narrower widths alone
+  spec: docs/specs/toolbar-fits.md
+  files:
+  - public/style.css
+  - public/index.html
+  test:
+    command:
+    - node
+    - tests/browser/test_toolbar_fits.mjs
+    criterion: 'tests/browser/test_toolbar_fits.mjs passes at 1152, 1280, 1440 and 1600: with a long board
+      name no toolbar button lies past the bar''s right edge, and the More menu still holds Theme, Download,
+      Open, Restore and Export'
+    runs: 1
+  trial:
+    file: .proofs/the-toolbar-clips-its-last-buttons-at-1280.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-09-19T12:40:35.745'
+    commit: 07d0a59-dirty
+  fix:
+    file: .proofs/the-toolbar-clips-its-last-buttons-at-1280.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-09-19T12:43:40.348'
+    commit: 07d0a59-dirty
+- id: every-library-item-shows-the-stand-in-not-its-footprint
+  type: bug
+  what: 'every item in the Library drawer draws the same two-pad stand-in instead of its own footprint:
+    libraryThumb calls scrapProjectFor, which moved into component-editor.js in 47fa0e8, and its bare
+    catch turns the ReferenceError into the stand-in with nothing in the console'
+  spec: docs/specs/library-thumbnails-back.md
+  files:
+  - public/app.js
+  - public/component-editor.js
+  - src/model/scrap.js
+  test:
+    command:
+    - node
+    - tests/browser/test_library_layout.mjs
+    criterion: 'tests/browser/test_library_layout.mjs check A FOOTPRINT, NOT THE STAND-IN passes: no non-wire
+      item draws lib-stand-in, and more than five distinct footprint drawings appear in the drawer'
+    runs: 1
+  trial:
+    file: .proofs/every-library-item-shows-the-stand-in-not-its-footprint.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-10-11T00:45:18.119'
+    commit: 47fa0e8-dirty
+  fix:
+    file: .proofs/every-library-item-shows-the-stand-in-not-its-footprint.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-10-11T00:48:11.566'
+    commit: 47fa0e8-dirty

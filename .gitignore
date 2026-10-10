@@ -5,13 +5,11 @@ node_modules/
 data/
 .DS_Store
 
-# THE REGISTER AND ITS EVIDENCE STAY LOCAL. idiot.yaml is the working ledger of
-# every accusation in this repo, and .proofs/ is the captured output of each
-# trial and each fix — 295 files of test runs. They are how the work is governed
-# here, not part of the editor, and they quote whoever was in the room.
-idiot.yaml
-.proofs/
-
+# THE REGISTER STAYS IN. idiot.yaml is the ledger of every accusation in this
+# repo and .proofs/ is the captured red-then-green of each one, which is the
+# evidence that a fix was ever a fix. Peter: "leave the idiot and .proofs in the
+# repo."
+#
 # Nothing an agent leaves behind belongs in the repo either: instructions to a
 # coding assistant, its scratch notes, its handover. None of these exist here
 # yet; the rules are so none ever arrive by accident.

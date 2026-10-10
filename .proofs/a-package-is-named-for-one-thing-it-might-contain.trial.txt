@@ -1,0 +1,4 @@
+$ node tests/parts/test_sot23.mjs
+FAIL  A PACKAGE IS NAMED FOR ITS SHAPE, NOT FOR ONE THING IT MIGHT HOLD
+      sot23 names no function: "SOT-23 transistor": expected truthy, got falsy
+sot23: 9/10 checks passed

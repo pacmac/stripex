@@ -1,0 +1,2 @@
+$ node tests/model/test_owned_breaks.mjs
+owned-breaks: 17/17 checks passed

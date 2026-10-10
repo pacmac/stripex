@@ -1,0 +1,2 @@
+$ node tests/browser/test_toolbar_fits.mjs
+toolbar-fits: 5/5 checks passed

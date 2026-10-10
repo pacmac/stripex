@@ -1,0 +1,4 @@
+$ node tests/render/test_persist_and_escape.mjs
+FAIL  AND THE PALETTE IS TOLD, SO NOTHING IS LEFT LIT
+      setTool tells the palette: expected truthy, got falsy
+persist-and-escape: 6/7 checks passed

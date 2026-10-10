@@ -1,0 +1,2 @@
+$ node tests/model/test_usage_covered.mjs
+usage-covered: 2/2 checks passed

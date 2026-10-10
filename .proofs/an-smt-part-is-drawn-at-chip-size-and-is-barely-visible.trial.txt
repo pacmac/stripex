@@ -1,0 +1,8 @@
+$ node tests/parts/test_smt.mjs
+FAIL  THE LAND REACHES ACROSS BOTH THROUGH HOLES
+      1.6 mm reaches past both hole centres (2.54 mm apart): expected truthy, got falsy
+FAIL  AND IS A LITTLE NARROWER THAN THE COPPER STRIP
+      and fills most of it: 0.8 > 1.2: expected truthy, got falsy
+FAIL  the land is derived from the board, not from a size in the library
+      no lenMm: expected undefined, got 1.6
+smt: 13/16 checks passed

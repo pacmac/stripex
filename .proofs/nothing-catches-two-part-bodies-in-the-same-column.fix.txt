@@ -1,0 +1,2 @@
+$ node tests/net/test_body_overlap.mjs
+body-overlap: 3/3 checks passed

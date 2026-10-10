@@ -1,0 +1,12 @@
+$ node tests/render/test_net_selection.mjs
+FAIL  A NET SELECTION IS WHAT LIGHTS THE STRIPS
+      P.highlightFor is not a function
+FAIL  nothing else lights anything
+      P.highlightFor is not a function
+FAIL  an unrecognised kind lights nothing rather than throwing
+      P.highlightFor is not a function
+FAIL  A NET OPENS THE NETS TAB
+      a net: expected "nets", got null
+FAIL  the tab a net opens actually exists
+      nets is a real tab: expected truthy, got falsy
+net-selection: 5/10 checks passed

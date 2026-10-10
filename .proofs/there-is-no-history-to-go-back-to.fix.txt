@@ -1,0 +1,2 @@
+$ node tests/model/test_history.mjs
+history: 9/9 checks passed

@@ -1,0 +1,38 @@
+$ node tests/server/test_boards.mjs
+FAIL  A SLUG THAT ESCAPES THE DIRECTORY IS REFUSED
+      ".." refused, got undefined: expected truthy, got falsy
+FAIL  isSlug accepts what a board is actually called
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  SLUGFOR TURNS A NAME INTO A FILENAME
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  and refuses a name with nothing usable in it
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A BOARD WRITTEN COMES BACK IDENTICALLY
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the version changes when the board does
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  reading a board that is not there says so
+      named, not a crash: expected "no-such-board", got undefined
+FAIL  A STALE WRITE IS REFUSED AND CHANGES NOTHING
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  and the refusal hands back what is actually there
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a write with the current version succeeds
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  creating a board that already exists is refused
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  LISTING GIVES EVERY BOARD WITH ITS NAME
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  an empty or missing directory lists nothing rather than throwing
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a file that is not a board is left alone
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  RENAMING MOVES THE FILE AND TAKES THE NAME WITH IT
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  renaming onto an existing board is refused
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  renaming to the same name is not a clash with itself
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  remove takes the file away
+      module ../../src/server/boards.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/server/boards.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+boards: 1/19 checks passed

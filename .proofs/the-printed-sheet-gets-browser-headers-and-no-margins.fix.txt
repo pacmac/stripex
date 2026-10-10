@@ -1,0 +1,2 @@
+$ node tests/browser/test_print_view.mjs
+print-view: 6/6 checks passed

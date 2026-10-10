@@ -1,0 +1,20 @@
+$ node tests/model/test_resize.mjs
+FAIL  A BOARD THAT FITS IS RESIZED IN PLACE
+      O.setBoardSize is not a function
+FAIL  and the circuit it describes is unchanged by the resize
+      O.setBoardSize is not a function
+FAIL  IT IS REFUSED WHEN A PIN WOULD FALL OFF, AND NAMES IT
+      O.setBoardSize is not a function
+FAIL  and when a wire end would
+      O.setBoardSize is not a function
+FAIL  and when a cut would
+      O.setBoardSize is not a function
+FAIL  and when a net name would
+      O.setBoardSize is not a function
+FAIL  GROWING A BOARD IS NEVER REFUSED
+      O.setBoardSize is not a function
+FAIL  a size that is not a size is refused
+      O.setBoardSize is not a function
+FAIL  AND IT IS AN OP LIKE ANY OTHER
+      registered: setRules setPinNames adoptDevice addPart removePart movePart addWire removeWire addLink setBreak clearBreak setLabel: expected truthy, got falsy
+resize: 0/9 checks passed

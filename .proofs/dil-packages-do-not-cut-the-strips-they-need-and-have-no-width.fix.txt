@@ -1,0 +1,2 @@
+$ node tests/model/test_auto_breaks.mjs
+auto-breaks: 16/16 checks passed

@@ -1,0 +1,2 @@
+$ node tests/browser/test_draft_survives.mjs
+draft-survives: 3/3 checks passed

@@ -1,0 +1,2 @@
+$ node tests/server/test_live.mjs
+live: 7/7 checks passed

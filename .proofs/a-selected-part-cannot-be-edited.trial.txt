@@ -1,0 +1,46 @@
+$ node tests/model/test_edit.mjs
+FAIL  a DIL offers width, a resistor does not
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a fixed-geometry part offers no span
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  every part offers ref, value, rotation and position
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the ref can be changed
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the value can be changed, and cleared
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the span can be changed
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A DIP-14 CAN BE MADE A DIP-16 WITHOUT REPLACING IT
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A 0.3 INCH PACKAGE CAN BE MADE 0.6 INCH
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the position can be typed
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  ROTATION FROM THE PANEL TURNS THE PART IN PLACE
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  setting the rotation it already has changes nothing
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a span below the minimum is refused
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a non-integer span is refused
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a width below the minimum is refused
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a rotation that is not a quarter turn is refused
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  an empty ref is refused
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a non-integer position is refused
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A FIELD THE PART DOES NOT HAVE IS REFUSED
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  an unknown field is refused
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the refusal says what was wrong
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  editing never mutates the placement it was given
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a duplicate ref is allowed through, to be reported not prevented
+      module ../../src/model/edit.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/edit.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+edit: 0/22 checks passed

@@ -1,0 +1,32 @@
+$ node tests/render/test_colours.mjs
+FAIL  THE CODE IS THE STANDARD ONE, BLACK THROUGH WHITE
+      ten colours: expected 10, got 0
+FAIL  W1 IS BROWN AND W9 IS WHITE
+      module ../../src/render/colours.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/colours.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  THE LAST DIGIT NAMES THE COLOUR, SO IT WRAPS AT TEN
+      module ../../src/render/colours.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/colours.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  an explicit colour on the wire wins
+      module ../../src/render/colours.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/colours.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a ref with no number still gets a colour rather than nothing
+      module ../../src/render/colours.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/colours.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  each wire is drawn in its own code colour
+      Cannot read properties of undefined (reading 'hex')
+FAIL  EVERY WIRE HAS A CASING, SO BLACK AND WHITE BOTH SURVIVE
+      light: one casing per wire: expected 2, got 0
+FAIL  an overridden wire colour reaches the drawing
+      stroke: expected "#ff00ff", got "#1f6feb"
+FAIL  A PART'S SILK COLOUR REACHES ITS BODY
+      body stroke: expected "#00a0a0", got "#26303d"
+FAIL  A ROW CUT ONCE DRAWS ITS TWO HALVES DIFFERENTLY
+      and they differ: expected truthy, got falsy
+FAIL  three segments alternate rather than drifting
+      and the middle one differs: expected truthy, got falsy
+FAIL  the difference is a hint, not a stripe
+      module ../../src/render/colours.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/colours.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  ESCAPE ARMS THE SELECT TOOL
+      the tool Escape returns to: expected "select", got undefined
+FAIL  silk is an editable field on a part
+      resistor offers silk: expected truthy, got falsy
+FAIL  a library default sits between the placement and the theme
+      module ../../src/render/colours.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/render/colours.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+colours: 5/20 checks passed

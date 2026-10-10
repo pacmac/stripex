@@ -1,0 +1,6 @@
+$ node tests/net/test_hole_breaks.mjs
+FAIL  A SPOT-FACE MARK IS NARROWER THAN THE HOLE PITCH
+      2.84 mm across on a 2.54 mm pitch: expected truthy, got falsy
+FAIL  two on adjacent holes do not touch
+      -0.30 mm of daylight between them: expected truthy, got falsy
+hole-breaks: 16/18 checks passed

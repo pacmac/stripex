@@ -1,0 +1,2 @@
+$ node tests/model/test_edit.mjs
+edit: 22/22 checks passed

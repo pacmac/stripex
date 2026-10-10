@@ -1,0 +1,4 @@
+$ node tests/model/test_headless_build.mjs
+FAIL  THE EDITOR MUTATES NOTHING ITSELF
+      public/app.js edits the project directly: assignment to state.project.<list>, assignment into state.project.<list>[], setNetLabel called directly: expected [], got ["assignment to state.project.<list>","assignment into state.project.<list>[]","setNetLabel called directly"]
+headless-build: 4/5 checks passed

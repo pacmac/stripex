@@ -1,0 +1,2 @@
+$ node tests/render/test_status_line.mjs
+status-line: 4/4 checks passed

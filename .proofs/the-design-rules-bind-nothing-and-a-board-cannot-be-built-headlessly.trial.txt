@@ -1,0 +1,30 @@
+$ sh -c node tests/model/test_rules.mjs && node tests/model/test_ops.mjs
+FAIL  A BOARD WITHOUT RULES GETS THE DEFAULTS
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  and a board carrying its own keeps them
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  NET CLASS COMES FROM THE NAME
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  and an unnamed net is a signal
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  the patterns are part of the rule set, not the code
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A PEN WIRE ENDING ON A PIN IS A FINDING
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  and a pen wire between two free holes is not
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A PEN WIRE ON A POWER NET IS A FINDING
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  a pen wire between two signal nets is fine
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A DIAGONAL LINK IS A FINDING
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  and the links on a real board are not
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  A CLEAN BOARD PRODUCES NOTHING
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  and a rule switched off stops reporting
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+FAIL  findings are shaped like the DRC’s
+      module ../../src/model/rules.js could not be imported: Cannot find module '/usr/share/pac/dev/projects/stripex/src/model/rules.js' imported from /usr/share/pac/dev/projects/stripex/tests/run.mjs
+rules: 0/14 checks passed
