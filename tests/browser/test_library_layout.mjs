@@ -138,6 +138,33 @@ s.check('EVERY ITEM SHOWS ITS FOOTPRINT, IN BOTH VIEWS', async () => {
   eq(r.tiles.missing, [], 'tiles: every item has a footprint');
 });
 
+s.check('A FOOTPRINT, NOT THE STAND-IN: THE THUMBNAILS ARE NOT ALL THE SAME PICTURE', async () => {
+  // An <svg> being present is not a footprint being drawn. libraryThumb falls
+  // back to one stand-in icon and swallows the reason, so when the scrap-board
+  // helper moved out from under it every item in the drawer became the same
+  // two-pad picture and this file still passed. Peter: "the images for the
+  // library items in the left drawer are not displaying".
+  needBrowser();
+  const r = await onScreen(async (page) => page.evaluate(({ ITEMS, WIRE_ONLY }) => {
+    const els = [...document.querySelectorAll(ITEMS)];
+    const shapes = new Set();
+    const standIns = [];
+    for (const e of els) {
+      const svg = e.querySelector('svg');
+      if (!svg) continue;
+      const id = e.dataset.part ?? e.dataset.device;
+      if (svg.classList.contains('lib-stand-in')) {
+        if (!WIRE_ONLY.includes(id)) standIns.push(id);
+        continue;
+      }
+      shapes.add(svg.innerHTML);
+    }
+    return { standIns, distinct: shapes.size, drawn: els.length };
+  }, { ITEMS, WIRE_ONLY }));
+  eq(r.standIns, [], 'only a wire has no footprint of its own');
+  ok(r.distinct > 5, `the footprints differ from each other: ${r.distinct} distinct drawings`);
+});
+
 s.check('A DEVICE AND A PART ARE LAID OUT THE SAME WAY', async () => {
   // The XIAO and the TMC2209 fell through to the default bordered, centred
   // button because the item style only named button[data-part].

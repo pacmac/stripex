@@ -4656,3 +4656,34 @@
     failures: 0
     at: '2026-09-19T12:43:40.348'
     commit: 07d0a59-dirty
+- id: every-library-item-shows-the-stand-in-not-its-footprint
+  type: bug
+  what: 'every item in the Library drawer draws the same two-pad stand-in instead of its own footprint:
+    libraryThumb calls scrapProjectFor, which moved into component-editor.js in 47fa0e8, and its bare
+    catch turns the ReferenceError into the stand-in with nothing in the console'
+  spec: docs/specs/library-thumbnails-back.md
+  files:
+  - public/app.js
+  - public/component-editor.js
+  - src/model/scrap.js
+  test:
+    command:
+    - node
+    - tests/browser/test_library_layout.mjs
+    criterion: 'tests/browser/test_library_layout.mjs check A FOOTPRINT, NOT THE STAND-IN passes: no non-wire
+      item draws lib-stand-in, and more than five distinct footprint drawings appear in the drawer'
+    runs: 1
+  trial:
+    file: .proofs/every-library-item-shows-the-stand-in-not-its-footprint.trial.txt
+    exit: 1
+    runs: 1
+    failures: 1
+    at: '2026-10-11T00:45:18.119'
+    commit: 47fa0e8-dirty
+  fix:
+    file: .proofs/every-library-item-shows-the-stand-in-not-its-footprint.fix.txt
+    exit: 0
+    runs: 1
+    failures: 0
+    at: '2026-10-11T00:48:11.566'
+    commit: 47fa0e8-dirty

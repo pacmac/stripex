@@ -15,8 +15,8 @@
 // of helpers passed to initComponentEditor. See architecture-for-netlist.md.
 
 import { renderBoard, DEFAULT_LAYERS } from '/src/render/svg.js';
-import { makeProject } from '/src/model/board.js';
 import { resolvePins } from '/src/model/rotate.js';
+import { scrapProjectFor } from '/src/model/scrap.js';
 import { partList, getPart, defaultRotOf, sideOf, CATEGORIES } from '/src/parts/library.js';
 import { installDevices } from '/src/parts/devices.js';
 import { PITCH_MM } from '/src/model/geometry.js';
@@ -271,24 +271,8 @@ const capitalise = (s) => String(s ?? '').charAt(0).toUpperCase() + String(s ?? 
 // the package itself declares, which is what makes this a stripboard footprint
 // rather than a generic one.
 //
-// A SCRAP OF BOARD FOR ONE PART: the pins' own block plus one strip all round,
-// with the placement shifted onto it. Shared by this preview and the Library's
-// footprints, so the two can never disagree about how a part is framed.
-//
-// Built, not mutated: the caller's placement is copied, and the project never
-// leaves the caller.
-function scrapProjectFor(placement) {
-  const pl = { ...placement, at: { col: 1, row: 1 } };
-  const at1 = resolvePins([pl], getPart);
-  const cs = at1.map((q) => q.col);
-  const rs = at1.map((q) => q.row);
-  // Shift so the top-left pin lands one strip in from the corner, then make the
-  // board that block plus the same strip on the far side.
-  pl.at = { col: 1 + (1 - Math.min(...cs)), row: 1 + (1 - Math.min(...rs)) };
-  const cols = Math.max(...cs) - Math.min(...cs) + 3;
-  const rows = Math.max(...rs) - Math.min(...rs) + 3;
-  return { ...makeProject({ cols, rows, name: 'preview' }), placements: [pl] };
-}
+// The scrap of board a single part is framed on is src/model/scrap.js, shared
+// with the Library's footprints so the two cannot disagree.
 
 function paintDevicePreview() {
   const el = $('#devDrawing');

@@ -19,6 +19,9 @@ import { PITCH_MM } from '/src/model/geometry.js';
 import { findingsFor, netsFor, runList, bomFor } from '/src/model/views.js';
 import { makeProject, validateProject, nextWireRef, nextPartRef } from '/src/model/board.js';
 import { rotatePlacement, resolvePins } from '/src/model/rotate.js';
+// The scrap of board one part is framed on, shared with the component editor's
+// preview so the Library's footprints cannot disagree with it.
+import { scrapProjectFor } from '/src/model/scrap.js';
 import { requiredBreaks, ownerOf, effectiveBreaks } from '/src/model/breaks.js';
 import { cursorFor } from '/src/render/cursors.js';
 import {
@@ -1738,7 +1741,14 @@ function libraryThumb(item) {
         .replace(/ data-[a-z-]+="[^"]*"/g, '')
         .replace('<svg ', '<svg aria-hidden="true" focusable="false" ');
     }
-  } catch { svg = ''; }
+  } catch (e) {
+    // SAY WHAT COULD NOT BE DRAWN. This catch used to be bare, and when the
+    // scrap-board helper moved out from under it every item in the drawer
+    // quietly became the stand-in — a wrong picture, no console, nothing to
+    // read. See docs/specs/library-thumbnails-back.md.
+    svg = '';
+    console.error(`stripex: no footprint drawn for ${item.id}:`, e);
+  }
 
   // Point to point has no footprint: it is drawn between two holes you choose.
   // A stand-in says that rather than leaving a blank.
